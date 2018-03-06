@@ -47,11 +47,8 @@ class ACEdata:
                                 delimiter=delim,
                                 index_col=None)
         
-        # if self.name is 'wave':
-        #   print(self.name)
-        #    datatable.rename(index=str, columns={"HS_w": "Hs_w", "Tp_W": "Tp_w", "phase_vel_W": "phase_vel_w"}, inplace=True)
+        datatable.columns = [x.lower() for x in datatable.columns]
 
-        
         print('loaded from ' + fullfolder)
         return datatable
 
@@ -78,7 +75,7 @@ class ACEdata:
                 return timedelta(0)
 
         if self.name is 'aerosol':
-            self.datatable['t_series_aerosol'] = (self.datatable['Date'] + ' ' + self.datatable['time'])
+            self.datatable['t_series_aerosol'] = (self.datatable['date'] + ' ' + self.datatable['time'])
             datetime_object = [datetime.strptime(str(date), '%d.%m.%y %H:%M:%S') for date in
                                self.datatable['t_series_aerosol']]
         elif self.name is 'wave':
