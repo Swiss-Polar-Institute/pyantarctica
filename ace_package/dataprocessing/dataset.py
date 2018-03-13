@@ -100,6 +100,34 @@ class ACEdata:
         self.datatable[new_column_name] = pd.DataFrame(timestamp)
 
 
+def ts_aggregate_timebins(df1, time_bin, operations):
+    """
+        Outer merge of two datatables based on a common resampling of time intervals: 
+            INPUTS
+                - df1      : DataFrames indexed by time
+                - time_bin : Aggregation bin, in seconds
+                - strategy : {'col': {'colname_min': np.min ...
+                    dictionary of (possibly multiple) data aggregation strategies. New columns will have
+                    corresponding subscript. df1 and df2 should be the input variable names
+            OUTPUT
+                - resampled dataframe with uninterupted datetime index
+            EXAMPLE 
+                
+            operations = {'min': np.min , 'mean': np.mean, 'max': np.max,'sum': np.sum}
+            df_res = dataset.ts_aggregate_timebins(df1, 15*60, operations)
+            print(df_res.head())
+    """
+    
+    res_ = str(time_bin) + 'S'
+    
+    df1_d = dict.fromkeys(df1.columns,[])
+    for keys in df1_d:
+        df1_d[keys]= {keys + '_' + op : operations[op] for op in operations}
+    
+    out = df1.resample(res_).agg(df1_d)
+    out.columns = out.columns.droplevel(level=0)
+    return out
+
 def feature_expand(table, trans):
 
     table_new = pd.DataFrame()
