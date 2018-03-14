@@ -20,15 +20,26 @@ class ACEdata:
         self.name = name
     
         # Lines are NOT 0-indexed
-        if self.name is 'wave':
-            self.dataname = 'waveData_Toffoli_all'
+        if self.name is 'wave_old':
+            self.dataname = 'waveData_Toffoli_all' 
             extension = '.txt'
             column_head = 23
             body = 24
             nantype = 'nan'
             ncols = 12
             delimiter = '\t'
+            self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension 
 
+        elif self.name is 'wave':
+            self.dataname = 'wavedata-14.03-fromMat'
+            extension = '.csv'
+            column_head = 1
+            body = 2
+            nantype = 'NaN'
+            ncols = 13
+            delimiter = ','
+            self.fullfolder = self.data_folder + self.intermediate_folder + '/' + self.dataname + extension 
+            
         elif self.name is 'aerosol':
             self.dataname = 'AerosolData_Schmale_all'
             extension = '.txt'
@@ -36,16 +47,17 @@ class ACEdata:
             body = 12#146
             nantype = ''
             delimiter = '\s+'
-           
+            self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension 
+
         else:
             print('dataset not handled yet: must be ''wave'' or ''aerosol''')
 
-        self.datatable = self.load(extension, column_head, body, delimiter, nantype)
+        self.datatable = self.load(column_head, body, delimiter, nantype)
 
-    def load(self, ext, column_head, body, delim, nantype):
+    def load(self, column_head, body, delim, nantype):
         """Load and sets data object named 'dataset' """
-        fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + ext
-        datatable = pd.read_table(fullfolder, skip_blank_lines=False, header=column_head-1,
+        # fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + ext
+        datatable = pd.read_table(self.fullfolder, skip_blank_lines=False, header=column_head-1,
                                 skiprows=range(column_head,body-1), na_values=nantype, 
                                 delimiter=delim, index_col=False)
         
@@ -59,7 +71,10 @@ class ACEdata:
             datatable.loc[inds, 'num_conc'] = np.nan
             datatable['num_conc'] = pd.to_numeric(datatable['num_conc'])
             
-        print(self.dataname + ext + ' loaded from ' + self.data_folder + self.raw_folder)
+        if self.name is 'wave':
+            datatable.rename(columns={"date": "t_series_waves"}, inplace=True)
+            
+        print('Data successfully loaded from ' + self.fullfolder)
         
         return datatable
 
@@ -90,8 +105,11 @@ class ACEdata:
             self.datatable['t_series_aerosol'] = (self.datatable['date'] + ' ' + self.datatable['time'])
             datetime_object = [datetime.strptime(str(date), '%d.%m.%Y %H:%M:%S') for date in
                                self.datatable['t_series_aerosol']]
-        elif self.name is 'wave':
+        elif self.name is 'wave_old':
             datetime_object = [datetime.strptime(str(date), '%d.%m.%Y %H:%M') for date in
+                               self.datatable['t_series_waves']]
+        elif self.name is 'wave':
+            datetime_object = [datetime.strptime(str(date), '%d-%b-%Y %H:%M:%S') for date in
                                self.datatable['t_series_waves']]
 
         datetime_obj = [date_.replace(tzinfo=UTC()) for date_ in datetime_object]
@@ -99,7 +117,23 @@ class ACEdata:
 
         self.datatable[new_column_name] = pd.DataFrame(timestamp)
 
+# -------------------------
 
+def add_legs_index(df, codes, leg_dates):
+    """Add a column to the datatable specifying the cruise leg"""
+    assert len(codes) == len(leg_dates), "To each date interval must correspond only one code"
+        
+    df['leg'] = pd.Series()
+        
+    c = 0
+    while c < len(codes):
+        df.loc[leg_dates[c][0]:leg_dates[c][1], 'leg'] = codes[c]
+        c += 1
+        
+    df.loc[df['leg'].isnull(), 'leg'] = 0
+    return df
+
+        
 def ts_aggregate_timebins(df1, time_bin, operations):
     """
         Outer merge of two datatables based on a common resampling of time intervals: 
@@ -122,7 +156,7 @@ def ts_aggregate_timebins(df1, time_bin, operations):
     
     df1_d = dict.fromkeys(df1.columns,[])
     for keys in df1_d:
-        df1_d[keys]= {keys + '_' + op : operations[op] for op in operations}
+        df1_d[keys]= {keys + op : operations[op] for op in operations}
     
     out = df1.resample(res_).agg(df1_d)
     out.columns = out.columns.droplevel(level=0)
