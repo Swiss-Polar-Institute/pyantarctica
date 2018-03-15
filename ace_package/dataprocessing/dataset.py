@@ -105,24 +105,43 @@ class ACEdata:
             self.datatable['t_series_aerosol'] = (self.datatable['date'] + ' ' + self.datatable['time'])
             datetime_object = [datetime.strptime(str(date), '%d.%m.%Y %H:%M:%S') for date in
                                self.datatable['t_series_aerosol']]
+            self.datatable.drop(['date'], axis=1, inplace=True)
+            self.datatable.drop(['time'], axis=1, inplace=True)
+            self.datatable.drop(['t_series_aerosol'], axis=1, inplace=True)
+            
         elif self.name is 'wave_old':
             datetime_object = [datetime.strptime(str(date), '%d.%m.%Y %H:%M') for date in
                                self.datatable['t_series_waves']]
+            self.datatable.drop(['t_series_waves'], axis=1, inplace=True)
+
         elif self.name is 'wave':
             datetime_object = [datetime.strptime(str(date), '%d-%b-%Y %H:%M:%S') for date in
                                self.datatable['t_series_waves']]
+            self.datatable.drop(['t_series_waves'], axis=1, inplace=True)
+
 
         datetime_obj = [date_.replace(tzinfo=UTC()) for date_ in datetime_object]
         timestamp = [timegm(date_.timetuple()) for date_ in datetime_obj]
 
         self.datatable[new_column_name] = pd.DataFrame(timestamp)
+    
+    def set_datetime_index(self): 
+        
+        self.convert_time_to_unixts('temp_ts')
+        self.datatable['temp_ts'] = pd.to_datetime(self.datatable['temp_ts'], unit='s')
+        self.datatable.set_index(pd.DatetimeIndex(self.datatable['temp_ts']), inplace=True)
+        self.datatable.drop(['temp_ts'], axis=1, inplace=True)
 
 # -------------------------
 
 def add_legs_index(df, codes, leg_dates):
     """Add a column to the datatable specifying the cruise leg"""
     assert len(codes) == len(leg_dates), "To each date interval must correspond only one code"
-        
+    
+    if 'leg' in df: 
+        print('leg column already there')
+        return
+    
     df['leg'] = pd.Series()
         
     c = 0
