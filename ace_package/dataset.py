@@ -134,7 +134,20 @@ class ACEdata:
 
 # -------------------------
 
-def add_legs_index(df, codes, leg_dates):
+def add_legs_index(df, **kwargs):
+    
+    if 'leg_dates' not in kwargs:
+        leg_dates = [['2016-12-20', '2017-01-21'], # leg 1
+                    ['2017-01-22', '2017-02-25'],  # leg 2
+                    ['2017-02-26', '2017-03-19']]  # leg 3
+    else: 
+        leg_dates = kwargs['leg_dates']
+            
+    if 'codes' not in kwargs:
+        codes = [1, 2, 3]
+    else:
+        codes = kwargs['codes']
+    
     """Add a column to the datatable specifying the cruise leg"""
     assert len(codes) == len(leg_dates), "To each date interval must correspond only one code"
     
@@ -151,7 +164,6 @@ def add_legs_index(df, codes, leg_dates):
         
     df.loc[df['leg'].isnull(), 'leg'] = 0
     return df
-
         
 def ts_aggregate_timebins(df1, time_bin, operations):
     """
@@ -195,14 +207,6 @@ def feature_expand(table, trans):
                 table_new[col + '_cube'] = table[col]**3
 
     return table_new
-
-
-
-
-
-
-
-
 
 
 
