@@ -48,7 +48,25 @@ class ACEdata:
             nantype = ''
             delimiter = '\s+'
             self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension 
-
+        
+        elif self.name is 'windspeed_metstation':
+            self.dataname = 'windspeed_metstation'
+            extension = '.csv'
+            column_head = 5 
+            body = 6
+            nantype = ''
+            delimiter = ';'
+            self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension 
+         
+        elif self.name is 'windspeed_metstation_corrected':
+            self.dataname = 'windspeed_metstation_corrected'
+            extension = '.csv'
+            column_head = 1
+            body = 2
+            nantype = ''
+            delimiter = ','
+            self.fullfolder = self.data_folder + self.intermediate_folder + '/' + self.dataname + extension 
+            
         else:
             print('dataset not handled yet: must be ''wave'' or ''aerosol''')
 
@@ -71,9 +89,12 @@ class ACEdata:
             datatable.loc[inds, 'num_conc'] = np.nan
             datatable['num_conc'] = pd.to_numeric(datatable['num_conc'])
             
-        if self.name is 'wave':
+        elif self.name is 'wave':
             datatable.rename(columns={"date": "t_series_waves"}, inplace=True)
-            
+        
+        elif self.name is 'windspeed_metstation':
+            datatable.rename(columns={"windspeed (m/s)": "wind_metsta"}, inplace=True)
+
         print('Data successfully loaded from ' + self.fullfolder)
         
         return datatable
@@ -100,7 +121,6 @@ class ACEdata:
             def dst(self, dt):
                 return timedelta(0)
 
-            
         if self.name is 'aerosol':
             self.datatable['t_series_aerosol'] = (self.datatable['date'] + ' ' + self.datatable['time'])
             datetime_object = [datetime.strptime(str(date), '%d.%m.%Y %H:%M:%S') for date in
@@ -118,7 +138,17 @@ class ACEdata:
             datetime_object = [datetime.strptime(str(date), '%d-%b-%Y %H:%M:%S') for date in
                                self.datatable['t_series_waves']]
             self.datatable.drop(['t_series_waves'], axis=1, inplace=True)
-
+        
+        elif self.name is 'windspeed_metstation':
+            datetime_object = [datetime.strptime(str(date), '%d.%m.%Y %H:%M') for date in
+                               self.datatable['time_5min']]
+            self.datatable.drop(['time_5min'], axis=1, inplace=True)
+            
+        elif self.name is 'windspeed_metstation_corrected':
+            datetime_object = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S') for date in
+                               self.datatable['timestamp']]
+            self.datatable.drop(['timestamp'], axis=1, inplace=True)
+            
 
         datetime_obj = [date_.replace(tzinfo=UTC()) for date_ in datetime_object]
         timestamp = [timegm(date_.timetuple()) for date_ in datetime_obj]
@@ -126,11 +156,10 @@ class ACEdata:
         self.datatable[new_column_name] = pd.DataFrame(timestamp)
     
     def set_datetime_index(self): 
-        
-        self.convert_time_to_unixts('temp_ts')
-        self.datatable['temp_ts'] = pd.to_datetime(self.datatable['temp_ts'], unit='s')
-        self.datatable.set_index(pd.DatetimeIndex(self.datatable['temp_ts']), inplace=True)
-        self.datatable.drop(['temp_ts'], axis=1, inplace=True)
+        self.convert_time_to_unixts('timest_')
+        self.datatable['timest_'] = pd.to_datetime(self.datatable['timest_'], unit='s')
+        self.datatable.set_index(pd.DatetimeIndex(self.datatable['timest_']), inplace=True)
+        self.datatable.drop(['timest_'], axis=1, inplace=True)
 
 # -------------------------
 
