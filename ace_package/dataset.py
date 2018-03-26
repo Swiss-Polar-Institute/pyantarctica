@@ -14,17 +14,18 @@ class ACEdata:
     raw_folder = 'raw'
     processed_folder = 'processed'
     intermediate_folder = 'intermediate'
-
+    
     def __init__(self, name, data_folder='./data/'):
         self.data_folder = data_folder + '/'
         self.name = name
     
-        # Lines are NOT 0-indexed
+        col_name = None
+        # row reading is 0-indexed (0 = row number 1)
         if self.name is 'wave_old':
             self.dataname = 'waveData_Toffoli_all' 
             extension = '.txt'
-            column_head = 23
-            body = 24
+            column_head = 22
+            body = 23
             nantype = 'nan'
             ncols = 12
             delimiter = '\t'
@@ -33,8 +34,8 @@ class ACEdata:
         elif self.name is 'wave':
             self.dataname = 'wavedata-14.03-fromMat'
             extension = '.csv'
-            column_head = 1
-            body = 2
+            column_head = 0
+            body = 1
             nantype = 'NaN'
             ncols = 13
             delimiter = ','
@@ -43,8 +44,8 @@ class ACEdata:
         elif self.name is 'aerosol':
             self.dataname = 'AerosolData_Schmale_all'
             extension = '.txt'
-            column_head = 11 
-            body = 12#146
+            column_head = 10
+            body = 11#146
             nantype = ''
             delimiter = '\s+'
             self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension 
@@ -52,8 +53,8 @@ class ACEdata:
         elif self.name is 'windspeed_metstation':
             self.dataname = 'windspeed_metstation'
             extension = '.csv'
-            column_head = 5 
-            body = 6
+            column_head = 4
+            body = 5
             nantype = ''
             delimiter = ';'
             self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension 
@@ -61,25 +62,54 @@ class ACEdata:
         elif self.name is 'windspeed_metstation_corrected':
             self.dataname = 'windspeed_metstation_corrected'
             extension = '.csv'
-            column_head = 1
-            body = 2
+            column_head = 0
+            body = 1
             nantype = ''
             delimiter = ','
-            self.fullfolder = self.data_folder + self.intermediate_folder + '/' + self.dataname + extension 
-            
+            self.fullfolder = self.data_folder + self.intermediate_folder + '/' + self.dataname + extension
+
+        elif self.name is 'particle_size_distribution':
+            #self.dataname = '03_smallparticlesizedistribution'
+            #extension = '.csv'
+            #column_head = 6
+            #body = 7
+            #col_name=[str(x) for x in range(1,101,1)]
+            #nantype = ''
+            #delimiter = '\t'
+            #self.fullfolder = self.data_folder + self.intermediate_folder + '/' + self.dataname + extension
+            self.dataname = '03_smallparticlesizedistriubtion'
+            extension = '.txt'
+            column_head = None
+            body = 6
+            col_name=[str(x) for x in range(1,101,1)]
+            nantype = ''
+            delimiter = '\t'
+            self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension
+
         else:
-            print('dataset not handled yet: must be ''wave'' or ''aerosol''')
+            print('dataset not handled yet.')
 
-        self.datatable = self.load(column_head, body, delimiter, nantype)
+            
+        self.datatable = self.load(column_head, body, delimiter, nantype, col_name)
 
-    def load(self, column_head, body, delim, nantype):
+    def load(self, column_head, body, delim, nantype, nam=None):
         """Load and sets data object named 'dataset' """
         # fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + ext
-        datatable = pd.read_table(self.fullfolder, skip_blank_lines=False, header=column_head-1,
-                                skiprows=range(column_head,body-1), na_values=nantype, 
-                                delimiter=delim, index_col=False)
+            
+        if column_head is None: 
+            skipr=range(0,body)
+        else:
+            skipr=range(column_head+1,body)
+                
+            
+        datatable = pd.read_table(self.fullfolder, skip_blank_lines=False, header=column_head,
+                                na_values=nantype, 
+                                delimiter=delim,
+                                skiprows=skipr, 
+                                index_col=False,
+                                names=nam) # 
         
-        datatable.columns = [x.lower() for x in datatable.columns]
+        datatable.columns = [str(x).lower() for x in datatable.columns.tolist()]
 
         if self.name is 'aerosol':
             print('fixing columns...')
@@ -120,6 +150,9 @@ class ACEdata:
 
             def dst(self, dt):
                 return timedelta(0)
+         
+        print(self.datatable.columns.tolist())
+        # print(self.datatable.head())
 
         if self.name is 'aerosol':
             self.datatable['t_series_aerosol'] = (self.datatable['date'] + ' ' + self.datatable['time'])
