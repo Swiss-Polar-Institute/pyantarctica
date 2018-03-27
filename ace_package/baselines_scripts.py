@@ -1,0 +1,237 @@
+import pandas as pd
+import numpy as np
+import pickle
+import os
+
+from datetime import datetime 
+from math import ceil
+
+import ace_package.dataset as dataset 
+from ace_package.modeling import plot_predicted_timeseries
+
+import sklearn as sk
+from sklearn import preprocessing
+from sklearn.utils import shuffle
+from sklearn.metrics import make_scorer, mean_squared_error, r2_score
+from sklearn.linear_model import RidgeCV, LassoCV
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.gaussian_process.kernels import DotProduct, RBF, WhiteKernel
+from sklearn.model_selection import GridSearchCV
+
+def save_obj(obj, fname):
+    with open(fname + '.pkl', 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+
+# savefolder = './outputs/20180321_results+presentation_meeting/baseline_parameters/baseline_all_parameters_leg_1'
+# savefolder = './outputs/20180321_results+presentation_meeting/baseline_parameters/baseline_reduced_set_params_all_legs'
+#savefolder = 'outputs/20180327_aftereaster_results+presentation/baseline_parameters/'
+#savename = 'baselines_wamos_wind'
+
+# if not os.path.isdir(savefolder):
+#    os.mkdir(savefolder)
+
+# if os.path.exists(savefolder + savename): 
+#    print("file exists, overwriting")
+    
+# Load and add datetime index
+# wind = dataset.ACEdata('windspeed_metstation_corrected')
+# wind.set_datetime_index()
+# wind = wind.datatable
+
+# wave = dataset.ACEdata('wave', data_folder='./data')
+# wave.set_datetime_index()
+# wave = wave.datatable
+
+# wave['wind'] = wind['wind_fused']
+
+# aerosol = dataset.ACEdata('aerosol', data_folder='./data')
+# aerosol.set_datetime_index()
+# aerosol = aerosol.datatable
+
+# time_bin = 5*60 # 300s max resolution
+# operations = {'_min': np.min , '_mean': np.mean, '_max': np.max,'_sum': np.sum}
+# operations = {'': np.mean} # empty string replaces the column, does not create a new one
+
+# wave = dataset.ts_aggregate_timebins(wave, time_bin, operations)
+
+
+# Merge separate DF into single dataframe "data"
+# data = pd.merge(wave, aerosol, how='outer', left_index=True, right_index=True)
+# data = dataset.add_legs_index(data) # data = add_legs_index(data, leg_dates=... , codes=[1, 2, 3])
+# print('legs IDs: ' + str(data.leg.unique()))
+
+# data.drop(['wind_d','age_flag', 'age_w_flag'], axis=1, inplace=True)
+# data['age'] = data['phase_vel'] / (1E-6 + data['wind'])
+# data['age_w'] = data['phase_vel_w'] / (1E-6 + data['wind'])
+
+# data['age'] = 1/data['age']
+# data['age_w'] = 1/data['age_w']
+
+# print(data.head())
+
+# summ = {}
+# SEP_METHOD = ['random', 'time']#, 'time'] # sep_method iterator
+# LEG_P = [1] # ,2,3] # leg iterator
+# SEA = ['total']#, 'wind']#, 'wind'] # sea iterator
+# NUM_REP = 1
+# VARSET = ['full', 'reduced'] # 'full', 'nowind'
+# METHODS = ['RidgeReg']#, 'PLS', 'LASSO', 'linGPR', 'rbfGPR']
+
+# normalize_y = False
+
+def run_baselines(data, **kwargs):
+    
+    SEP_METHOD = kwargs['SEP_METHOD']
+    SEA = kwargs['SEA']
+    NUM_REP = kwargs['NUM_REP']
+    LEG_P = kwargs['LEG_P']
+    VARSET = kwargs['VARSET']
+    METHODS = kwargs['METHODS']
+    NORMALIZE_Y = kwargs['NORMALIZE_Y']
+    SAVEFOLDER = kwargs['SAVEFOLDER']
+    MODELNAME = kwargs['MODELNAME']
+    
+    if not os.path.isdir(SAVEFOLDER):
+        os.mkdir(SAVEFOLDER)
+
+    if os.path.exists(SAVEFOLDER + MODELNAME): 
+        print("file exists, overwriting")
+    
+    summ = {}
+    
+    for sep_method in SEP_METHOD: 
+        print(sep_method)
+        for leg in LEG_P: 
+            print(leg)
+            for sea in SEA: 
+                for varset in VARSET:
+                    for meth in METHODS:
+                        nre = 0
+                        while nre < NUM_REP:
+
+                            string_exp = sea + '_leg_' + str(leg) + '_' + sep_method + '_' + meth + '_' +  varset + '_' + str(nre)
+                            # print(string_exp)
+                            nre += 1 
+
+                            # if (varset.lower() == 'full' and leg != 1):
+                            #     continue
+
+
+                            if varset.lower() == 'full':
+                                cols_total = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind', 'num_conc']
+                                cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind', 'num_conc']
+                            elif varset.lower() == 'nowind': 
+                                cols_total = ['hs', 'tp', 'steep', 'phase_vel', 'num_conc']
+                                cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'num_conc']
+                            elif varset.lower() == 'reduced':
+                                cols_total = ['hs', 'tp', 'wind', 'num_conc']
+                                cols_wind  = ['hs_w', 'tp_w', 'wind', 'num_conc']
+
+                            if sea.lower() == 'total':
+                                leg_whole_ = data[cols_total].dropna().copy()
+                            # 'age', 'wind',
+                            elif sea.lower() == 'wind':
+                                leg_whole_ = data[cols_wind].dropna().copy()
+                            # 'age_w', 'wind',
+                            # leg_whole_ = leg_whole_[leg_whole_['wind'] < 20]
+
+                            s1, s2 = leg_whole_.shape
+
+                            separation=2.0/3    
+                            trn_size = ceil(s1*separation) #; print(trn_size, s1)
+
+                            if sep_method.lower() == 'time':
+                            #     print('training data until ' + str(separation) + ', then test.')
+                                trn = leg_whole_.iloc[:trn_size,:].copy()
+                                tst = leg_whole_.iloc[trn_size:,:].copy()
+
+                            elif sep_method.lower() == 'random': 
+                            #     print('training data random %f pc subset, rest test'%(separation*100))
+                                leg_whole_ = shuffle(leg_whole_)
+                                trn = leg_whole_.iloc[:trn_size,:].copy()
+                                tst = leg_whole_.iloc[trn_size:,:].copy()
+
+                            # Standardize data to 0 mean unit variance based on training statistics (stationarity)
+                            # ----------
+                            scalerX = preprocessing.StandardScaler().fit(trn.iloc[:,:-1])
+
+                            if NORMALIZE_Y: 
+                                scalerY = preprocessing.StandardScaler().fit(trn.iloc[:,-1].values.reshape(-1, 1))
+
+                            trn_ = pd.DataFrame(scalerX.transform(trn.iloc[:,:-1]), columns=trn.iloc[:,:-1].columns, index=trn.index)
+                            tst_ = pd.DataFrame(scalerX.transform(tst.iloc[:,:-1]), columns=tst.iloc[:,:-1].columns, index=tst.index)
+
+                            if NORMALIZE_Y: 
+                                scalerY = preprocessing.StandardScaler().fit(trn.iloc[:,-1].values.reshape(-1, 1))
+                                y_trn = scalerY.transform(trn.iloc[:,-1].values.reshape(-1, 1))
+                                y_tst = scalerY.transform(tst.iloc[:,-1].values.reshape(-1, 1))
+                            else: 
+                                y_trn = trn.iloc[:,-1]
+                                y_tst = tst.iloc[:,-1]
+
+                            trn = trn_; trn['num_conc'] = y_trn
+                            tst = tst_; tst['num_conc'] = y_tst
+
+                            # y_gt_scaled = pd.DataFrame(scaler.transform(leg_whole_), columns=leg_whole_.columns, index=leg_whole_.index)
+                            # y_gt_scaled = y_gt_scaled.iloc[:,-1]
+                            # ------------
+                            ######### 1 : Ridge Regression
+                            if meth.lower() == 'ridgereg':
+                                MSE_error = make_scorer(mean_squared_error, greater_is_better=False)
+                                regModel = RidgeCV(alphas=np.logspace(-6,6,13), fit_intercept=not NORMALIZE_Y, normalize=False, store_cv_values=False, gcv_mode='svd', cv=5, scoring=MSE_error)#.fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+                            elif meth.lower() == 'pls':
+                                n = 3
+                                regModel = PLSRegression(n_components=n, scale=False)#.fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+
+                            elif meth.lower() == 'lasso':
+                                regModel = LassoCV(alphas=np.logspace(-3,-1,3), n_alphas=200, fit_intercept=not NORMALIZE_Y, cv=5)#.fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+
+                            elif meth.lower() == 'lingpr':
+                                kernel = DotProduct(sigma_0=1,  sigma_0_bounds=(1e-05, 1e05)) + \
+                                     1.0 * WhiteKernel(noise_level=1e-3, noise_level_bounds=(1e-3, 1e+3))
+                                regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b', alpha=0, n_restarts_optimizer=5)
+                                #parameters = {'alpha': [0.0001, 0.001, 0.01, 0.1, 1], 'sigma_0':[0.01, 1, 10]}
+
+                            elif meth.lower() == 'rbfgpr':
+                                kernel = 1.0 * RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
+                                     1.0 * WhiteKernel(noise_level=1e-3, noise_level_bounds=(1e-3, 1e+3))
+                                regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b', alpha=0, n_restarts_optimizer=5)
+                            else: 
+                                print('method not implemented yet. Or check the spelling')
+                                break
+
+                            regModel.fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+
+                            y_ts_h = regModel.predict(tst.iloc[:,:-1])
+                            y_tr_h = regModel.predict(trn.iloc[:,:-1])
+
+                            if NORMALIZE_Y: 
+                                y_tr_h = scalerY.inverse_transform(y_tr_h)
+                                y_ts_h = scalerY.inverse_transform(y_ts_h)
+                                trn.iloc[:,-1] = scalerY.inverse_transform(trn.iloc[:,-1])
+                                tst.iloc[:,-1] = scalerY.inverse_transform(tst.iloc[:,-1])
+
+                            mse = np.sqrt(mean_squared_error(tst.iloc[:,-1], y_ts_h))
+                            r2 = r2_score(tst.iloc[:,-1], y_ts_h)
+
+                            # print(mse,r2)
+
+                            t_mse = np.sqrt(mean_squared_error(trn.iloc[:,-1], y_tr_h))
+                            t_r2 = r2_score(trn.iloc[:,-1], y_tr_h)
+
+                            if hasattr(regModel, 'alpha_') & hasattr(regModel, 'coef_'):
+                                summ[string_exp] = {'regularizer': regModel.alpha_, 'weights': regModel.coef_, 'tr_RMSE': t_mse, 
+                                          'tr_R2': t_r2, 'ts_RMSE': mse, 'ts_R2': r2}     
+                            elif hasattr(regModel, 'coef_') & ~hasattr(regModel, 'alpha_'):
+                                summ[string_exp] = {'weights': regModel.coef_, 'tr_RMSE': t_mse, 
+                                          'tr_R2': t_r2, 'ts_RMSE': mse, 'ts_R2': r2}
+                            else:
+                                summ[string_exp] = {'tr_RMSE': t_mse, 
+                                          'tr_R2': t_r2, 'ts_RMSE': mse, 'ts_R2': r2}
+
+                    
+                    
+    save_obj(summ, SAVEFOLDER + MODELNAME)
+    return summ

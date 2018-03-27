@@ -2,22 +2,9 @@ from setuptools import find_packages, setup
 
 install_requires = [req.strip() for req in "numpy, scipy, pandas, jupyter, seaborn, matplotlib".split(',')]
 
-tests_require = [
-    'check-manifest>=0.25',
-    'coverage>=4.0',
-    'isort>=4.2.2',
-    'pydocstyle>=1.0.0',
-    'pytest-cache>=1.0',
-    'pytest-cov>=1.8.0',
-    'pytest-pep8>=1.0.6',
-    'pytest>=2.8.0',
-]
+tests_require = []
 
 extras_require = {
-    'docs': [
-        'Sphinx>=1.5.1',
-    ],
-    'tests': tests_require,
 }
 
 setup(
