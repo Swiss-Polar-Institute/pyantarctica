@@ -130,13 +130,11 @@ def run_baselines(data, **kwargs):
                                 cols_wind  = ['hs_w', 'tp_w', 'wind', 'num_conc']
 
                             if sea.lower() == 'total':
-                                leg_whole_ = data[cols_total].dropna().copy()
-                            # 'age', 'wind',
+                                leg_whole_ = data.loc[data['leg'] == LEG_P, cols_total].dropna().copy()
+                            
                             elif sea.lower() == 'wind':
-                                leg_whole_ = data[cols_wind].dropna().copy()
-                            # 'age_w', 'wind',
-                            # leg_whole_ = leg_whole_[leg_whole_['wind'] < 20]
-
+                                leg_whole_ = data.loc[data['leg'] == LEG_P, cols_wind].dropna().copy()
+                            
                             s1, s2 = leg_whole_.shape
 
                             separation=2.0/3    
@@ -222,14 +220,32 @@ def run_baselines(data, **kwargs):
                             t_r2 = r2_score(trn.iloc[:,-1], y_tr_h)
 
                             if hasattr(regModel, 'alpha_') & hasattr(regModel, 'coef_'):
-                                summ[string_exp] = {'regularizer': regModel.alpha_, 'weights': regModel.coef_, 'tr_RMSE': t_mse, 
-                                          'tr_R2': t_r2, 'ts_RMSE': mse, 'ts_R2': r2}     
+                                summ[string_exp] = {'regularizer': regModel.alpha_, 
+                                                    'weights': regModel.coef_,
+                                                    'tr_RMSE': t_mse,
+                                                    'tr_R2': t_r2, 
+                                                    'ts_RMSE': mse, 
+                                                    'ts_R2': r2}#, 
+                                                    # 'y_tr_hat': y_tr_h,
+                                                    # 'y_ts_hat': y_ts_h}
+                                
                             elif hasattr(regModel, 'coef_') & ~hasattr(regModel, 'alpha_'):
-                                summ[string_exp] = {'weights': regModel.coef_, 'tr_RMSE': t_mse, 
-                                          'tr_R2': t_r2, 'ts_RMSE': mse, 'ts_R2': r2}
+                                summ[string_exp] = {'weights': regModel.coef_, 
+                                                    'tr_RMSE': t_mse, 
+                                                    'tr_R2': t_r2, 
+                                                    'ts_RMSE': mse, 
+                                                    'ts_R2': r2}#, 
+                                                    # 'y_tr_hat': y_tr_h,
+                                                    # 'y_ts_hat': y_ts_h}
                             else:
-                                summ[string_exp] = {'tr_RMSE': t_mse, 
-                                          'tr_R2': t_r2, 'ts_RMSE': mse, 'ts_R2': r2}
+                                summ[string_exp] = {'tr_RMSE': t_mse,
+                                                    'tr_R2': t_r2, 
+                                                    'ts_RMSE': mse, 
+                                                    'ts_R2': r2}#, 
+                                                    # 'y_tr_hat': y_tr_h,
+                                                    # 'y_ts_hat': y_ts_h}
+                            
+                            del trn, tst, trn_, tst_, leg_whole_
 
                     
                     

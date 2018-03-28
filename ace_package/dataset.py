@@ -112,7 +112,7 @@ class ACEdata:
         datatable.columns = [str(x).lower() for x in datatable.columns.tolist()]
 
         if self.name is 'aerosol':
-            print('fixing columns...')
+            # print('fixing columns...')
             inds = datatable['time'].str.contains('NaN', na=True)
             datatable.loc[inds, 'time'] = datatable.loc[inds, 'date']
             datatable.loc[inds, 'date'] = datatable.loc[inds, 'num_conc']
@@ -151,7 +151,7 @@ class ACEdata:
             def dst(self, dt):
                 return timedelta(0)
          
-        print(self.datatable.columns.tolist())
+        # print(self.datatable.columns.tolist())
         # print(self.datatable.head())
 
         if self.name is 'aerosol':
