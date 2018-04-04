@@ -44,3 +44,13 @@ def plot_predicted_timeseries(trn_, tst_, y_ts_h, y_tr_h, SEP_METHOD):
         ax.legend(['y ground truth', 'train prediction', 'test prediction'])
 
     del trn_, tst_, leg_
+
+
+def retrieve_model_av_std(summary):
+    
+    
+    
+    
+    
+    return None, None
+    

@@ -215,7 +215,7 @@ def add_legs_index(df, **kwargs):
     
     if 'leg' in df: 
         print('leg column already there')
-        return
+        return df
     
     df['leg'] = pd.Series()
         
@@ -237,7 +237,7 @@ def ts_aggregate_timebins(df1, time_bin, operations):
                     dictionary of (possibly multiple) data aggregation strategies. New columns will have
                     corresponding subscript. df1 and df2 should be the input variable names
             OUTPUT
-                - resampled dataframe with uninterupted datetime index
+                - resampled dataframe with uninterrupted datetime index
             EXAMPLE 
                 
             operations = {'min': np.min , 'mean': np.mean, 'max': np.max,'sum': np.sum}
@@ -252,6 +252,7 @@ def ts_aggregate_timebins(df1, time_bin, operations):
         df1_d[keys]= {keys + op : operations[op] for op in operations}
     
     out = df1.resample(res_).agg(df1_d)
+    
     out.columns = out.columns.droplevel(level=0)
     return out
 
@@ -270,5 +271,53 @@ def feature_expand(table, trans):
 
     return table_new
 
+def filter_particle_sizes(datatable,threshold=3):
 
+    par_ = np.pad(datatable.values,(1,1), mode='symmetric')
+    s1, s2 = par_.shape
+    conds = np.zeros((s1-2,s2-2),dtype=bool)
+
+    for ro in range(1,s1-1):#1,s1-1):#s1):
+        rle = np.zeros((1,s2-2),dtype=bool) 
+        rri = np.zeros((1,s2-2),dtype=bool)
+        rup = np.zeros((1,s2-2),dtype=bool)
+        rdo = np.zeros((1,s2-2),dtype=bool)
+        for co in range(1,s2-1): 
+
+            if ~np.isnan((par_[ro,co],par_[ro,co-1])).any(): 
+                rle[:,co-1] = (np.abs(par_[ro,co] - par_[ro,co-1])  > threshold)
+
+            if ~np.isnan((par_[ro,co],par_[ro,co+1])).any(): 
+                rri[:,co-1] = (np.abs(par_[ro,co] - par_[ro,co+1])  > threshold)
+
+            if ~np.isnan((par_[ro,co],par_[ro-1,co])).any(): 
+                rup[:,co-1] = (np.abs(par_[ro,co] - par_[ro-1,co])  > threshold)
+
+            if ~np.isnan((par_[ro,co],par_[ro+1,co])).any(): 
+                rdo[:,co-1] = (np.abs(par_[ro,co] - par_[ro+1,co])  > threshold)
+
+        conds[ro-1,:] = rle# + rri + rup + rdo
+
+    filtered[conds] = np.nan
+    return filtered
+
+
+    
+    
+
+    #     print(rle + rri + rup + rdo)
+    #     print(rle)
+    #     print(rri)
+    #     print(rup) 
+    #     print(rdo)
+
+    #     rup = [np.abs(par_[ro,co] - par_[ro-1,co])  > 3 for co in range(1,s2-1) if (par_[ro,co],par_[ro-1,co]) is not np.nan]
+    #     rri = [np.abs(par_[ro,co] - par_[ro,co+1])  > 3 for co in range(1,s2-1) if (par_[ro,co],par_[ro,co+1]) is not np.nan]
+    #     rup = [np.abs(par_[ro,co] - par_[ro-1,co])  > 3 for co in range(1,s2-1) if (par_[ro,co],par_[ro-1,co]) is not np.nan]
+    #     rdo = [np.abs(par_[ro,co] - par_[ro+1,co])  > 3 for co in range(1,s2-1) if (par_[ro,co],par_[ro+1,co]) is not np.nan]
+
+    #         rle.append(np.abs(par_[ro,co] - par_[ro,co-1])  > 3)
+    #         rri.append(np.abs(par_[ro,co] - par_[ro,co+1])  > 3)
+    #         rup.append(np.abs(par_[ro,co] - par_[ro-1,co])  > 3)
+    #         rdo.append(np.abs(par_[ro,co] - par_[ro+1,co])  > 3)
 
