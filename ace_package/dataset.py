@@ -187,12 +187,89 @@ class ACEdata:
         timestamp = [timegm(date_.timetuple()) for date_ in datetime_obj]
 
         self.datatable[new_column_name] = pd.DataFrame(timestamp)
-    
+        del timestamp, datetime_obj
+        
     def set_datetime_index(self): 
         self.convert_time_to_unixts('timest_')
         self.datatable['timest_'] = pd.to_datetime(self.datatable['timest_'], unit='s')
         self.datatable.set_index(pd.DatetimeIndex(self.datatable['timest_']), inplace=True)
         self.datatable.drop(['timest_'], axis=1, inplace=True)
+        
+    def filter_particle_sizes(self, threshold=3, mode='full', NORM_METHOD='fancy', save=''): 
+        """ IN : 
+                threshold: check for increase in neighboring values (multiplicative)
+                mode:   full: check within neighborhing bins AND neighborhing rows (time smoothness)
+                        bin: check only withing neighboring bins
+            OUT: 
+                returns filtered data table in the ACEdata object. 
+                
+            EXAMPLE: 
+            partSize.filter_particlesizes(threhdold=5)
+        """
+        
+        if self.name.lower() != 'particle_size_distribution':
+            print('not the particle size data')
+            return self        
+
+        # NORM_METHOD = 'fancy' # global_threshold, that should not be used if not for SPEEEEEEEDDDOAAAHH
+        conds = []
+        if NORM_METHOD.lower() == 'fancy':
+
+            par_ = np.pad(self.datatable.values,(1,1), mode='symmetric')
+            s1, s2 = par_.shape
+            conds = np.zeros((s1-2,s2-2),dtype=bool)
+
+            for ro in range(1,s1-1):
+
+                rle = np.zeros((1,s2-2),dtype=bool) 
+                rri = np.zeros((1,s2-2),dtype=bool)
+                rup = np.zeros((1,s2-2),dtype=bool)
+                rdo = np.zeros((1,s2-2),dtype=bool)
+
+                for co in range(1,s2-1): 
+
+                    if ~np.isnan((par_[ro,co-1],par_[ro,co])).any():#
+                        rle[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro,co-1])) > np.log(threshold))
+
+                    if ~np.isnan((par_[ro,co+1],par_[ro,co])).any():#(par_[ro,co],par_[ro,co+1])).any(): 
+                        rri[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro,co+1])) > np.log(threshold))
+
+                        if mode.lower == 'full':
+                            if ~np.isnan((par_[ro-1,co],par_[ro,co])).any():#par_[ro,co],par_[ro-1,co])).any(): 
+                                rup[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro-1,co])) > np.log(threshold))
+
+                            if ~np.isnan((par_[ro+1,co],par_[ro,co])).any():#(par_[ro,co],par_[ro+1,co])).any(): 
+                                rdo[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro+1,co])) > np.log(threshold))
+
+                
+                comb_ = [rle,rri,rup,rdo]
+        #         print(comb_)
+        #         print(np.any(comb_,axis=0))
+
+                conds[ro-1,:] = np.any(comb_,axis=0)
+
+            del comb_
+            
+        elif NORM_METHOD.lower() == 'global':
+            conds = self.datatable > 10000
+            conds = conds.values
+
+
+        temp_ = self.datatable.copy()
+        temp_.iloc[conds] = np.nan
+        # bad_rows = temp_.loc[(temp_ > 8000).any(axis=1)].index
+        bad_rows = np.where((temp_ > 300).any(axis=1))[0]
+        conds[bad_rows,:] = True
+        
+        self.particle_filtered = self.datatable.copy()
+        self.particle_filtered.iloc[conds] = np.nan
+    
+        if save:
+            print('saving in %s ...' %(save))
+            self.particle_filtered.to_csv(save)            
+        
+        del temp_, bad_rows
+        # return self.particle_filtered
 
 # -------------------------
 
