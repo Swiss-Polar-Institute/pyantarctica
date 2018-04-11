@@ -260,6 +260,9 @@ class ACEdata:
         # bad_rows = temp_.loc[(temp_ > 8000).any(axis=1)].index
         bad_rows = np.where((temp_ > 300).any(axis=1))[0]
         conds[bad_rows,:] = True
+        bad_rows = (temp_.isnull()).sum(axis=1) > 50
+        print('nan bad rows (>50): ' + str(np.sum(bad_rows)))
+        conds[bad_rows,:] = True  
         
         self.particle_filtered = self.datatable.copy()
         self.particle_filtered.iloc[conds] = np.nan
@@ -377,10 +380,6 @@ def filter_particle_sizes(datatable,threshold=3):
 
     filtered[conds] = np.nan
     return filtered
-
-
-    
-    
 
     #     print(rle + rri + rup + rdo)
     #     print(rle)
