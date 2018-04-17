@@ -313,7 +313,7 @@ def run_baselines_particle_size(data, **kwargs):
 
                             elif meth.lower() == 'rbfgpr':
                                 kernel = 1.0 * RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
-                                     1.0 * WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-2, 1e+2))
+                                     1.0 * WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4))
                                 regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b', alpha=0, n_restarts_optimizer=5).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
                             else: 
                                 print('method not implemented yet. Or check the spelling')
