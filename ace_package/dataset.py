@@ -91,7 +91,8 @@ class ACEdata:
 
             
         self.datatable = self.load(column_head, body, delimiter, nantype, col_name)
-
+        self.set_datetime_index()
+    
     def load(self, column_head, body, delim, nantype, nam=None):
         """Load and sets data object named 'dataset' """
         # fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + ext
@@ -307,7 +308,7 @@ def add_legs_index(df, **kwargs):
     df.loc[df['leg'].isnull(), 'leg'] = 0
     return df
         
-def ts_aggregate_timebins(df1, time_bin, operations):
+def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
     """
         Outer merge of two datatables based on a common resampling of time intervals: 
             INPUTS
@@ -323,17 +324,45 @@ def ts_aggregate_timebins(df1, time_bin, operations):
             operations = {'min': np.min , 'mean': np.mean, 'max': np.max,'sum': np.sum}
             df_res = dataset.ts_aggregate_timebins(df1, 15*60, operations)
             print(df_res.head())
-    """
-    
+            PREV VERSION LOGIC:
+            df1_d = dict.fromkeys(df1.columns,[])
+            for keys in df1_d:
+                df1_d[keys]= {keys + op : operations[op] for op in operations}
+    """    
     res_ = str(time_bin) + 'S'
     
-    df1_d = dict.fromkeys(df1.columns,[])
-    for keys in df1_d:
-        df1_d[keys]= {keys + op : operations[op] for op in operations}
     
-    out = df1.resample(res_).agg(df1_d)
+    if mode == 'old':
+        res_ = str(time_bin) + 'S'
     
-    out.columns = out.columns.droplevel(level=0)
+        df1_d = dict.fromkeys(df1.columns,[])
+        for keys in df1_d:
+            df1_d[keys]= {keys + op : operations[op] for op in operations}
+
+        out = df1.resample(res_).agg(df1_d)
+
+        out.columns = out.columns.droplevel(level=0)
+        
+    else:
+        def my_agg(x,ops):
+            ops_cols = {}
+            # print(x.columns.tolist())
+            #ops_cols = {'hs_m': x['hs'].agg(np.mean),
+            #            'hs_s': x['hs'].agg(np.std)}
+
+            for cols in x.columns.tolist():
+                for op, val in ops.items():
+                    ops_cols[cols+op] = x[cols].agg(val)
+
+            #print([key for key in ops_cols.keys()])
+            # return ops_cols
+            return pd.Series(ops_cols, index=[key for key in ops_cols.keys()])
+
+        # print(my_agg(df1, operations))   
+        #out = df1.resample(res_).apply(my_agg)
+        out = df1.groupby(pd.Grouper(freq=res_)).apply(my_agg,ops=operations)
+
+    # out.columns = out.columns.droplevel(level=0)
     return out
 
 def feature_expand(table, trans):
