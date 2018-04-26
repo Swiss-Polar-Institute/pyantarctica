@@ -54,7 +54,7 @@ def retrieve_model_av_std(summary):
 #    print(NUM_REP)
 #    print(set(exps))
     results = {}
-    for name_ in exps: 
+    for name_ in exps:
     #     print(name_)
 
         results[name_] = {}
