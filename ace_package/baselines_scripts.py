@@ -40,7 +40,8 @@ def run_baselines_particle_size(data, **kwargs):
     MODELNAME = kwargs['MODELNAME']
     SAVE_EACH_RUN = kwargs['SAVE_EACH_RUN']
     N_TST = kwargs['N_TST']
-    SPLIT = kwargs['SPLIT']
+    SPLIT_SIZE = kwargs['SPLIT_SIZE']
+    SPLIT_MODE = kwargs['SPLIT_MODE']
     #TRNTST_SPLIT = kwargs['TRNTST_SPLIT'] # either [] -- defaults to 2/3 training, [1./2] -- specify fraction 
                                           # or [...] provides indexed array for training (1) and testing points (2, 3, 4, ...)
     
@@ -91,49 +92,78 @@ def run_baselines_particle_size(data, **kwargs):
                                 cols_wind  = ['hs_w', 'tp_w', 'wind', 'parbin']
 
                             if sea.lower() == 'total':
-                                sea_subset_ = data.loc[:, cols_total].dropna().copy()
+                                sea_subset = data.loc[:, cols_total].dropna().copy()
 
                             elif sea.lower() == 'wind':
-                                sea_subset_ = data.loc[:, cols_wind].dropna().copy()
+                                sea_subset = data.loc[:, cols_wind].dropna().copy()    
+    
+                            if 0:
+                                scalerX = preprocessing.StandardScaler().fit(sea_subset.iloc[:,:-1])
 
-                            curr_inds = modeling.sample_trn_test_index(sea_subset_.index,split=SPLIT, N_tst=N_TST)
+                                if NORMALIZE_Y:
+                                    scalerY = preprocessing.StandardScaler().fit(sea_subset.iloc[:,-1].values.reshape(-1, 1))
+
+                                sea_subset_ = pd.DataFrame(scalerX.transform(sea_subset.iloc[:,:-1]), columns=sea_subset.iloc[:,:-1].columns, index=sea_subset.index)
+                                # sea_subset_ = sea_subset
+                                
+                                if NORMALIZE_Y:
+                                    sea_subset_['parbin'] = scalerY.transform(sea_subset.iloc[:,-1].values.reshape(-1, 1))
+                                else:
+                                    sea_subset_['parbin'] = sea_subset['parbin']
+
+                            
+                            if sep_method == 'index':
+                                sea_subset_ = sea_subset
+                                curr_inds = modeling.sample_trn_test_index(sea_subset_.index,split=SPLIT_SIZE, N_tst=N_TST, mode=SPLIT_MODE)
+                                # print(curr_inds)
+                                
+                            elif sep_method != 'index':
+                                sea_subset_ = sea_subset[data.loc[sea_subset.index,:].leg == leg].copy()
+                                curr_inds = modeling.sample_trn_test_index(sea_subset_.index,split=SPLIT_SIZE, N_tst='all', mode='final')
+                                
+                            print(curr_inds)
                             #print(np.unique(curr_inds.ind,return_counts=True))
-                            #print(sea_subset_.index, curr_inds.index)
+                            #print(sea_subset_.head())
                             #print(sea_subset_.isnull().sum())
-                            #print(curr_inds.head(-5))
+                            # print(curr_inds.head(-5))
 
                             for it_num, tst_subset in enumerate(np.setdiff1d(np.unique(curr_inds),1)): # 1 is reserved for training
                                 tst_subset = int(tst_subset)
-                                #print(it_num,int(tst_subset))
+                                
+                                # print(it_num,tst_subset)
                                 #print((curr_inds == 1).sum())
                                 
                                 
                                 if sep_method != 'index':
-                                    print(sep_method,sep_method != 'index')
+                                    # print(sep_method,sep_method != 'index')
 
-                                    string_exp += '_id_tst_split_' + str(it_num) + '_exp_' + str(nre)
-                                    leg_whole_ = sea_subset_.loc[data['leg'] == leg,:]
+                                    string_exp = string_exp_main + '_' + str(nre)
+                                    leg_whole_ = sea_subset_#.loc[data['leg'] == leg,:]
 
-                                    s1 = leg_whole_.shape[0]
-                                    trn_size = ceil(s1*trntst_split[0]) #; print(trn_size, s1)
+                                    # s1 = leg_whole_.shape[0]
+                                    # trn_size = ceil(s1*SPLIT_SIZE) #; print(trn_size, s1)
 
                                     if sep_method.lower() == 'prediction':
                                     #     print('training data until ' + str(separation) + ', then test.')
-                                        trn = leg_whole_.iloc[:trn_size,:].copy()
-                                        tst = leg_whole_.iloc[trn_size:,:].copy()
+                                        #tr = leg_whole_.iloc[:trn_size,:].copy()
+                                        #ts = leg_whole_.iloc[trn_size:,:].copy()
+                                        tr = leg_whole_.loc[curr_inds.ind == 1,:].copy()
+                                        ts = leg_whole_.loc[curr_inds.ind == tst_subset,:].copy()
 
                                     elif sep_method.lower() == 'interpolation': 
                                     #     print('training data random %f pc subset, rest test'%(separation*100))
                                         leg_whole_ = shuffle(leg_whole_)
-                                        trn = leg_whole_.iloc[:trn_size,:].copy()
-                                        tst = leg_whole_.iloc[trn_size:,:].copy()
-
+                                        tr = leg_whole_.iloc[:int(np.floor(SPLIT_SIZE*len(leg_whole_))),:].copy()
+                                        ts = leg_whole_.iloc[int(np.floor(SPLIT_SIZE*len(leg_whole_))):,:].copy()
+                                        #tr = leg_whole_.loc[curr_inds.ind == 1,:].copy()
+                                        #ts = leg_whole_.loc[curr_inds.ind == tst_subset,:].copy()
+                                        
                                 elif sep_method == 'index': 
 
                                     string_exp = string_exp_main + '_id_tst_split_' + str(tst_subset-1) + '_' + str(nre)
 
-                                    trn = sea_subset_.loc[curr_inds.ind == 1,:].copy()
-                                    tst = sea_subset_.loc[curr_inds.ind == tst_subset,:].copy()
+                                    tr = sea_subset_.iloc[np.where(curr_inds.ind == 1)[0],:].copy()
+                                    ts = sea_subset_.iloc[np.where(curr_inds.ind == tst_subset)[0],:].copy()
 
                                 else: 
                                     error(sep_method + ' not specified')
@@ -146,27 +176,28 @@ def run_baselines_particle_size(data, **kwargs):
 
                                 # Standardize data to 0 mean unit variance based on training statistics (stationarity)
                                 # ----------
-                                if it_num == 0:
-                                    scalerX = preprocessing.StandardScaler().fit(trn.iloc[:,:-1])
+                                if 1:
+                                    if it_num == 0:
+                                        scalerX = preprocessing.StandardScaler().fit(tr.iloc[:,:-1])
 
-                                    if NORMALIZE_Y: 
-                                        scalerY = preprocessing.StandardScaler().fit(trn.iloc[:,-1].values.reshape(-1, 1))
+                                        if NORMALIZE_Y: 
+                                            scalerY = preprocessing.StandardScaler().fit(tr.iloc[:,-1].values.reshape(-1, 1))
 
-                                trn_ = pd.DataFrame(scalerX.transform(trn.iloc[:,:-1]), columns=trn.iloc[:,:-1].columns, index=trn.index)
-                                tst_ = pd.DataFrame(scalerX.transform(tst.iloc[:,:-1]), columns=tst.iloc[:,:-1].columns, index=tst.index)
+                                    trn_ = pd.DataFrame(scalerX.transform(tr.iloc[:,:-1]), columns=tr.iloc[:,:-1].columns, index=tr.index)
+                                    tst_ = pd.DataFrame(scalerX.transform(ts.iloc[:,:-1]), columns=ts.iloc[:,:-1].columns, index=ts.index)
 
                                 if NORMALIZE_Y: 
                                     # scalerY = preprocessing.StandardScaler().fit(trn.iloc[:,-1].values.reshape(-1, 1))
-                                    y_trn = scalerY.transform(trn.iloc[:,-1].values.reshape(-1, 1))
-                                    y_tst = scalerY.transform(tst.iloc[:,-1].values.reshape(-1, 1))
+                                    y_trn = scalerY.transform(tr.iloc[:,-1].values.reshape(-1, 1))
+                                    y_tst = scalerY.transform(ts.iloc[:,-1].values.reshape(-1, 1))
                                 else: 
-                                    y_trn = trn.iloc[:,-1]
-                                    y_tst = tst.iloc[:,-1]
+                                    y_trn = tr.iloc[:,-1]
+                                    y_tst = ts.iloc[:,-1]
 
 
-                                trn = trn_    
+                                trn = tr    
                                 trn['parbin'] = y_trn
-                                tst = tst_; 
+                                tst = ts; 
                                 tst['parbin'] = y_tst
 
                                 # y_gt_scaled = pd.DataFrame(scaler.transform(leg_whole_), columns=leg_whole_.columns, index=leg_whole_.index)
@@ -209,20 +240,24 @@ def run_baselines_particle_size(data, **kwargs):
                                 if NORMALIZE_Y: 
                                     y_tr_h = scalerY.inverse_transform(y_tr_h)
                                     y_ts_h = scalerY.inverse_transform(y_ts_h)
-                                    trn.iloc[:,-1] = scalerY.inverse_transform(trn.iloc[:,-1])
-                                    tst.iloc[:,-1] = scalerY.inverse_transform(tst.iloc[:,-1])
-
-                                mse = np.sqrt(mean_squared_error(tst.iloc[:,-1], y_ts_h))
-                                r2 = r2_score(tst.iloc[:,-1], y_ts_h)
+                                    y_tr_gt = scalerY.inverse_transform(trn.iloc[:,-1])
+                                    y_ts_gt = scalerY.inverse_transform(tst.iloc[:,-1])
+                                else: 
+                                    y_tr_gt = trn.iloc[:,-1]
+                                    y_ts_gt = tst.iloc[:,-1]
+                                                                        
+                                                                        
+                                mse = np.sqrt(mean_squared_error(y_ts_gt, y_ts_h))
+                                r2 = r2_score(y_ts_gt, y_ts_h)
 
                                 # print(mse,r2)
 
-                                t_mse = np.sqrt(mean_squared_error(trn.iloc[:,-1], y_tr_h))
-                                t_r2 = r2_score(trn.iloc[:,-1], y_tr_h)
+                                t_mse = np.sqrt(mean_squared_error(y_tr_gt, y_tr_h))
+                                t_r2 = r2_score(y_tr_gt, y_tr_h)
 
 
-                                tr_ys = pd.DataFrame({'gt': trn.iloc[:,-1], 'y_hat': y_tr_h}, index=trn.index)
-                                ts_ys = pd.DataFrame({'gt': tst.iloc[:,-1], 'y_hat': y_ts_h}, index=tst.index)
+                                # tr_ys = pd.DataFrame({'gt': y_tr_gt, 'y_hat': y_tr_h}, index=trn.index)
+                                # ts_ys = pd.DataFrame({'gt': y_ts_gt, 'y_hat': y_ts_h}, index=tst.index)
 
                                 if hasattr(regModel, 'alpha_') & hasattr(regModel, 'coef_'):
                                     summ[string_exp] = {'regularizer': regModel.alpha_, 
