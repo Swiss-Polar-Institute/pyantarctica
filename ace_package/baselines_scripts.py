@@ -75,7 +75,7 @@ def run_baselines_particle_size(data, **kwargs):
 
                             if sea.lower() == 'total':
                                 leg_whole_ = data.loc[data['leg'] == leg, cols_total].dropna().copy()
-                            
+                               
                             elif sea.lower() == 'wind':
                                 leg_whole_ = data.loc[data['leg'] == leg, cols_wind].dropna().copy()
                             
@@ -95,7 +95,6 @@ def run_baselines_particle_size(data, **kwargs):
                                 leg_whole_ = shuffle(leg_whole_)
                                 trn = leg_whole_.iloc[:trn_size,:].copy()
                                 tst = leg_whole_.iloc[trn_size:,:].copy()
-                            
                             # Standardize data to 0 mean unit variance based on training statistics (stationarity)
                             # ----------
                             scalerX = preprocessing.StandardScaler().fit(trn.iloc[:,:-1])
@@ -114,8 +113,8 @@ def run_baselines_particle_size(data, **kwargs):
                                 y_trn = trn.iloc[:,-1]
                                 y_tst = tst.iloc[:,-1]
 
-                            trn = trn_; trn['num_conc'] = y_trn
-                            tst = tst_; tst['num_conc'] = y_tst
+                            trn = trn_; trn['parbin'] = y_trn
+                            tst = tst_; tst['parbin'] = y_tst
 
                             # y_gt_scaled = pd.DataFrame(scaler.transform(leg_whole_), columns=leg_whole_.columns, index=leg_whole_.index)
                             # y_gt_scaled = y_gt_scaled.iloc[:,-1]

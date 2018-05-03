@@ -298,14 +298,17 @@ def add_legs_index(df, **kwargs):
         print('leg column already there')
         return df
     
-    df['leg'] = pd.Series()
+    
+    dd = pd.Series(data=np.zeros((len(df.index),)), index=df.index, name='leg')
+    #df['leg'] = pd.Series()
         
     c = 0
     while c < len(codes):
-        df.loc[leg_dates[c][0]:leg_dates[c][1], 'leg'] = codes[c]
+        dd.loc[leg_dates[c][0]:leg_dates[c][1]] = codes[c]
         c += 1
         
-    df.loc[df['leg'].isnull(), 'leg'] = 0
+    # dd.loc[dd['leg'].isnull()] = 0
+    df = df.assign(leg=dd)
     return df
         
 def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
@@ -332,7 +335,7 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
     res_ = str(time_bin) + 'S'
     
     
-    if mode == 'old':
+    if mode == 'old': # This one gets a FutureWarning! But the alternative is _very_ slow
         res_ = str(time_bin) + 'S'
     
         df1_d = dict.fromkeys(df1.columns,[])

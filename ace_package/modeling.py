@@ -93,7 +93,7 @@ def sample_trn_test_index(index,split=2.0/3,N_tst=20,mode='final'):
 
         s1 = int(np.floor(s0*split))
         s2 = s0-s1
-        print(s2)
+        #print(s2)
         
         if N_tst == 'all': 
             ind_set[(s1+1):] = 2
