@@ -15,7 +15,7 @@ class ACEdata:
     processed_folder = 'processed'
     intermediate_folder = 'intermediate'
     
-    def __init__(self, name, data_folder='./data/'):
+    def __init__(self, name, data_folder='./data/', save_data=False):
         self.data_folder = data_folder + '/'
         self.name = name
     
@@ -89,9 +89,11 @@ class ACEdata:
         else:
             print('dataset not handled yet.')
 
-            
-        self.datatable = self.load(column_head, body, delimiter, nantype, col_name)
+        self.datatable = self.load(column_head, body, delimiter, nantype, col_name)            
         self.set_datetime_index()
+        
+        if save_data: 
+            self.datatable.to_csv('./data/intermediate/' + self.name + '.csv', sep=',', na_rep='')
     
     def load(self, column_head, body, delim, nantype, nam=None):
         """Load and sets data object named 'dataset' """
@@ -108,8 +110,8 @@ class ACEdata:
                                 delimiter=delim,
                                 skiprows=skipr, 
                                 index_col=False,
-                                names=nam) # 
-        
+                                names=nam)# 
+
         datatable.columns = [str(x).lower() for x in datatable.columns.tolist()]
 
         if self.name is 'aerosol':
@@ -136,9 +138,9 @@ class ACEdata:
         #from time import mktime
         from calendar import timegm
 
-        if new_column_name in self.datatable:
-            print('Converted time already present')
-            return
+       #if new_column_name in self.datatable:
+       #     print('Converted time already present')
+       #     return
         
         class UTC(tzinfo):
             """UTC subclass"""
@@ -172,7 +174,7 @@ class ACEdata:
             datetime_object = [datetime.strptime(str(date), '%d-%b-%Y %H:%M:%S') for date in
                                self.datatable['t_series_waves']]
             self.datatable.drop(['t_series_waves'], axis=1, inplace=True)
-        
+            
         elif self.name is 'windspeed_metstation':
             datetime_object = [datetime.strptime(str(date), '%d.%m.%Y %H:%M') for date in
                                self.datatable['time_5min']]
@@ -180,8 +182,10 @@ class ACEdata:
             
         elif self.name is 'windspeed_metstation_corrected':
             datetime_object = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S') for date in
-                               self.datatable['timestamp']]
-            self.datatable.drop(['timestamp'], axis=1, inplace=True)
+                               self.datatable['timest_']]
+            # datetime_object = [datetime.strptime(str(date), '%d.%m.%y %H:%M') for date in
+            #                   self.datatable['timest_']]
+            self.datatable.drop(['timest_'], axis=1, inplace=True)
             
 
         datetime_obj = [date_.replace(tzinfo=UTC()) for date_ in datetime_object]
@@ -241,7 +245,6 @@ class ACEdata:
 
                             if ~np.isnan((par_[ro+1,co],par_[ro,co])).any():#(par_[ro,co],par_[ro+1,co])).any(): 
                                 rdo[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro+1,co])) > np.log(threshold))
-
                 
                 comb_ = [rle,rri,rup,rdo]
         #         print(comb_)
@@ -413,20 +416,103 @@ def filter_particle_sizes(datatable,threshold=3):
     filtered[conds] = np.nan
     return filtered
 
+def generate_particle_data(data_folder='./data/', mode='all', data_output='./data/intermediate/', 
+                           savedata=False, filtering_parameter=3):
+    '''
+    data_folder: main directory where data is
+    data_output: where to store aggregated dataframe
+    mode: what to read and how: 
+        - 'all' : all particle data in columns (single bins AND >400, >700 nm)
+        - 'single_bins' : only single bin data (without accumulated >400 and > 700nm)
+        - 'aggregated': all particle data aggregated in superbins (with >400,>700 nm)
+        - 'aggregated_no_noise' : as 'aggregated' but without noisy bins
+    filtering_parameter: used to define which filtered data to read (see filter_particle_size threshold)
+                        3, 5, 10 : the larger, the more permissive
+    savedata: store locally (in ./data/intermediate/) a copy of the assembled file
+    '''
+    
+    particles = pd.read_csv(data_folder + '/intermediate/filtered_particle_size_distribution_T3.csv')
+    particles.set_index('timest_',inplace=True)
+    particles.index = pd.to_datetime(particles.index,format='%Y-%m-%d %H:%M:%S')
+    #print(particles.index)
+    
+    if mode.lower() == 'single_bins':
+        if savedata:
+            particles.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
+        return particles
+        
+    aero_l700 = ACEdata(data_folder=data_folder, name='aerosol')
+    aero_l700 = aero_l700.datatable
+    aero_l400 = pd.read_csv(data_folder + '/raw/particles_greater_400nm.txt', na_values='NAN')
+    aero_l400.index = aero_l700.index
 
-    #     print(rle + rri + rup + rdo)
-    #     print(rle)
-    #     print(rri)
-    #     print(rup) 
-    #     print(rdo)
+    if mode.lower() == 'all':
+        particles = particles.assign(newcol=aero_l400)
+        particles = particles.rename(columns={'newcol': '>400'})
+        particles = particles.assign(newcol=aero_l400)
+        particles = particles.rename(columns={'newcol': '>700'})
+        
+        if savedata:
+            particles.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
+        return particles
+    
+    part_legend = pd.read_table('data/raw/04_diameterforfile_03.txt')
 
-    #     rup = [np.abs(par_[ro,co] - par_[ro-1,co])  > 3 for co in range(1,s2-1) if (par_[ro,co],par_[ro-1,co]) is not np.nan]
-    #     rri = [np.abs(par_[ro,co] - par_[ro,co+1])  > 3 for co in range(1,s2-1) if (par_[ro,co],par_[ro,co+1]) is not np.nan]
-    #     rup = [np.abs(par_[ro,co] - par_[ro-1,co])  > 3 for co in range(1,s2-1) if (par_[ro,co],par_[ro-1,co]) is not np.nan]
-    #     rdo = [np.abs(par_[ro,co] - par_[ro+1,co])  > 3 for co in range(1,s2-1) if (par_[ro,co],par_[ro+1,co]) is not np.nan]
+    if mode.lower() == 'aggregated': 
+        part_agg = pd.DataFrame()
+        cond = (part_legend > 0) & (part_legend<=80)
+        part_agg = part_agg.assign(newcol=particles.iloc[:,np.where(cond)[0]].sum(axis=1))
+        part_agg = part_agg.rename(columns={'newcol': '11-80'})
+        part_agg['11-80'].loc[np.sum(particles.iloc[:,np.where(cond)[0]].isnull(),axis=1) == cond.sum().values[0]] = np.nan
+        
+        cond = (part_legend>80) & (part_legend <= 200)
+        part_agg = part_agg.assign(newcol=particles.iloc[:,np.where(cond)[0]].sum(axis=1))
+        part_agg = part_agg.rename(columns={'newcol': '80-200'})
+        part_agg['80-200'].loc[np.sum(particles.iloc[:,np.where(cond)[0]].isnull(),axis=1) == cond.sum().values[0]] = np.nan
+        
+        cond = (part_legend>200) & (part_legend <= 400)
+        part_agg = part_agg.assign(newcol=particles.iloc[:,np.where(cond)[0]].sum(axis=1))
+        part_agg = part_agg.rename(columns={'newcol': '200-400'})
+        part_agg['200-400'].loc[np.sum(particles.iloc[:,np.where(cond)[0]].isnull(),axis=1) == cond.sum().values[0]] = np.nan
+        
+        part_agg['>400'] = aero_l400
+        part_agg['>700'] = aero_l700
+        
+        if savedata:
+            part_agg.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
+        return part_agg
 
-    #         rle.append(np.abs(par_[ro,co] - par_[ro,co-1])  > 3)
-    #         rri.append(np.abs(par_[ro,co] - par_[ro,co+1])  > 3)
-    #         rup.append(np.abs(par_[ro,co] - par_[ro-1,co])  > 3)
-    #         rdo.append(np.abs(par_[ro,co] - par_[ro+1,co])  > 3)
+    if mode.lower() == 'aggregated_no_noise':
+        
+        part_agg = pd.DataFrame()
+        
+        cond = ((part_legend>0) & (part_legend<35)) | ((part_legend>51) & (part_legend<=80))
+        part_agg = part_agg.assign(newcol=particles.iloc[:,np.where(cond)[0]].sum(axis=1))
+        part_agg = part_agg.rename(columns={'newcol': '11-80'})
+        part_agg['11-80'].loc[np.sum(particles.iloc[:,np.where(cond)[0]].isnull(),axis=1) == cond.sum().values[0]] = np.nan
+        
+        cond = (part_legend>80) & (part_legend <= 200)
+        part_agg = part_agg.assign(newcol=particles.iloc[:,np.where(cond)[0]].sum(axis=1))
+        part_agg = part_agg.rename(columns={'newcol': '80-200'})
+        part_agg['80-200'].loc[np.sum(particles.iloc[:,np.where(cond)[0]].isnull(),axis=1) == cond.sum().values[0]] = np.nan
+        
+        cond = (part_legend>200) & (part_legend <= 300)
+        part_agg = part_agg.assign(newcol=particles.iloc[:,np.where(cond)[0]].sum(axis=1))
+        part_agg = part_agg.rename(columns={'newcol': '200-300'})
+        part_agg['200-300'].loc[np.sum(particles.iloc[:,np.where(cond)[0]].isnull(),axis=1) == cond.sum().values[0]] = np.nan
+        
+        part_agg['>400'] = aero_l400
+        part_agg['>700'] = aero_l700
+        
+        if savedata:
+            part_agg.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
+        return part_agg
 
+    
+def read_standard_dataframe(data_folder, datetime_index_name='timest_'): 
+    
+    data = pd.read_csv(data_folder)
+    data.set_index('timest_', inplace=True)
+    data.index = pd.to_datetime(data.index, format='%Y-%m-%d %H:%M:%S')
+    #print(data.index)
+    return data

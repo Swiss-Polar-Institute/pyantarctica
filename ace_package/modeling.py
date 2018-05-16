@@ -26,7 +26,6 @@ def plot_predicted_timeseries(trn_, tst_, y_ts_h, y_tr_h, SEP_METHOD):
         
         #trn_ = trn.copy()
         #tst_ = tst.copy()
-        
         #trn_['y_h'] = y_tr_h
         #tst_['y_h'] = y_ts_h
         
