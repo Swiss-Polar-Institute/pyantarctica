@@ -449,7 +449,7 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
     if mode.lower() == 'all':
         particles = particles.assign(newcol=aero_l400)
         particles = particles.rename(columns={'newcol': '>400'})
-        particles = particles.assign(newcol=aero_l400)
+        particles = particles.assign(newcol=aero_l700)
         particles = particles.rename(columns={'newcol': '>700'})
         
         if savedata:

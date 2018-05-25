@@ -46,9 +46,9 @@ def run_baselines_particle_size(data, **kwargs):
     summ = {}
     
     for sep_method in SEP_METHOD: 
-        print(sep_method)
+        #print(sep_method)
         for leg in LEG_P: 
-            print(leg)
+            #print(leg)
             for sea in SEA: 
                 for varset in VARSET:
                     for meth in METHODS:
@@ -138,6 +138,11 @@ def run_baselines_particle_size(data, **kwargs):
                                      1.0 * WhiteKernel(noise_level=1e-3, noise_level_bounds=(1e-3, 1e+3))
                                 regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b', 
                                                                     alpha=0, n_restarts_optimizer=5).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+                            elif meth.lower() == 'rf':
+                                import sklearn.ensemble
+                                regModel = sklearn.ensemble.RandomForestRegressor(n_estimators=100, criterion='mse', 
+                                            max_depth=10, min_samples_split=2, min_samples_leaf=1).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+                
                             elif meth.lower() == 'rbfgpr':
                                 kernel = 1.0 * RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
                                      1.0 * WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4))
