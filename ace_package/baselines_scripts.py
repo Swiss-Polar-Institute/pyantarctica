@@ -10,6 +10,7 @@ import ace_package.dataset as dataset
 import ace_package.modeling as modeling
 from ace_package.modeling import plot_predicted_timeseries
 
+import GPy
 import sklearn as sk
 from sklearn import preprocessing
 from sklearn.utils import shuffle
@@ -17,7 +18,7 @@ from sklearn.metrics import make_scorer, mean_squared_error, r2_score
 from sklearn.linear_model import RidgeCV, LassoCV
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import DotProduct, RBF, WhiteKernel
+import sklearn.gaussian_process.kernels as kern# DotProduct, RBF, WhiteKernel
 from sklearn.model_selection import GridSearchCV
 
 def save_obj(obj, fname):
@@ -144,17 +145,42 @@ def run_baselines_particle_size(data, **kwargs):
                                             max_depth=10, min_samples_split=2, min_samples_leaf=1).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
                 
                             elif meth.lower() == 'rbfgpr':
-                                kernel = 1.0 * RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
-                                     1.0 * WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4))
+                                kernel = 1.0 * kern.RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
+                                1.0 * kern.WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4)) + \
+                                1.0 * kern.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-05, 100000.0)) + \
+                                1.0 * kern.DotProduct(sigma_0=1.0, sigma_0_bounds=(1e-05, 100000.0))
+                                    
                                 regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b', 
-                                                                    alpha=0, n_restarts_optimizer=5).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+                                                                    alpha=0, 
+                                                                    n_restarts_optimizer=5).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+                            elif meth.lower() == 'rbfgprard':
+                                
+                                inds_trn = trn.index
+                                x = trn.iloc[:,:-1].values
+                                y = trn.iloc[:,-1].values.reshape(-1,1)
+
+                                k = (GPy.kern.RBF(x.shape[1], ARD=True)
+                                     + GPy.kern.White(x.shape[1], 0.01) 
+                                     + GPy.kern.Linear(x.shape[1], variances=None, ARD=False))
+
+                                regModel = GPy.models.GPRegression(x,y,kernel=k)
+                                regModel.optimize('bfgs', max_iters=200)
+                #                 print(regModel)
+                                regModel.coef_ = regModel.sum.rbf.lengthscale    
                             else: 
                                 print('method not implemented yet. Or check the spelling')
                                 break
 
-                                            
-                            y_ts_h = regModel.predict(tst.iloc[:,:-1])
-                            y_tr_h = regModel.predict(trn.iloc[:,:-1])
+                            if meth.lower() == 'rbfgprard': 
+                                inds_tst = tst.index
+                                x_ = tst.iloc[:,:-1].values
+                                y_ts_h = regModel.predict(x_)[0].reshape(-1,)
+                                y_ts_h = pd.Series(y_ts_h,index=inds_tst)
+                                y_tr_h = regModel.predict(x)[0].reshape(-1,)
+                                y_tr_h = pd.Series(y_tr_h,index=inds_trn)
+                            else:
+                                y_ts_h = regModel.predict(tst.iloc[:,:-1])
+                                y_tr_h = regModel.predict(trn.iloc[:,:-1])
 
                             if NORMALIZE_Y: 
                                 y_tr_h = scalerY.inverse_transform(y_tr_h)
@@ -196,7 +222,7 @@ def run_baselines_particle_size(data, **kwargs):
                                                     # 'y_tr_hat': y_tr_h,
                                                     # 'y_ts_hat': y_ts_h}
                             
-                            del trn, tst, trn_, tst_, leg_whole_
+                            del trn, tst, trn_, tst_, leg_whole_, regModel
 
                     
                     
