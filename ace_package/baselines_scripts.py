@@ -160,13 +160,15 @@ def run_baselines_particle_size(data, **kwargs):
                                 y = trn.iloc[:,-1].values.reshape(-1,1)
 
                                 k = (GPy.kern.RBF(x.shape[1], ARD=True)
-                                     + GPy.kern.White(x.shape[1], 0.01) 
-                                     + GPy.kern.Linear(x.shape[1], variances=None, ARD=False))
+                                     + GPy.kern.White(x.shape[1], 0.001) 
+                                     + GPy.kern.Bias(x.shape[1], 0.001))
+                                     #+ GPy.kern.Linear(x.shape[1], variances=0.001, ARD=False))
 
                                 regModel = GPy.models.GPRegression(x,y,kernel=k)
-                                regModel.optimize('bfgs', max_iters=200)
+                                #regModel.optimize_restarts(parallel=True, robust=True, num_restarts=5, max_iters=200)
+                                regModel.optimize('scg', max_iters=200) # 'scg'
                 #                 print(regModel)
-                                regModel.coef_ = regModel.sum.rbf.lengthscale    
+                                regModel.coef_ = regModel.sum.rbf.lengthscale
                             else: 
                                 print('method not implemented yet. Or check the spelling')
                                 break
