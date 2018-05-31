@@ -34,6 +34,7 @@ def run_baselines_particle_size(data, **kwargs):
     VARSET = kwargs['VARSET']
     METHODS = kwargs['METHODS']
     NORMALIZE_Y = kwargs['NORMALIZE_Y']
+    NORMALIZE_X = kwargs['NORMALIZE_X']
     SAVEFOLDER = kwargs['SAVEFOLDER']
     MODELNAME = kwargs['MODELNAME']
     SPLIT_SIZE = kwargs['SPLIT_SIZE']
@@ -98,27 +99,21 @@ def run_baselines_particle_size(data, **kwargs):
                                 tst = leg_whole_.iloc[trn_size:,:].copy()
                             # Standardize data to 0 mean unit variance based on training statistics (stationarity)
                             # ----------
-                            scalerX = preprocessing.StandardScaler().fit(trn.iloc[:,:-1])
+                            inds_trn = trn.index
 
+                            # SCALE TRAINING DATA X, y
+                            if NORMALIZE_X:
+                                scalerX = preprocessing.StandardScaler().fit(trn.iloc[:,:-1])
+                                trn = pd.DataFrame(scalerX.transform(trn.iloc[:,:-1]), columns=trn.iloc[:,:-1].columns, index=trn.index)
+                            else:
+                                trn = trn.iloc[:,:-1]
+                                
                             if NORMALIZE_Y: 
                                 scalerY = preprocessing.StandardScaler().fit(trn.iloc[:,-1].values.reshape(-1, 1))
-
-                            trn_ = pd.DataFrame(scalerX.transform(trn.iloc[:,:-1]), columns=trn.iloc[:,:-1].columns, index=trn.index)
-                            tst_ = pd.DataFrame(scalerX.transform(tst.iloc[:,:-1]), columns=tst.iloc[:,:-1].columns, index=tst.index)
-
-                            if NORMALIZE_Y: 
-                                scalerY = preprocessing.StandardScaler().fit(trn.iloc[:,-1].values.reshape(-1, 1))
-                                y_trn = scalerY.transform(trn.iloc[:,-1].values.reshape(-1, 1))
-                                y_tst = scalerY.transform(tst.iloc[:,-1].values.reshape(-1, 1))
+                                trn['parbin'] = y_trn = scalerY.transform(trn.iloc[:,-1].values.reshape(-1, 1))
                             else: 
-                                y_trn = trn.iloc[:,-1]
-                                y_tst = tst.iloc[:,-1]
+                                trn['parbin'] = y_trn = trn.iloc[:,-1]
 
-                            trn = trn_; trn['parbin'] = y_trn
-                            tst = tst_; tst['parbin'] = y_tst
-
-                            # y_gt_scaled = pd.DataFrame(scaler.transform(leg_whole_), columns=leg_whole_.columns, index=leg_whole_.index)
-                            # y_gt_scaled = y_gt_scaled.iloc[:,-1]
                             # ------------
                             ######### 1 : Ridge Regression
                             if meth.lower() == 'ridgereg':
@@ -155,16 +150,18 @@ def run_baselines_particle_size(data, **kwargs):
                                                                     n_restarts_optimizer=5).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
                             elif meth.lower() == 'rbfgprard':
                                 
-                                inds_trn = trn.index
-                                x = trn.iloc[:,:-1].values
-                                y = trn.iloc[:,-1].values.reshape(-1,1)
+                                #x = trn.iloc[:,:-1].values
+                                #y = trn.iloc[:,-1].values.reshape(-1,1)
+                                s1 = trn.iloc[:,:-1].values.shape[1]
+                                
+                                k = (GPy.kern.RBF(s1, ARD=True)
+                                     + GPy.kern.White(s1, 0.001) 
+                                     + GPy.kern.Bias(s1, 0.001))
+                                     #+ GPy.kern.Linear(s1, variances=0.001, ARD=False))
 
-                                k = (GPy.kern.RBF(x.shape[1], ARD=True)
-                                     + GPy.kern.White(x.shape[1], 0.001) 
-                                     + GPy.kern.Bias(x.shape[1], 0.001))
-                                     #+ GPy.kern.Linear(x.shape[1], variances=0.001, ARD=False))
-
-                                regModel = GPy.models.GPRegression(x,y,kernel=k)
+                                regModel = GPy.models.GPRegression(trn.iloc[:,:-1].values, 
+                                                                   trn.iloc[:,-1].values.reshape(-1,1), 
+                                                                   kernel=k)
                                 #regModel.optimize_restarts(parallel=True, robust=True, num_restarts=5, max_iters=200)
                                 regModel.optimize('scg', max_iters=200) # 'scg'
                 #                 print(regModel)
@@ -174,27 +171,44 @@ def run_baselines_particle_size(data, **kwargs):
                                 print('method not implemented yet. Or check the spelling')
                                 break
 
-                            if meth.lower() == 'rbfgprard': 
-                                inds_tst = tst.index
-                                x_ = tst.iloc[:,:-1].values
-                                y_ts_h = regModel.predict(x_)[0].reshape(-1,)
-                                y_ts_h = pd.Series(y_ts_h,index=inds_tst)
-                                y_tr_h = regModel.predict(x)[0].reshape(-1,)
-                                y_tr_h = pd.Series(y_tr_h,index=inds_trn)
+                            inds_tst = tst.index
+                            
+                            if NORMALIZE_X:
+                                tst_ = pd.DataFrame(scalerX.transform(tst.iloc[:,:-1]), columns=tst.iloc[:,:-1].columns, index=inds_tst)
                             else:
-                                y_ts_h = regModel.predict(tst.iloc[:,:-1])
-                                y_tr_h = regModel.predict(trn.iloc[:,:-1])
+                                tst_ = tst.iloc[:,:-1]
 
+                            if meth.lower() == 'rbfgprard': 
+                                # x_ = tst_.values
+                                # x  = trn.iloc[:,:-1].values
+                                
+                                y_ts_h = regModel.predict(tst_.values)[0].reshape(-1,)
+                                print(y_ts_h.shape)
+                                y_ts_h = pd.Series(y_ts_h,index=inds_tst)
+                                y_tr_h = regModel.predict(trn.iloc[:,:-1].values)[0].reshape(-1,)
+                                print(y_tr_h.shape)
+                                y_tr_h = pd.Series(y_tr_h,index=inds_trn)
+                            else: 
+                                y_ts_h = regModel.predict(tst_).reshape(-1,)
+                                print(y_ts_h.shape)
+                                y_ts_h = pd.Series(y_ts_h,index=inds_tst)
+                                y_tr_h = regModel.predict(trn.iloc[:,:-1]).reshape(-1,)
+                                print(y_tr_h.shape)
+                                y_tr_h = pd.Series(y_tr_h,index=inds_trn)
+
+                          
                             if NORMALIZE_Y: 
                                 y_tr_h = scalerY.inverse_transform(y_tr_h)
                                 y_ts_h = scalerY.inverse_transform(y_ts_h)
-                                trn.iloc[:,-1] = scalerY.inverse_transform(trn.iloc[:,-1])
-                                tst.iloc[:,-1] = scalerY.inverse_transform(tst.iloc[:,-1])
-
+                                y_tr_gt = scalerY.inverse_transform(trn.iloc[:,-1])
+                                y_ts_gt = scalerY.inverse_transform(tst.iloc[:,-1])
+                            #else: 
+                            #    y_tr_gt = trn.iloc[:,-1]
+                            #    y_ts_gt = tst.iloc[:,-1]
+                
+                            # Compute scores 
                             mse = np.sqrt(mean_squared_error(tst.iloc[:,-1], y_ts_h))
                             r2 = r2_score(tst.iloc[:,-1], y_ts_h)
-
-                            # print(mse,r2)
 
                             t_mse = np.sqrt(mean_squared_error(trn.iloc[:,-1], y_tr_h))
                             t_r2 = r2_score(trn.iloc[:,-1], y_tr_h)
@@ -225,7 +239,7 @@ def run_baselines_particle_size(data, **kwargs):
                                                     # 'y_tr_hat': y_tr_h,
                                                     # 'y_ts_hat': y_ts_h}
                             
-                            del trn, tst, trn_, tst_, leg_whole_, regModel
+                            del trn, tst, tst_, leg_whole_, regModel
 
                     
                     
