@@ -169,6 +169,7 @@ def run_baselines_particle_size(data, **kwargs):
                                 regModel.optimize('scg', max_iters=200) # 'scg'
                 #                 print(regModel)
                                 regModel.coef_ = regModel.sum.rbf.lengthscale
+                    
                             else: 
                                 print('method not implemented yet. Or check the spelling')
                                 break
