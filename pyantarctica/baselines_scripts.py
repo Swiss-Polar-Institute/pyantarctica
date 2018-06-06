@@ -6,8 +6,8 @@ import os
 from datetime import datetime 
 from math import ceil
 
-import ace_package.dataset as dataset 
-import ace_package.modeling as modeling
+import .dataset as dataset 
+import .modeling as modeling
 
 import GPy
 import sklearn as sk

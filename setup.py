@@ -32,7 +32,7 @@ extras_require = {
 }
 
 setup(
-    name="ace-package",
+    name="pyantarctica",
     version="0.1.0",
     license='Apache License 2.0',
     url="",
