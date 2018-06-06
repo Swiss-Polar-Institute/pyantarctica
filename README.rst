@@ -15,7 +15,9 @@ Requirements
 Release process
 ^^^^^^^^^^^^^^^
 
-`rm -rf dist && python setup.py sdist bdist_wheel && twine upload dist/*`
+1. Update version in `setup.py`, commit and tag.
+2. Run `rm -rf dist && python setup.py sdist bdist_wheel && twine upload dist/*`
+3. Change the bump the version to development (`X.Y.Z+1.devYYYYMMDD`)
 
 Compatibility
 -------------
