@@ -1,24 +1,23 @@
-import pandas as pd
-import numpy as np
-import pickle
 import os
-
-from datetime import datetime 
+import pickle
+from datetime import datetime
 from math import ceil
 
-import .dataset as dataset 
-import .modeling as modeling
-
 import GPy
+import numpy as np
+import pandas as pd
 import sklearn as sk
+import sklearn.gaussian_process.kernels as kern  # DotProduct, RBF, WhiteKernel
 from sklearn import preprocessing
-from sklearn.utils import shuffle
-from sklearn.metrics import make_scorer, mean_squared_error, r2_score
-from sklearn.linear_model import RidgeCV, LassoCV
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.gaussian_process import GaussianProcessRegressor
-import sklearn.gaussian_process.kernels as kern# DotProduct, RBF, WhiteKernel
+from sklearn.linear_model import LassoCV, RidgeCV
+from sklearn.metrics import make_scorer, mean_squared_error, r2_score
 from sklearn.model_selection import GridSearchCV
+from sklearn.utils import shuffle
+
+from . import dataset, modeling
+
 
 def save_obj(obj, fname):
     with open(fname + '.pkl', 'wb') as f:
