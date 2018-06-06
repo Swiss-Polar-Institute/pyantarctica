@@ -11,6 +11,8 @@ name = "pypi"
 ipython = "*"
 jupyter = "*"
 isort = "*"
+twine = "*"
+wheel = "*"
 
 [requires]
 python_version = "3.6"
