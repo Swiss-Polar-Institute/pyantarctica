@@ -93,7 +93,7 @@ class ACEdata:
         self.set_datetime_index()
         
         if save_data: 
-            self.datatable.to_csv('./data/intermediate/' + self.name + '.csv', sep=',', na_rep='')
+            self.datatable.to_csv(self.data_folder + self.name + '.csv', sep=',', na_rep='')
     
     def load(self, column_head, body, delim, nantype, nam=None):
         """Load and sets data object named 'dataset' """
