@@ -18,7 +18,13 @@
 
 from setuptools import find_packages, setup
 
-install_requires = [req.strip() for req in "numpy, scipy, pandas, jupyter, seaborn, matplotlib".split(',')]
+install_requires = [
+    'numpy',
+    'scikit-learn', 
+    'pandas', 
+    'matplotlib',
+    'GPy', 
+]
 
 tests_require = []
 
