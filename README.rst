@@ -1,7 +1,7 @@
-weather_ch
+pyantarctica
 ==========
 
-Umbrella package for ACE-DATA project. Data handling, modeling, visualization and more
+Umbrella package for ACE-DATA project. Data handling, modeling, visualization and (not much) more (for now)
 
 Usage
 -----
@@ -9,8 +9,18 @@ Usage
 Installation
 ------------
 
+from source
+
+.. pip install -e --dev ../pyantartica
+
+from the PyPI repos
+
+.. pip install pyantarctica
+
 Requirements
 ^^^^^^^^^^^^
+
+see setup.py
 
 Release process
 ^^^^^^^^^^^^^^^
