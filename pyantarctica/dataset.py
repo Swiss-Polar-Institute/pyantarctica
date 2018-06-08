@@ -371,21 +371,6 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
     # out.columns = out.columns.droplevel(level=0)
     return out
 
-def feature_expand(table, trans):
-
-    table_new = pd.DataFrame()
-
-    for key in trans:
-        print(key)
-        if key is 'square':
-            for col in table.columns.tolist():
-                table_new[col + '_square'] = table[col]**2
-        elif key is 'cube':
-            for col in table.columns.tolist():
-                table_new[col + '_cube'] = table[col]**3
-
-    return table_new
-
 def filter_particle_sizes(datatable,threshold=3):
 
     par_ = np.pad(datatable.values,(1,1), mode='symmetric')
