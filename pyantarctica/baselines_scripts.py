@@ -49,7 +49,7 @@ def run_baselines_particle_size(data, **kwargs):
     summ = {}
     #if SAVE_TEXT_DUMP:
     #    results = pd.DataFrame(index=[],columns=['tst_r2','tst_rmse','trn_r2','trn_rmse','n_tr','n_ts'])
-    
+
     for sep_method in SEP_METHOD:
         #print(sep_method)
         for leg in LEG_P:
@@ -129,9 +129,9 @@ def run_baselines_particle_size(data, **kwargs):
                             ######### 1 : Ridge Regression
                             if meth.lower() == 'ridgereg':
                                 MSE_error = make_scorer(mean_squared_error, greater_is_better=False)
-                                regModel = RidgeCV(alphas=np.logspace(-6,6,13), fit_intercept=not NORMALIZE_Y,
-                                                   normalize=False, store_cv_values=False, gcv_mode='svd',
-                                                   cv=5, scoring=MSE_error).fit(X,y) #(trn.iloc[:,:-1], trn.iloc[:,-1])
+                                regModel = RidgeCV(alphas=np.logspace(-6,6,13),     fit_intercept=not NORMALIZE_Y,
+                                    normalize=False, store_cv_values=False, gcv_mode='svd',
+                                    cv=5, scoring=MSE_error).fit(X,y) #(trn.iloc[:,:-1], trn.iloc[:,-1])
                                 regModel.coef_ = regModel.coef_[0]
 
                             elif meth.lower() == 'pls':
