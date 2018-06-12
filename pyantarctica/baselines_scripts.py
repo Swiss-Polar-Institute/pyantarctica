@@ -108,6 +108,7 @@ def run_baselines_particle_size(data, **kwargs):
                                 tst = leg_whole_.loc[TRN_TEST_INDEX.values == 2,:].copy()
 
                             # Standardize data to 0 mean unit variance based on training statistics (stationarity)
+
                             # ----------
                             inds_trn = trn.index
 
@@ -258,6 +259,148 @@ def run_baselines_particle_size(data, **kwargs):
 
     save_obj(summ, SAVEFOLDER + MODELNAME)
     #results.to_csv(path_or_buf=SAVEFOLDER + MODELNAME + '.csv', sep='\t')
-
-
     return summ
+##############################################################################################################
+def run_regression_indexed_data(data, inds, regression_model, NORM_X=True, NORM_Y=True):
+    """ RUN REGRESSION MODEL ON SINGLE REPLICA OF DATA
+        data : input dataset, training and test mixed
+        inds : index vector (df!) of training (ind = 1) and test (ind = 2,...,S) for S test SPLITS
+        regr : regression method. Options are hard coded here, but can be extracted in a dict in the future
+        var : som matrix to be filled. Ugly way to do it but well... easy to keep track of updates from loops wrapping `run_regression_indexed_data`
+    """
+
+    tr_ = data.loc[inds.loc[inds['ind'] == 1].index,:].copy()
+
+    if NORM_X:
+        scalerX = sk.preprocessing.StandardScaler().fit(tr_.iloc[:,:-1])
+        trn = pd.DataFrame(scalerX.transform(tr_.iloc[:,:-1]), columns=tr_.iloc[:,:-1].columns,
+                            index=tr_.index)
+    else:
+        trn = tr_.iloc[:,:-1]
+
+    if NORM_Y:
+        scalerY = sk.preprocessing.StandardScaler().fit(tr_.iloc[:,-1].values.reshape(-1, 1))
+        y_trn = scalerY.transform(tr_.iloc[:,-1].values.reshape(-1, 1))
+    else:
+        y_trn = tr_.iloc[:,-1]
+
+    trn = trn.assign(labels=y_trn)
+    #             print(trn.columns.tolist())
+
+
+    if regression_model.lower() == 'ridgereg':
+    #                 MSE_error = make_scorer(mean_squared_error, greater_is_better=False)
+    #                 regModel = RidgeCV(alphas=np.logspace(-6,6,13), fit_intercept=not NORM_Y,
+    #                            normalize=False, store_cv_values=False, gcv_mode='svd',
+    #                            cv=3, scoring=MSE_error).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+        regModel = sk.linear_model.Ridge(alpha=0.1, fit_intercept=not NORM_Y,
+                   normalize=False).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+        weights = regModel.coef_
+
+    elif regression_model.lower() == 'lasso':
+    #                 regModel = LassoCV(alphas=np.logspace(-3,-1,3), n_alphas=200,
+    #                                     fit_intercept=not NORM_Y, cv=3).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+        regModel = sk.linear_model.Lasso(alpha=0.1, fit_intercept=not NORM_Y,
+                    normalize=False).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+        weights = regModel.coef_
+
+    elif regression_model.lower() == 'pls':
+        n = 3
+        regModel = PLSRegression(n_components=n, scale=False).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+        regModel.coef_ = np.squeeze(np.transpose(regModel.coef_))
+        weights = regModel.coef_
+
+    elif regression_model.lower() == 'rf':
+        import sklearn.ensemble
+        regModel = sklearn.ensemble.RandomForestRegressor(n_estimators=100, criterion='mse',
+                max_depth=10, min_samples_split=2, min_samples_leaf=1).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+
+    elif regression_model.lower() == 'rbfgpr':
+        kernel = 1.0 * kern.RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
+        1.0 * kern.WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4)) + \
+        1.0 * kern.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-05, 100000.0)) + \
+        1.0 * kern.DotProduct(sigma_0=1.0, sigma_0_bounds=(1e-05, 100000.0))
+
+        regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b',
+                        alpha=0, n_restarts_optimizer=5).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+
+    elif regression_model.lower() == 'rbfgprard':
+
+        inds_trn = trn.index
+        x = trn.iloc[:,:-1].values
+        y = trn.iloc[:,-1].values.reshape(-1,1)
+
+        k = (GPy.kern.RBF(x.shape[1], ARD=True)
+             + GPy.kern.White(x.shape[1], 0.01)
+             + GPy.kern.Linear(x.shape[1], variances=0.01, ARD=False))
+
+        regModel = GPy.models.GPRegression(x,y,kernel=k)
+        regModel.optimize('bfgs', max_iters=200)
+    #                 print(regModel)
+        weights = 50/regModel.sum.rbf.lengthscale
+
+    else:
+        print('method not implemented yet. Or check the spelling')
+        return []
+
+    #             from_to = [str(trn.index.tolist()[0]) + ' - ' + str(trn.index.tolist()[-1])]
+    gap_time_delta = str(trn.index.tolist()[-1] - trn.index.tolist()[0])
+
+    # weights_summary[gap_num,:] =
+
+    tr_r2 = []; tr_mse = []# [[],[]]; mse = [[],[]]
+    ts_r2 = []; ts_mse = []
+
+    a = 1
+    for bb in np.setdiff1d(np.unique(inds),1):
+
+        ts_ = data.loc[inds.loc[inds['ind'] == bb].index,:]
+
+        if NORM_X:
+            tst = pd.DataFrame(scalerX.transform(ts_.iloc[:,:-1]), columns=ts_.iloc[:,:-1].columns, index=ts_.index)
+        else:
+            tst = ts_.iloc[:,:-1]
+
+        if NORM_Y:
+            y_tst = scalerY.transform(ts_.iloc[:,-1].values.reshape(-1, 1))
+        else:
+            y_tst = ts_.iloc[:,-1]
+
+        tst = tst.assign(labels=y_tst)
+
+        if regression_model.lower() == 'rbfgprard':
+            inds_tst = tst.index
+            x_ = tst.iloc[:,:-1].values
+            y_ts_h = regModel.predict(x_)[0].reshape(-1,)
+            y_ts_h = pd.Series(y_ts_h,index=inds_tst)
+            y_tr_h = regModel.predict(x)[0].reshape(-1,)
+            y_tr_h = pd.Series(y_tr_h,index=inds_trn)
+        else:
+            y_ts_h = regModel.predict(tst.iloc[:,:-1])
+            y_tr_h = regModel.predict(trn.iloc[:,:-1])
+
+
+        if NORM_Y:
+            y_tr_h = scalerY.inverse_transform(y_tr_h)
+            y_ts_h = scalerY.inverse_transform(y_ts_h)
+            y_tr_gt = scalerY.inverse_transform(trn.iloc[:,-1])
+            y_ts_gt = scalerY.inverse_transform(tst.iloc[:,-1])
+        else:
+            y_tr_gt = trn.iloc[:,-1]
+            y_ts_gt = tst.iloc[:,-1]
+        if a == 1:
+            tr_r2.append(r2_score(y_tr_gt, y_tr_h))
+            tr_mse.append(np.sqrt(mean_squared_error(y_tr_gt, y_tr_h)))
+            a = 2
+        ts_r2.append(r2_score(y_ts_gt, y_ts_h))
+        ts_mse.append(np.sqrt(mean_squared_error(y_ts_gt, y_ts_h)))
+
+        if 0:
+            print('trn: MSE %f, R2 %f' %(t_mse,t_r2))
+            print('%f -- trn: MSE %f, R2 %f' %(bb,t_mse,t_r2))
+            print('%f -- tst: MSE %f, R2 %f' %(bb,mse,r2))
+
+    del inds
+
+    return {'weights': weights, 'gap_time_delta': gap_time_delta, 'tr_r2': tr_r2,
+                'ts_r2': ts_r2, 'tr_mse': tr_mse, 'ts_mse': ts_mse}
