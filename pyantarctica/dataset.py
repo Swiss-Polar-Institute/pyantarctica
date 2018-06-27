@@ -86,6 +86,14 @@ class ACEdata:
             delimiter = '\t'
             self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension
 
+        elif self.name is 'meteo_variable_track':
+            self.dataname = 'Meteorological_variables_track'
+            extension = '.csv'
+            column_head = 0
+            body=1
+            nantype=''
+            delimiter=','
+            self.fullfolder = self.data_folder + self.intermediate_folder + '/' + self.dataname + extension
         else:
             print('dataset not handled yet.')
 
@@ -93,8 +101,9 @@ class ACEdata:
         self.set_datetime_index()
 
         if save_data:
-            self.datatable.to_csv(self.data_folder + self.name + '.csv', sep=',', na_rep='')
+            self.datatable.to_csv(self.data_folder + self.intermediate_folder + '/' + self.name + '_postprocessed.csv', sep=',', na_rep='')
 
+##############################################################################################################
     def load(self, column_head, body, delim, nantype, nam=None):
         """Load and sets data object named 'dataset' """
         # fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + ext
@@ -132,6 +141,7 @@ class ACEdata:
 
         return datatable
 
+##############################################################################################################
     def convert_time_to_unixts(self, new_column_name):
         """Convert raw timestamp to unix timestamp"""
         from datetime import datetime, tzinfo, timedelta
@@ -187,19 +197,27 @@ class ACEdata:
             #                   self.datatable['timest_']]
             self.datatable.drop(['timest_'], axis=1, inplace=True)
 
+        elif self.name is 'meteo_variable_track':
+            datetime_object = [datetime.strptime(str(date), '%d.%m.%y %H:%M') for date in
+                   self.datatable['timestamp']]
+            self.datatable.drop(['timestamp'], axis=1, inplace=True)
+
 
         datetime_obj = [date_.replace(tzinfo=UTC()) for date_ in datetime_object]
         timestamp = [timegm(date_.timetuple()) for date_ in datetime_obj]
 
         self.datatable[new_column_name] = pd.DataFrame(timestamp)
+
         del timestamp, datetime_obj
 
+##############################################################################################################
     def set_datetime_index(self):
         self.convert_time_to_unixts('timest_')
         self.datatable['timest_'] = pd.to_datetime(self.datatable['timest_'], unit='s')
         self.datatable.set_index(pd.DatetimeIndex(self.datatable['timest_']), inplace=True)
         self.datatable.drop(['timest_'], axis=1, inplace=True)
 
+##############################################################################################################
     def filter_particle_sizes(self, threshold=3, mode='full', NORM_METHOD='fancy', save=''):
         """ IN :
                 threshold: check for increase in neighboring values (multiplicative)
@@ -278,8 +296,7 @@ class ACEdata:
         del temp_, bad_rows
         # return self.particle_filtered
 
-# -------------------------
-
+##############################################################################################################
 def add_legs_index(df, **kwargs):
 
     if 'leg_dates' not in kwargs:
@@ -314,6 +331,7 @@ def add_legs_index(df, **kwargs):
     df = df.assign(leg=dd)
     return df
 
+##############################################################################################################
 def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
     """
         Outer merge of two datatables based on a common resampling of time intervals:
@@ -371,6 +389,7 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
     # out.columns = out.columns.droplevel(level=0)
     return out
 
+##############################################################################################################
 def filter_particle_sizes(datatable,threshold=3):
 
     par_ = np.pad(datatable.values,(1,1), mode='symmetric')
@@ -401,6 +420,7 @@ def filter_particle_sizes(datatable,threshold=3):
     filtered[conds] = np.nan
     return filtered
 
+##############################################################################################################
 def generate_particle_data(data_folder='./data/', mode='all', data_output='./data/intermediate/',
                            savedata=False, filtering_parameter=3):
     '''
@@ -493,7 +513,7 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
             part_agg.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
         return part_agg
 
-
+##############################################################################################################
 def read_standard_dataframe(data_folder, datetime_index_name='timest_'):
 
     data = pd.read_csv(data_folder)
