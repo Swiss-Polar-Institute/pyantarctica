@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 
 import matplotlib.pyplot as plt
 import mpl_toolkits.basemap as carto
-
+import matplotlib.colorbar as clb
 
 def plot_predicted_timeseries(trn_, tst_, y_ts_h, y_tr_h, SEP_METHOD):
     # Should probably be moved in a visualization module, here not really modeling stuff...
@@ -362,13 +363,16 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                             plt.savefig(options['SAVEFOLDER'] + errmeasure + '_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + \
                                 sep_method + '_' +  varset + '.png', bbox_inches='tight')
 
-def visualize_stereo_map(coordinates, values, markersize=0.75, fillconts='grey', fillsea='aqua'):
+def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, fillconts='grey', fillsea='aqua', labscatt=''):
     '''
         Visualize data on a polar stereographic projection map using Basemap on matplotlib. It probably needs to be updated in the future as this package is no longer mantained since easily 2013-2014 or something like that. But I don't know about options that are as easy and as flexible (it is basically matplotlib)
+
             INPUTS
                 - coordinates: those are basically fixed, from the boad path. Still given as argument for flexibility
                 - values: can be a 1D vector passing values (and a colormap is build accordingly) or it can be a 2D vector Nx3 corresponding to some colormap to be used as plots
                 - fill* : colors to fill continents and seas.
+                - label : the label for the scatter series, to use for legend and so on
+                - min_, max_: min / max values to clip variable to plot. Default are min / max of the series
 
             OUTPUTS
                 - the most awesome map of the antarctic continent, without penguins
@@ -378,22 +382,35 @@ def visualize_stereo_map(coordinates, values, markersize=0.75, fillconts='grey',
             TODO
                 - Add support for background color (e.g. sea surface temperature, wind magnitude, etc.)
 
+            NOTE
+                - The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
 
     '''
 
+    # prepare basemap
     m = carto.Basemap(projection='spstere',boundinglat=-32,lon_0=180,resolution='l')
-    # m = carto.Basemap(projection='stere',lat_0=-90,lon_0=0,width=14000000, height=14000000)
 
     m.drawcoastlines()
     m.fillcontinents(color=fillconts)
     m.drawmapboundary(fill_color=fillsea)
-
     m.drawparallels(np.arange(-90.,81.,20.))
     m.drawmeridians(np.arange(-180.,181.,20.))
 
-    # draw parallels and meridians.
-    # draw tissot's indicatrix to show distortion.
+    # prepare colors
+    cmap = plt.cm.get_cmap('viridis')
+    normalize = mpl.colors.Normalize(vmin=min_va, vmax=max_va)
+    colors = [cmap(normalize(value)) for value in values]
+
+    # geo coord to plot coord
     lon, lat = m(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values)
 
-    m.scatter(lon,lat,linewidth=0.4,color=values)
-    plt.show()
+    # map boat samples with values
+    im = m.scatter(lon,lat,color=colors,linewidth=0.4,label=labscatt)
+
+    ax = plt.gca()
+    ax.set_title(labscatt)
+
+    cax, _ = clb.make_axes(ax)
+    cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
+
+    return im
