@@ -260,6 +260,7 @@ def run_baselines_particle_size(data, **kwargs):
     save_obj(summ, SAVEFOLDER + MODELNAME)
     #results.to_csv(path_or_buf=SAVEFOLDER + MODELNAME + '.csv', sep='\t')
     return summ
+
 ##############################################################################################################
 def run_regression_indexed_data(data, inds, regression_model, NORM_X=True, NORM_Y=True):
     """ RUN REGRESSION MODEL ON SINGLE REPLICA OF DATA
@@ -403,4 +404,127 @@ def run_regression_indexed_data(data, inds, regression_model, NORM_X=True, NORM_
     del inds
 
     return {'weights': weights, 'gap_time_delta': gap_time_delta, 'tr_r2': tr_r2,
+                'ts_r2': ts_r2, 'tr_mse': tr_mse, 'ts_mse': ts_mse}
+
+
+##############################################################################################################
+def run_regression_simple_data(data_tr, data_ts, regression_model, NORM_X=True, NORM_Y=True):
+    """ RUN REGRESSION MODEL ON SINGLE REPLICA OF DATA
+        data_tr : input dataset, training [X Y]
+        data_ts : input dataset, testing [X Y]
+        regr : regression method. Options are hard coded here, but can be extracted in a dict in the future
+        var : som matrix to be filled. Ugly way to do it but well... easy to keep track of updates from loops wrapping `run_regression_indexed_data`
+    """
+
+    tr_ = data_tr.copy()
+    ts_ = data_ts.copy()
+
+    if NORM_X:
+        scalerX = sk.preprocessing.StandardScaler().fit(tr_.iloc[:,:-1])
+        trn = pd.DataFrame(scalerX.transform(tr_.iloc[:,:-1]), columns=tr_.iloc[:,:-1].columns,
+                            index=tr_.index)
+        tst = pd.DataFrame(scalerX.transform(ts_.iloc[:,:-1]), columns=ts_.iloc[:,:-1].columns, index=ts_.index)
+    else:
+        trn = tr_.iloc[:,:-1]
+        tst = ts_.iloc[:,:-1]
+
+    if NORM_Y:
+        scalerY = sk.preprocessing.StandardScaler().fit(tr_.iloc[:,-1].values.reshape(-1, 1))
+        y_trn = scalerY.transform(tr_.iloc[:,-1].values.reshape(-1, 1))
+        y_tst = scalerY.transform(ts_.iloc[:,-1].values.reshape(-1, 1))
+    else:
+        y_trn = tr_.iloc[:,-1]
+        y_tst = ts_.iloc[:,-1]
+
+    trn = trn.assign(labels=y_trn)
+    tst = tst.assign(labels=y_tst)
+
+    if regression_model.lower() == 'ridgereg':
+    #                 MSE_error = make_scorer(mean_squared_error, greater_is_better=False)
+    #                 regModel = RidgeCV(alphas=np.logspace(-6,6,13), fit_intercept=not NORM_Y,
+    #                            normalize=False, store_cv_values=False, gcv_mode='svd',
+    #                            cv=3, scoring=MSE_error).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+        regModel = sk.linear_model.Ridge(alpha=0.1, fit_intercept=not NORM_Y,
+                   normalize=False).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+        weights = regModel.coef_
+
+    elif regression_model.lower() == 'lasso':
+    #                 regModel = LassoCV(alphas=np.logspace(-3,-1,3), n_alphas=200,
+    #                                     fit_intercept=not NORM_Y, cv=3).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+        regModel = sk.linear_model.Lasso(alpha=0.1, fit_intercept=not NORM_Y,
+                    normalize=False).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+        weights = regModel.coef_
+
+    elif regression_model.lower() == 'pls':
+        n = 3
+        regModel = PLSRegression(n_components=n, scale=False).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+        regModel.coef_ = np.squeeze(np.transpose(regModel.coef_))
+        weights = regModel.coef_
+
+    elif regression_model.lower() == 'rf':
+        import sklearn.ensemble
+        regModel = sklearn.ensemble.RandomForestRegressor(n_estimators=100, criterion='mse',
+                max_depth=10, min_samples_split=2, min_samples_leaf=1).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+
+    elif regression_model.lower() == 'rbfgpr':
+        kernel = 1.0 * kern.RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
+        1.0 * kern.WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4)) + \
+        1.0 * kern.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-05, 100000.0)) + \
+        1.0 * kern.DotProduct(sigma_0=1.0, sigma_0_bounds=(1e-05, 100000.0))
+
+        regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b',
+                        alpha=0, n_restarts_optimizer=5).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+
+    elif regression_model.lower() == 'rbfgprard':
+
+        inds_trn = trn.index
+        x = trn.iloc[:,:-1].values
+        y = trn.iloc[:,-1].values.reshape(-1,1)
+
+        k = (GPy.kern.RBF(x.shape[1], ARD=True)
+             + GPy.kern.White(x.shape[1], 0.01)
+             + GPy.kern.Linear(x.shape[1], variances=0.01, ARD=False))
+
+        regModel = GPy.models.GPRegression(x,y,kernel=k)
+        regModel.optimize('bfgs', max_iters=200)
+    #                 print(regModel)
+        weights = 50/regModel.sum.rbf.lengthscale
+
+    else:
+        print('method not implemented yet. Or check the spelling')
+        return []
+
+    # TEST STEPS
+
+    if regression_model.lower() == 'rbfgprard':
+        inds_tst = tst.index
+        x_ = tst.iloc[:,:-1].values
+        y_ts_h = regModel.predict(x_)[0].reshape(-1,)
+        y_ts_h = pd.Series(y_ts_h,index=inds_tst)
+        y_tr_h = regModel.predict(x)[0].reshape(-1,)
+        y_tr_h = pd.Series(y_tr_h,index=inds_trn)
+    else:
+        y_ts_h = regModel.predict(tst.iloc[:,:-1])
+        y_tr_h = regModel.predict(trn.iloc[:,:-1])
+
+    if NORM_Y:
+        y_tr_h = scalerY.inverse_transform(y_tr_h)
+        y_ts_h = scalerY.inverse_transform(y_ts_h)
+        y_tr_gt = scalerY.inverse_transform(trn.iloc[:,-1])
+        y_ts_gt = scalerY.inverse_transform(tst.iloc[:,-1])
+    else:
+        y_tr_gt = trn.iloc[:,-1]
+        y_ts_gt = tst.iloc[:,-1]
+
+    tr_r2 = r2_score(y_tr_gt, y_tr_h)
+    tr_mse = np.sqrt(mean_squared_error(y_tr_gt, y_tr_h))
+    ts_r2 = r2_score(y_ts_gt, y_ts_h)
+    ts_mse = np.sqrt(mean_squared_error(y_ts_gt, y_ts_h))
+
+    if 0:
+        print('trn: MSE %f, R2 %f' %(t_mse,t_r2))
+        print('%f -- trn: MSE %f, R2 %f' %(bb,t_mse,t_r2))
+        print('%f -- tst: MSE %f, R2 %f' %(bb,mse,r2))
+
+    return {'weights': weights, 'tr_r2': tr_r2,
                 'ts_r2': ts_r2, 'tr_mse': tr_mse, 'ts_mse': ts_mse}

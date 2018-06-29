@@ -94,6 +94,15 @@ class ACEdata:
             nantype=''
             delimiter=','
             self.fullfolder = self.data_folder + self.intermediate_folder + '/' + self.dataname + extension
+
+        elif self.name is 'ecmwf_interpolation_track':
+            self.dataname = 'ecmwf_intpol_all'
+            extension = '.csv'
+            column_head = 0
+            body=1
+            nantype=''
+            delimiter=','
+            self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension
         else:
             print('dataset not handled yet.')
 
@@ -202,6 +211,10 @@ class ACEdata:
                    self.datatable['timestamp']]
             self.datatable.drop(['timestamp'], axis=1, inplace=True)
 
+        elif self.name is 'ecmwf_interpolation_track':
+            datetime_object = [datetime.strptime(str(date), '%d.%m.%y %H:%M') for date in
+                   self.datatable['datetime']]
+            self.datatable.drop(['datetime'], axis=1, inplace=True)
 
         datetime_obj = [date_.replace(tzinfo=UTC()) for date_ in datetime_object]
         timestamp = [timegm(date_.timetuple()) for date_ in datetime_obj]

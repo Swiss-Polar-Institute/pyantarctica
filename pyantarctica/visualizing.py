@@ -363,7 +363,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                             plt.savefig(options['SAVEFOLDER'] + errmeasure + '_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + \
                                 sep_method + '_' +  varset + '.png', bbox_inches='tight')
 
-def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, fillconts='grey', fillsea='aqua', labscatt=''):
+def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
     '''
         Visualize data on a polar stereographic projection map using Basemap on matplotlib. It probably needs to be updated in the future as this package is no longer mantained since easily 2013-2014 or something like that. But I don't know about options that are as easy and as flexible (it is basically matplotlib)
 
@@ -380,7 +380,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, f
             EXAMPLE
 
             TODO
-                - Add support for background color (e.g. sea surface temperature, wind magnitude, etc.)
+                - Add support for _custom_ background image (e.g. sea surface temperature, wind magnitude, etc.) (use Basemap.contourf() to interpolate linearly within a grid of values)
 
             NOTE
                 - The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
@@ -395,7 +395,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, f
     m.drawmapboundary(fill_color=fillsea)
     m.drawparallels(np.arange(-90.,81.,20.))
     m.drawmeridians(np.arange(-180.,181.,20.))
-
+    #m.shadedrelief()
     # prepare colors
     cmap = plt.cm.get_cmap('viridis')
     normalize = mpl.colors.Normalize(vmin=min_va, vmax=max_va)
@@ -405,10 +405,16 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, f
     lon, lat = m(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values)
 
     # map boat samples with values
-    im = m.scatter(lon,lat,color=colors,linewidth=0.4,label=labscatt)
+    if plottype == 'scatter':
+        im = m.scatter(lon,lat,color=colors,s=markersize, linewidth=0, label=labplot)
+    elif plottype == 'plot':
+        im = m.plot(lon,lat,color=colors,linewidth=markersize,label=labplot)
+    else:
+        print('unrecognized plot')
+        return
 
     ax = plt.gca()
-    ax.set_title(labscatt)
+    ax.set_title(labplot,fontsize=0.2*markersize)
 
     cax, _ = clb.make_axes(ax)
     cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
