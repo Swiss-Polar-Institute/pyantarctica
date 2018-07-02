@@ -373,7 +373,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, f
                 - fill* : colors to fill continents and seas.
                 - label : the label for the scatter series, to use for legend and so on
                 - min_, max_: min / max values to clip variable to plot. Default are min / max of the series
-
+                - plottype : (BETA) use differnt plotting tools (e.g. scatter or plot, etc.)
             OUTPUTS
                 - the most awesome map of the antarctic continent, without penguins
 
