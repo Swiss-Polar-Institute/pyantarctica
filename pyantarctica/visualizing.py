@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import matplotlib as mpl
 
+import pyantarctica.dataset as dataset
 import matplotlib.pyplot as plt
 import mpl_toolkits.basemap as carto
 import matplotlib.colorbar as clb
@@ -76,65 +77,61 @@ def aggregated_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True)
     for sea in options['SEA']:
         for sep_method in options['SEP_METHOD']:
             for varset in options['VARSET']:
-                if varset.lower() == 'full':
-                    Nw=6
-                    if sea == 'total':
-                        tickname = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind']
-                    elif sea == 'wind':
-                        tickname  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind']
 
-                elif varset.lower() == 'nowind':
-                    Nw=4
-                    if sea == 'total':
-                        tickname = ['hs', 'tp', 'steep', 'phase_vel']
-                    elif sea == 'wind':
-                        tickname  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w']
-
-                elif varset.lower() == 'reduced':
-                    Nw=3
-                    if sea == 'total':
-                        tickname = ['hs', 'tp', 'wind']
-                    elif sea == 'wind':
-                        tickname  = ['hs_w', 'tp_w', 'wind']
-
-                index = np.arange(Nw)
+                tickname = dataset.subset_data_stack_variables([],
+                        varset, seatype=sea, mode='returnnames')
 
                 fig, ax = plt.subplots(len(sets), len(options['LEG_P']), sharey=False, tight_layout=False,
                                        figsize=(10,10*len(options['LEG_P'])), squeeze=False)
 
                 for indbi, bin_ in enumerate(sets):
+                    index = np.arange(len(tickname))
                     for ind, meth in enumerate(options['REGR_WITH_WEIGTHS']):
                         for leg in options['LEG_P']:
                             string_plots = sea + '_leg_' + str(leg) + '_' + sep_method + '_' + \
                             meth + '_' +  varset
 
-                            if 'weights' in  stats[bin_][string_plots]:
-                                if meth == 'rbfgprard':
-                                    w = 1/(1 + 10*stats[bin_][string_plots]['weights'][0])#[string_plots + '_mean']
-                                    s = 1/(1 + 10*stats[bin_][string_plots]['weights'][1])#[string_plots + '_mean']
+                            if string_plots in stats[bin_]:
+                                if 'weights' in  stats[bin_][string_plots]:
+                                    if meth == 'rbfgprard':
+                                        w = 1/(1 + 10*stats[bin_][string_plots]['weights'][0])#[string_plots + '_mean']
+                                        s = 1/(1 + 10*stats[bin_][string_plots]['weights'][1])#[string_plots + '_mean']
+                                    else:
+                                        w = stats[bin_][string_plots]['weights'][0]#[string_plots + '_mean']
+                                        s = stats[bin_][string_plots]['weights'][1]#[string_plots + '_mean']
                                 else:
-                                    w = stats[bin_][string_plots]['weights'][0]#[string_plots + '_mean']
-                                    s = stats[bin_][string_plots]['weights'][1]#[string_plots + '_mean']
+                                    continue
                             else:
-                                break
+                                continue
 
-                            if bin_ == '80-200':
-                                print(w)
+                            ax[indbi,leg-1].bar(index, w, bar_w, color=tuple(colors[ind,:]))
 
-                            ax[indbi,leg-1].bar(index, w, bar_w, color=tuple(colors[ind,:]))#, yerr=s)#olors[ind]'
+                            ax[-1,leg-1].set_xticks(index)
+                            if indbi == len(sets)-1:
+                                ax[indbi,leg-1].set_xticklabels(tickname, rotation=90)
+                            else:
+                                ax[indbi,leg-1].set_xticklabels([])
 
-                            index = index + bar_w
+                        index = index + bar_w
 
-                    if leg == 1:
-                        ax[indbi,leg-1].set_ylabel('Scores ' + bin_)
+                    index = np.arange(len(tickname))
 
-                    ax[-1,leg-1].set_xlabel('LEG ' + str(leg), fontsize=16)
+                    ax[indbi,0].set_ylabel('Scores ' + bin_)
 
-                    index = np.arange(Nw)
-                    ax[indbi,leg-1].set_xticks(index + bar_w)
-                    ax[indbi,leg-1].set_xticklabels(tickname)
+                # if indbi < len(sets)-1:
+                    # ax[indbi,leg-1].set_xticklabels([])
 
-                plt.legend(options['METHODS'])
+                # if indbi == len(sets)-1:
+                    # if len(tickname) > 6:
+                    # ax[-1,leg-1].set_xticklabels(tickname, rotation=90)
+                    # else:
+                    # ax[-1,leg-1].set_xticklabels(tickname)
+
+                index = np.arange(len(tickname))
+                ax[-1,int(np.floor(len(options['LEG_P'])/2))].set_xlabel('LEG ' + str(leg), fontsize=16)
+                ax[-1,int(np.floor(len(options['LEG_P'])/2))].set_xticks(index)
+
+                plt.legend(options['REGR_WITH_WEIGTHS'])
                 plt.suptitle(sea + '_leg_' + str(leg) + '_' + sep_method + '_' +  varset)
                 plt.show()
 
@@ -150,62 +147,69 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
         for sea in options['SEA']:
             for sep_method in options['SEP_METHOD']:
                 for varset in options['VARSET']:
-                    index = np.arange(1)
                     fig, ax = plt.subplots(2, len(options['LEG_P']), sharey=False,
                                            tight_layout=False, figsize=(10*len(options['LEG_P']),10), squeeze=False)
 
-                    for indbi, bin_ in enumerate(sets):
-                        index = index + 2*bar_w
-                        for ind, meth in enumerate(options['METHODS']):
-                            for leg in options['LEG_P']:
+
+                    for leg in options['LEG_P']:
+                        index = np.arange(1)
+                        for indbi, bin_ in enumerate(sets):
+                            for ind, meth in enumerate(options['METHODS']):
                                 string_plots = sea + '_leg_' + str(leg) + '_' + sep_method + '_' + \
                                     meth + '_' +  varset
 
-                                if errmeasure.lower() == 'rmse':
-                                    e_tr = stats[bin_][string_plots]['tr_RMSE'][0]
-                                    e_ts = stats[bin_][string_plots]['ts_RMSE'][0]
-                                    s_tr = stats[bin_][string_plots]['tr_RMSE'][1]
-                                    s_ts = stats[bin_][string_plots]['ts_RMSE'][1]
+                                if string_plots in stats[bin_]:
+                                    if errmeasure.lower() == 'rmse':
+                                        e_tr = stats[bin_][string_plots]['tr_RMSE'][0]
+                                        e_ts = stats[bin_][string_plots]['ts_RMSE'][0]
+                                        s_tr = stats[bin_][string_plots]['tr_RMSE'][1]
+                                        s_ts = stats[bin_][string_plots]['ts_RMSE'][1]
 
-                                elif errmeasure.lower() == 'r2':
-                                    e_tr = stats[bin_][string_plots]['tr_R2'][0]
-                                    e_ts = stats[bin_][string_plots]['ts_R2'][0]
-                                    s_tr = stats[bin_][string_plots]['tr_R2'][1]
-                                    s_ts = stats[bin_][string_plots]['ts_R2'][1]
-
-        #                             print(string_plots)
-    #                             print('tst:' + str(e_ts))
-    #                             print('trn:' + str(e_tr))
+                                    elif errmeasure.lower() == 'r2':
+                                        e_tr = stats[bin_][string_plots]['tr_R2'][0]
+                                        e_ts = stats[bin_][string_plots]['ts_R2'][0]
+                                        s_tr = stats[bin_][string_plots]['tr_R2'][1]
+                                        s_ts = stats[bin_][string_plots]['ts_R2'][1]
+                                else:
+                                    e_tr = 0
+                                    e_ts = 0
+                                    s_tr = 0
+                                    s_ts = 0
 
                                 ax[0, leg-1].bar(index, e_tr, bar_w, color=tuple(colors[ind,:]), yerr=s_tr)
                                 ax[1, leg-1].bar(index, e_ts, bar_w, color=tuple(colors[ind,:]), yerr=s_ts)
-
                                 index = index + bar_w
-                                if leg == 1:
-                                    ax[0,0].set_ylabel('training ' + errmeasure.upper())
-                                    ax[1,0].set_ylabel('testing ' + errmeasure.upper())
 
-                                ax[1,leg-1].set_xlabel('LEG ' + str(leg), fontsize=16)
+                            index = index + 2*bar_w
+    #                             print(string_plots)
+    #                             print('tst:' + str(e_ts))
+    #                             print('trn:' + str(e_tr))
 
-        #                             ax[1,leg-1].set_xticks(index + len(options['METHODS'])*bar_w/2 - bar_w/2)
-                                loc = [3/2*bar_w + len(options['METHODS'])*bar_w/2 + ll for ll in (2*bar_w+bar_w*len(options['METHODS']))*np.arange(0,len(sets),1)]
+                            if leg == 1:
+                                ax[0,0].set_ylabel('training ' + errmeasure.upper())
+                                ax[1,0].set_ylabel('testing ' + errmeasure.upper())
+
+                            ax[1,leg-1].set_xlabel('LEG ' + str(leg), fontsize=16)
+
+    #                             ax[1,leg-1].set_xticks(index + len(options['METHODS'])*bar_w/2 - bar_w/2)
+                            loc = [3/2*bar_w + len(options['METHODS'])*bar_w/2 + ll for ll in (2*bar_w+bar_w*len(options['METHODS']))*np.arange(0,len(sets),1)]
 
 
-                                if errmeasure.lower() == 'r2':
-                                    ax[0,leg-1].set_ylim([-0.5,1])
-                                    ax[0,leg-1].set_yticks(np.arange(-0.5,1,0.1))
-                                ax[0,leg-1].set_xticks(loc)
-                                ax[0,leg-1].set_xticklabels('')
-                                ax[0,leg-1].grid(axis='y')
-                                ax[0,leg-1].grid(color='black', which='both', axis='y', linestyle=':')
+                            if errmeasure.lower() == 'r2':
+                                ax[0,leg-1].set_ylim([-0.5,1])
+                                ax[0,leg-1].set_yticks(np.arange(-0.5,1,0.1))
+                            ax[0,leg-1].set_xticks(np.arange(len(sets))/len(sets)+bar_w/2)
+                            ax[0,leg-1].set_xticklabels('')
+                            ax[0,leg-1].grid(axis='y')
+                            ax[0,leg-1].grid(color='black', which='both', axis='y', linestyle=':')
 
-                                if errmeasure.lower() == 'r2':
-                                    ax[1,leg-1].set_ylim([-0.5,1])
-                                    ax[1,leg-1].set_yticks(np.arange(-0.5,1,0.1))
-                                ax[1,leg-1].set_xticks(loc)
-                                ax[1,leg-1].set_xticklabels(sets)
-                                ax[1,leg-1].grid(axis='y')
-                                ax[1,leg-1].grid(color='black', which='both', axis='y', linestyle=':')
+                            if errmeasure.lower() == 'r2':
+                                ax[1,leg-1].set_ylim([-0.5,1])
+                                ax[1,leg-1].set_yticks(np.arange(-0.5,1,0.1))
+                            ax[1,leg-1].set_xticks(np.arange(len(sets))/len(sets)+bar_w/2)
+                            ax[1,leg-1].set_xticklabels(sets)
+                            ax[1,leg-1].grid(axis='y')
+                            ax[1,leg-1].grid(color='black', which='both', axis='y', linestyle=':')
 
 
                     plt.legend(options['METHODS'])
@@ -224,33 +228,16 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True):
     for sea in options['SEA']:
         for sep_method in options['SEP_METHOD']:
             for varset in options['VARSET']:
-                if varset.lower() == 'full':
-                    Nw=6
-                    if sea == 'total':
-                        tickname = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind']
-                    elif sea == 'wind':
-                        tickname  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind']
 
-                elif varset.lower() == 'nowind':
-                    Nw=4
-                    if sea == 'total':
-                        tickname = ['hs', 'tp', 'steep', 'phase_vel']
-                    elif sea == 'wind':
-                        tickname  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w']
-
-                elif varset.lower() == 'reduced':
-                    Nw=3
-                    if sea == 'total':
-                        tickname = ['hs', 'tp', 'wind']
-                    elif sea == 'wind':
-                        tickname  = ['hs_w', 'tp_w', 'wind']
-
-                index = np.arange(len(sets))
+                tickname = dataset.subset_data_stack_variables([],
+                        varset, seatype=sea, mode='returnnames')
 
 
                 for ind, meth in enumerate(options['REGR_WITH_WEIGTHS']):
-                    fig, ax = plt.subplots(len(tickname), len(options['LEG_P']), sharey=False, tight_layout=False,
-                                figsize=(15,10), squeeze=False)
+                    index = np.arange(len(tickname))
+                    fig, ax = plt.subplots(len(tickname), len(options['LEG_P']), sharey=False,
+                                    tight_layout=False,
+                                    figsize=(15,10), squeeze=False)
 
                     for leg in options['LEG_P']:
                         for ind_w, parname in enumerate(tickname):
@@ -304,27 +291,10 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
         for sea in options['SEA']:
             for sep_method in options['SEP_METHOD']:
                 for varset in options['VARSET']:
-                    if varset.lower() == 'full':
-                        Nw=6
-                        if sea == 'total':
-                            tickname = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind']
-                        elif sea == 'wind':
-                            tickname  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind']
 
-                    elif varset.lower() == 'nowind':
-                        Nw=4
-                        if sea == 'total':
-                            tickname = ['hs', 'tp', 'steep', 'phase_vel']
-                        elif sea == 'wind':
-                            tickname  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w']
-
-                    elif varset.lower() == 'reduced':
-                        Nw=3
-                        if sea == 'total':
-                            tickname = ['hs', 'tp', 'wind']
-                        elif sea == 'wind':
-                            tickname  = ['hs_w', 'tp_w', 'wind']
-
+                    tickname = dataset.subset_data_stack_variables([],
+                            varset, seatype=sea, mode='returnnames')
+                    index = np.arange(len(tickname))
 
                     for ind, meth in enumerate(options['METHODS']):
 
@@ -401,7 +371,6 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, f
 
             NOTE
                 - The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
-
     '''
 
     # prepare basemap

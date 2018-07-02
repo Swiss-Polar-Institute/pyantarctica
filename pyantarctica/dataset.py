@@ -111,7 +111,7 @@ class ACEdata:
             delimiter=','
             self.fullfolder = self.data_folder + self.intermediate_folder + '/' + self.dataname + extension
 
-        elif self.name is 'ecmwf_interpolation_track':
+        elif self.name is 'meteo_ecmwf_intpol':
             self.dataname = 'ecmwf_intpol_all'
             extension = '.csv'
             column_head = 0
@@ -227,7 +227,7 @@ class ACEdata:
                    self.datatable['timestamp']]
             self.datatable.drop(['timestamp'], axis=1, inplace=True)
 
-        elif self.name is 'ecmwf_interpolation_track':
+        elif self.name is 'meteo_ecmwf_intpol':
             datetime_object = [datetime.strptime(str(date), '%d.%m.%y %H:%M') for date in
                    self.datatable['datetime']]
             self.datatable.drop(['datetime'], axis=1, inplace=True)
@@ -453,16 +453,22 @@ def filter_particle_sizes(datatable,threshold=3):
 def generate_particle_data(data_folder='./data/', mode='all', data_output='./data/intermediate/',
                            savedata=False, filtering_parameter=3):
     '''
-    data_folder: main directory where data is
-    data_output: where to store aggregated dataframe
-    mode: what to read and how:
-        - 'all' : all particle data in columns (single bins AND >400, >700 nm)
-        - 'single_bins' : only single bin data (without accumulated >400 and > 700nm)
-        - 'aggregated': all particle data aggregated in superbins (with >400,>700 nm)
-        - 'aggregated_no_noise' : as 'aggregated' but without noisy bins
-    filtering_parameter: used to define which filtered data to read (see filter_particle_size threshold)
-                        3, 5, 10 : the larger, the more permissive
-    savedata: store locally (in ./data/intermediate/) a copy of the assembled file
+        Utility to get aerosol data
+            INPUTS
+                - data_folder: main directory where data is
+                - data_output: where to store aggregated dataframe
+                - mode: what to read and how:
+                    - 'all' : all particle data in columns (single bins AND >400, >700 nm)
+                    - 'single_bins' : only single bin data (without accumulated >400 and > 700nm)
+                    - 'aggregated': all particle data aggregated in superbins (with >400,>700 nm)
+                    - 'aggregated_no_noise' : as 'aggregated' but without noisy bins
+                - filtering_parameter: used to define which filtered data to read (see filter_particle_size   threshold): 3, 5, 10 : the larger, the more permissive
+                - savedata: store locally (in ./data/intermediate/) a copy of the assembled file
+            OUTPUT
+                - time-indexed DF with particle sizes
+            EXAMPLE
+
+
     '''
 
     particles = pd.read_csv(data_folder + '/intermediate/filtered_particle_size_distribution_T3.csv')
@@ -550,3 +556,54 @@ def read_standard_dataframe(data_folder, datetime_index_name='timest_'):
     data.index = pd.to_datetime(data.index, format='%Y-%m-%d %H:%M:%S')
     #print(data.index)
     return data
+
+##############################################################################################################
+def subset_data_stack_variables(data, varset, seatype='total', mode='subset'):
+    '''
+        Subset variables of a dataset stack:
+            INPUTS
+                - data: dataframe containing data with way too many columns. if it contains the "parbin" column (used by baselinescripts to retrieve the label to refress on) is returned by default as last columns
+                - varset: keyword specifiying the subset to get
+                - seatype: defaults to total. When wave parameters are to be retrieved, specify which kind of sea parameters to haveself
+
+            OUPUTS
+                - dataframe with a subset of input columns
+            EXAMPLE
+                df = subset_data_stack_variables(stack, 'ecmwf')
+    '''
+
+    if varset.lower() == 'wave':
+        cols_total = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind']
+        cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind']
+    elif varset.lower() == 'wave_nowind':
+        cols_total = ['hs', 'tp', 'steep', 'phase_vel']
+        cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w']
+    elif varset.lower() == 'wave_reduced':
+        cols_total = ['hs', 'tp', 'wind']
+        cols_wind  = ['hs_w', 'tp_w', 'wind']
+    elif varset.lower() == 'wave_ecmwf':
+        cols_total = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind',
+         't', 'slp', 'q', 'v', 'u', 'iwc', 'ps', 'rh', 'th', 'lsp', 'cp',
+         'rtot', 'blh', 'blhp', 'td2m', 't2m', 'skt', 'sif', 'the', 'lsm']
+        cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind', 't', 'slp', 'q', 'v', 'u', 'iwc', 'ps', 'rh', 'th', 'lsp', 'cp', 'rtot', 'blh', 'blhp', 'td2m', 't2m', 'skt', 'sif', 'the', 'lsm']
+    elif varset.lower() == 'ecmwf':
+        cols_total = ['t', 'slp', 'q', 'v', 'u', 'iwc', 'ps', 'rh', 'th', 'lsp', 'cp',
+        'rtot', 'blh', 'blhp', 'td2m', 't2m', 'skt', 'sif', 'the', 'lsm']
+    else:
+        print('variables not specified')
+        return
+
+    if seatype == 'total':
+        cols = cols_total
+    elif seatype == 'wind':
+        cols = cols_wind
+    else:
+        print('seatype not correct')
+        return
+
+    if mode == 'subset':
+        if 'parbin' in data.columns:
+            cols.append('parbin')
+        return data[cols]
+    elif mode == 'returnnames':
+        return cols

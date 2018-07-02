@@ -24,8 +24,11 @@ import GPy
 import numpy as np
 import pandas as pd
 import sklearn as sk
-import sklearn.gaussian_process.kernels as kern  # DotProduct, RBF, WhiteKernel
 from sklearn import preprocessing
+
+import pyantarctica.dataset as dataset
+
+import sklearn.gaussian_process.kernels as kern  # DotProduct, RBF, WhiteKernel
 from sklearn.cross_decomposition import PLSRegression
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.linear_model import LassoCV, RidgeCV
@@ -70,38 +73,33 @@ def run_baselines_particle_size(data, **kwargs):
     for sep_method in SEP_METHOD:
         #print(sep_method)
         for leg in LEG_P:
-            #print(leg)
+            # print(leg)
             for sea in SEA:
                 for varset in VARSET:
                     for meth in METHODS:
                         nre = 0
                         while nre < NUM_REP:
 
-
                             string_exp = sea + '_leg_' + str(leg) + '_' + sep_method + '_' + meth + '_' +  varset + '_' + str(nre)
-                            # print(string_exp)
                             nre += 1
-                            # if (varset.lower() == 'full' and leg != 1):
-                            #     continue
-                            if varset.lower() == 'full':
-                                cols_total = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind', 'parbin']
-                                cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind', 'parbin']
-                            elif varset.lower() == 'nowind':
-                                cols_total = ['hs', 'tp', 'steep', 'phase_vel', 'parbin']
-                                cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'parbin']
-                            elif varset.lower() == 'reduced':
-                                cols_total = ['hs', 'tp', 'wind', 'parbin']
-                                cols_wind  = ['hs_w', 'tp_w', 'wind', 'parbin']
 
-                            if sea.lower() == 'total':
-                                leg_whole_ = data.loc[data['leg'] == leg, cols_total].dropna().copy()
+                            data_f = data.copy()
+                            if 'leg' not in data.columns.tolist():
+                                data_f = dataset.add_legs_index(data_f)
 
-                            elif sea.lower() == 'wind':
-                                leg_whole_ = data.loc[data['leg'] == leg, cols_wind].dropna().copy()
+                            data_f = data_f.loc[data_f['leg'] == leg]
+                            leg_whole_ = dataset.subset_data_stack_variables(
+                            data_f, # 
+                            varset=varset.lower(), # 
+                            seatype=sea.lower(),
+                            )
 
+                            leg_whole_ = leg_whole_.dropna()
                             s1, s2 = leg_whole_.shape
+                            # print(s1,s2)
 
-                            # print(trn_size, s1)
+                            if s1 < 10:
+                                continue
 
                             if not TRN_TEST_INDEX.values.any():
 
@@ -168,8 +166,11 @@ def run_baselines_particle_size(data, **kwargs):
                                                                     alpha=0, n_restarts_optimizer=5).fit(X,y)
                             elif meth.lower() == 'rf':
                                 import sklearn.ensemble
-                                regModel = sklearn.ensemble.RandomForestRegressor(n_estimators=100, criterion='mse',
-                                            max_depth=10, min_samples_split=2, min_samples_leaf=1).fit(X,np.ravel(y))
+                                regModel = sklearn.ensemble.RandomForestRegressor(n_estimators=100,
+                                        criterion='mse', max_features=0.5,
+                                        max_depth=20, min_samples_split=2,
+                                        min_samples_leaf=1, ).fit(X,np.ravel(y))
+                                regModel.coef_ = regModel.feature_importances_
 
                             elif meth.lower() == 'rbfgpr':
                                 kernel = 1.0 * kern.RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
@@ -481,7 +482,9 @@ def run_regression_simple_data(data_tr, data_ts, regression_model, NORM_X=True, 
     elif regression_model.lower() == 'rf':
         import sklearn.ensemble
         regModel = sklearn.ensemble.RandomForestRegressor(n_estimators=100, criterion='mse',
-                max_depth=10, min_samples_split=2, min_samples_leaf=1).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+                max_features = 0.5, max_depth=20, min_samples_split=2,
+                min_samples_leaf=1).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
+        weights = regModel.feature_importances_
 
     elif regression_model.lower() == 'rbfgpr':
         kernel = 1.0 * kern.RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
