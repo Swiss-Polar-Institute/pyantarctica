@@ -119,6 +119,16 @@ class ACEdata:
             nantype=''
             delimiter=','
             self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension
+
+        elif self.name is 'sorpasso_variable_track':
+            self.dataname = 'sorpasso_bs_bio'
+            extension = '.csv'
+            column_head = 0
+            body=1
+            nantype=''
+            delimiter=','
+            self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension
+
         else:
             print('dataset not handled yet.')
 
@@ -161,6 +171,10 @@ class ACEdata:
 
         elif self.name is 'windspeed_metstation':
             datatable.rename(columns={"windspeed (m/s)": "wind_metsta"}, inplace=True)
+
+        elif self.name is 'sorpasso_variable_track':
+            datatable = pd.read_csv(self.fullfolder)
+            datatable.columns = [str(x).lower() for x in datatable.columns.tolist()]
 
         print('Data successfully loaded from ' + self.fullfolder)
 
@@ -231,6 +245,11 @@ class ACEdata:
             datetime_object = [datetime.strptime(str(date), '%d.%m.%y %H:%M') for date in
                    self.datatable['datetime']]
             self.datatable.drop(['datetime'], axis=1, inplace=True)
+
+        elif self.name is 'sorpasso_variable_track':
+            datetime_object = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S') for date in
+                   self.datatable['date']]
+            self.datatable.drop(['date'], axis=1, inplace=True)
 
         datetime_obj = [date_.replace(tzinfo=UTC()) for date_ in datetime_object]
         timestamp = [timegm(date_.timetuple()) for date_ in datetime_obj]
