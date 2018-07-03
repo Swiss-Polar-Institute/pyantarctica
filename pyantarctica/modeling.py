@@ -28,7 +28,6 @@ def retrieve_model_av_std(summary):
     results = {}
     for name_ in exps:
     #     print(name_)
-
         results[name_] = {}
 
         init_ = True

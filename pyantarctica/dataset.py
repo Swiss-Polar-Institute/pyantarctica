@@ -129,6 +129,15 @@ class ACEdata:
             delimiter=','
             self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension
 
+        elif self.name is 'meteo_water_vapour':
+            self.dataname = 'METEO_watervapour_isotopes_5min_v1'
+            extension = '.csv'
+            column_head = 0
+            body=1
+            nantype=''
+            delimiter=','
+            self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension
+
         else:
             print('dataset not handled yet.')
 
@@ -187,24 +196,14 @@ class ACEdata:
         #from time import mktime
         from calendar import timegm
 
-       #if new_column_name in self.datatable:
-       #     print('Converted time already present')
-       #     return
-
         class UTC(tzinfo):
             """UTC subclass"""
-
             def utcoffset(self, dt):
                 return timedelta(0)
-
             def tzname(self, dt):
                 return "UTC"
-
             def dst(self, dt):
                 return timedelta(0)
-
-        # print(self.datatable.columns.tolist())
-        # print(self.datatable.head())
 
         if self.name is 'aerosol':
             self.datatable['t_series_aerosol'] = (self.datatable['date'] + ' ' + self.datatable['time'])
@@ -232,8 +231,6 @@ class ACEdata:
         elif self.name is 'windspeed_metstation_corrected':
             datetime_object = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S') for date in
                                self.datatable['timest_']]
-            # datetime_object = [datetime.strptime(str(date), '%d.%m.%y %H:%M') for date in
-            #                   self.datatable['timest_']]
             self.datatable.drop(['timest_'], axis=1, inplace=True)
 
         elif self.name is 'meteo_variable_track':
@@ -250,6 +247,12 @@ class ACEdata:
             datetime_object = [datetime.strptime(str(date), '%Y-%m-%d %H:%M:%S') for date in
                    self.datatable['date']]
             self.datatable.drop(['date'], axis=1, inplace=True)
+
+        elif self.name is 'meteo_water_vapour':
+            datetime_object = [datetime.strptime(str(date), '%d.%m.%y %H:%M') for date in
+                   self.datatable['datetime']]
+            self.datatable.drop(['datetime'], axis=1, inplace=True)
+
 
         datetime_obj = [date_.replace(tzinfo=UTC()) for date_ in datetime_object]
         timestamp = [timegm(date_.timetuple()) for date_ in datetime_obj]
