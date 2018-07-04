@@ -78,8 +78,11 @@ def aggregated_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True)
         for sep_method in options['SEP_METHOD']:
             for varset in options['VARSET']:
 
-                tickname = dataset.subset_data_stack_variables([],
+                try:
+                    tickname = dataset.subset_data_stack_variables([],
                         varset, seatype=sea, mode='returnnames')
+                except AttributeError:
+                    tickname = [str(aa) for aa in range(options['DATA_DIM'])]
 
                 fig, ax = plt.subplots(len(sets), len(options['LEG_P']), sharey=False, tight_layout=False,
                                        figsize=(10,10*len(options['LEG_P'])), squeeze=False)
@@ -292,9 +295,9 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
             for sep_method in options['SEP_METHOD']:
                 for varset in options['VARSET']:
 
-                    tickname = dataset.subset_data_stack_variables([],
-                            varset, seatype=sea, mode='returnnames')
-                    index = np.arange(len(tickname))
+                    # tickname = dataset.subset_data_stack_variables([],
+                            # varset, seatype=sea, mode='returnnames')
+                    index = np.arange(colors.shape[0])
 
                     for ind, meth in enumerate(options['METHODS']):
 
@@ -371,7 +374,12 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, f
 
             NOTE
                 - The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
+                - Latitude is in °N, longitude in is °E
     '''
+
+    if coordinates.shape[0] != values.shape[0]:
+        print(b'size of gps coordinates and variable to be plotted does not match')
+        return
 
     # prepare basemap
     m = carto.Basemap(projection='spstere',boundinglat=-32,lon_0=180,resolution='l')
@@ -406,3 +414,31 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, f
     cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
 
     return im
+
+
+def scatterplot_matrix(df, color=None):
+
+    df.columns = [str(cc) for cc in df.columns]
+
+    nrows, ncols = df.shape[1], df.shape[1]
+    fig, ax = plt.subplots(nrows, ncols, sharex=False, sharey=False, tight_layout=True, figsize=(10,10))
+
+    row = 0; col = 0;
+    for row, r_name in enumerate(df.columns):
+        for col, c_name in enumerate(df.columns):
+            if col == row:
+                ax[row,col].hist(df.iloc[:,row],bins=100, histtype='step')
+            elif col != row:
+                ax[row,col].scatter(df.iloc[:,row],df.iloc[:,col],c=color)
+
+            if col == 0:
+                ax[row,col].set_ylabel(r_name)
+            else:
+                ax[row,col].set_ylabel('')
+
+            if row == nrows-1:
+                ax[row,col].set_xlabel(c_name)
+            else:
+                ax[row,col].set_xlabel('')
+
+    return fig, ax

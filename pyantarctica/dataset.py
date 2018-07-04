@@ -611,6 +611,8 @@ def subset_data_stack_variables(data, varset, seatype='total', mode='subset'):
     elif varset.lower() == 'ecmwf':
         cols_total = ['t', 'slp', 'q', 'v', 'u', 'iwc', 'ps', 'rh', 'th', 'lsp', 'cp',
         'rtot', 'blh', 'blhp', 'td2m', 't2m', 'skt', 'sif', 'the', 'lsm']
+    elif varset.lower() == 'wholeset':
+        cols_total = data.columns.tolist()[:-1]
     else:
         print('variables not specified')
         return
@@ -628,4 +630,5 @@ def subset_data_stack_variables(data, varset, seatype='total', mode='subset'):
             cols.append('parbin')
         return data[cols]
     elif mode == 'returnnames':
+        print(cols)
         return cols

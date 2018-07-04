@@ -88,6 +88,8 @@ def run_baselines_particle_size(data, **kwargs):
                                 data_f = dataset.add_legs_index(data_f)
 
                             data_f = data_f.loc[data_f['leg'] == leg]
+                            data_f.drop('leg', axis=1, inplace=True)
+
                             leg_whole_ = dataset.subset_data_stack_variables(
                             data_f, # 
                             varset=varset.lower(), # 
