@@ -85,7 +85,7 @@ def aggregated_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True)
                     tickname = [str(aa) for aa in range(options['DATA_DIM'])]
 
                 fig, ax = plt.subplots(len(sets), len(options['LEG_P']), sharey=False, tight_layout=False,
-                                       figsize=(10,10*len(options['LEG_P'])), squeeze=False)
+                                       figsize=(5*len(options['LEG_P']),7), squeeze=False)
 
                 for indbi, bin_ in enumerate(sets):
                     index = np.arange(len(tickname))
@@ -115,11 +115,15 @@ def aggregated_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True)
                             else:
                                 ax[indbi,leg-1].set_xticklabels([])
 
+                            ax[-1,leg-1].set_xlabel('LEG ' + str(leg), fontsize=16)
+
                         index = index + bar_w
+
+                        # ax[-1,int(np.floor(len(options['LEG_P'])/2))].set_xticks(index)
 
                     index = np.arange(len(tickname))
 
-                    ax[indbi,0].set_ylabel('Scores ' + bin_)
+                    ax[indbi,0].set_ylabel('' + bin_)
 
                 # if indbi < len(sets)-1:
                     # ax[indbi,leg-1].set_xticklabels([])
@@ -131,12 +135,11 @@ def aggregated_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True)
                     # ax[-1,leg-1].set_xticklabels(tickname)
 
                 index = np.arange(len(tickname))
-                ax[-1,int(np.floor(len(options['LEG_P'])/2))].set_xlabel('LEG ' + str(leg), fontsize=16)
-                ax[-1,int(np.floor(len(options['LEG_P'])/2))].set_xticks(index)
+
 
                 plt.legend(options['REGR_WITH_WEIGTHS'])
                 plt.suptitle(sea + '_leg_' + str(leg) + '_' + sep_method + '_' +  varset)
-                plt.show()
+                plt.show(block=False)#
 
                 if SAVE:
                     plt.savefig(options['SAVEFOLDER'] + 'weights_' + 'agg_bins' + '_' + sea + '_leg_' + str(leg) + '_' + \
@@ -151,8 +154,7 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
             for sep_method in options['SEP_METHOD']:
                 for varset in options['VARSET']:
                     fig, ax = plt.subplots(2, len(options['LEG_P']), sharey=False,
-                                           tight_layout=False, figsize=(10*len(options['LEG_P']),10), squeeze=False)
-
+                                           tight_layout=False, figsize=(5*len(options['LEG_P']),7), squeeze=False)
 
                     for leg in options['LEG_P']:
                         index = np.arange(1)
@@ -217,7 +219,7 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 
                     plt.legend(options['METHODS'])
                     plt.suptitle(sea + '_leg_' + str(leg) + '_' + sep_method + '_' +  varset)
-                    plt.show()
+                    plt.show(block=False)#
 
                     if SAVE:
                         plt.savefig(options['SAVEFOLDER'] + errmeasure + '_' + sea + '_leg_' + str(leg) + '_' + \
@@ -278,7 +280,7 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True):
                     plt.suptitle(meth + '_' + sea + '_leg_' + str(leg) + '_' + sep_method + '_' +  varset)
                     ax[-1,-1].set_xlabel('LEG ' + str(leg), fontsize=16)
                     ax[-1,-1].set_xticklabels(options['COLNAMES'],fontsize=5,rotation='vertical')
-                    plt.show()
+                    plt.show(block=False)#
 
                     if SAVE:
                         plt.savefig(options['SAVEFOLDER'] + 'weights_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + \
@@ -347,7 +349,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                         plt.suptitle(errmeasure + '_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + sep_method + '_' +  varset)
                         ax[-1].set_xlabel('LEG ' + str(leg), fontsize=16)
                         ax[-1].set_xticklabels(options['COLNAMES'],fontsize=5,rotation='vertical')
-                        plt.show()
+                        plt.show(block=False)#
 
                         if SAVE:
                             plt.savefig(options['SAVEFOLDER'] + errmeasure + '_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + \
@@ -378,7 +380,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, f
     '''
 
     if coordinates.shape[0] != values.shape[0]:
-        print(b'size of gps coordinates and variable to be plotted does not match')
+        print('size of gps coordinates and variable to be plotted does not match')
         return
 
     # prepare basemap
