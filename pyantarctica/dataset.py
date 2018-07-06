@@ -17,7 +17,7 @@
 
 import numpy as np
 import pandas as pd
-
+import matplotlib.pyplot as plt
 
 class ACEdata:
     """Waves and Aerosols dataset:
@@ -404,12 +404,10 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
             for keys in df1_d:
                 df1_d[keys]= {keys + op : operations[op] for op in operations}
     """
-    res_ = str(time_bin) + 'S'
+    res_ = str(time_bin) + 'T'
 
 
     if mode == 'old': # This one gets a FutureWarning! But the alternative is _very_ slow
-        res_ = str(time_bin) + 'S'
-
         df1_d = dict.fromkeys(df1.columns,[])
         for keys in df1_d:
             df1_d[keys]= {keys + op : operations[op] for op in operations}
@@ -632,3 +630,64 @@ def subset_data_stack_variables(data, varset, seatype='total', mode='subset'):
     elif mode == 'returnnames':
         print(cols)
         return cols
+
+
+
+def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=True):
+    '''
+        Retrieve correlation to the whole series, and, if legs are specified, to independend legs.
+    '''
+    if 'leg' not in data.columns.tolist():
+        data = dataset.add_legs_index(data)
+    if 'leg' not in particles.columns.tolist():
+        particles = dataset.add_legs_index(particles)
+
+    corrs = {}
+
+    if legs:
+        for leg in legs:
+            for col in particles.columns.tolist()[:-1]:
+
+                p_leg = particles.loc[particles.loc[:,'leg'] == leg,col]
+                va_leg = data.loc[data.loc[:,'leg'] == leg, var]
+                corrs['corr_' + col + '_' + str(leg)] = p_leg.corr(va_leg)
+
+    for col in particles.columns.tolist()[:-1]:
+
+        p_leg = particles.loc[particles.loc[:,'leg'] != 0 ,col]
+        va_leg = data.loc[data.loc[:,'leg'] != 0, var]
+        corrs['corr_' + col + '_' + 'total'] = p_leg.corr(va_leg)
+
+    if plots:
+
+        if len(legs) != 3:
+            print('still need to adapt to single series correlation, quick fix!')
+            return corrs
+
+        labels = [str(a) for a in corrs.keys()]
+        labels = [s.split('_') for s in labels]
+
+        bar_w = 0.16
+        f,ax = plt.subplots(figsize=(7,4))
+        ra = np.arange(4)
+        n = np.arange(len(particles.columns.tolist())-1)
+
+        legend = ['leg 1', 'leg 2', 'leg 3', 'whole series']
+        in_ = 0
+        for group in ra:
+            end_ = in_ + len(ra) +1
+            vals = list(corrs.values())[in_:end_]
+            ax.bar(n+group*bar_w, vals, bar_w, label=legend[group])
+            in_ = end_
+
+        ax.set_title('Correlations of ' + var + ' to particle groups')
+        ax.set_xticks(n + 2*bar_w)
+        ax.set_xticklabels(particles.columns.tolist())
+        ax.set_ylim(-1,1)
+        ax.set_ylabel('Correlation')
+        ax.grid(which='major', axis='y', linestyle='--')
+        ax.legend(loc=0)
+
+
+
+    return corrs

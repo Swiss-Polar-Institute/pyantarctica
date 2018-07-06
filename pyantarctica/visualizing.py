@@ -355,7 +355,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                             plt.savefig(options['SAVEFOLDER'] + errmeasure + '_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + \
                                 sep_method + '_' +  varset + '.png', bbox_inches='tight')
 
-def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=0.75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
+def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
     '''
         Visualize data on a polar stereographic projection map using Basemap on matplotlib. It probably needs to be updated in the future as this package is no longer mantained since easily 2013-2014 or something like that. But I don't know about options that are as easy and as flexible (it is basically matplotlib)
 
