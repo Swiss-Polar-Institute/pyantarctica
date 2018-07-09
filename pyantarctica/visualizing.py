@@ -410,7 +410,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         return
 
     ax = plt.gca()
-    ax.set_title(labplot,fontsize=0.2*markersize)
+    ax.set_title(labplot,fontsize=35)
 
     cax, _ = clb.make_axes(ax)
     cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)

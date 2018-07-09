@@ -348,6 +348,65 @@ class ACEdata:
         # return self.particle_filtered
 
 ##############################################################################################################
+def zeropad_date(x):
+    return '0' + str(x) if len(x) < 2 else str(x)
+##############################################################################################################
+def parsetime_date(x):
+    if len(x.split(' ')) > 1:
+        x, b = x.split(' ')
+        toadd = ' ' + b
+    else:
+        toadd = ''
+    if x.count(':') == 2:
+        h, m, s = x.split(':')
+        h = zeropad_date(h)
+        m = zeropad_date(m)
+        s = zeropad_date(s)
+        t_str =  h + ':' + m + ':' + s
+    elif x.count(':') == 1:
+        h, m = x.split(':')
+        h = zeropad_date(h)
+        m = zeropad_date(m)
+        t_str = h + ':' + m + ':00'
+
+    t_str += toadd
+    return t_str
+##############################################################################################################
+
+def add_datetime_index_from_column(df, old_column_name, string_format='%d.%m.%Y %H:%M:%S', new_column_name='timest_'):
+
+    """
+        Convert something that looks like a data, as specified by string_format into a python datetime index
+    """
+
+    from datetime import datetime, tzinfo, timedelta
+    #from time import mktime
+    from calendar import timegm
+
+    class UTC(tzinfo):
+        """UTC subclass"""
+        def utcoffset(self, dt):
+            return timedelta(0)
+        def tzname(self, dt):
+            return "UTC"
+        def dst(self, dt):
+            return timedelta(0)
+
+    datetime_object = [datetime.strptime(str(date), string_format) for date in df[old_column_name]]
+    df.drop([old_column_name], axis=1, inplace=True)
+
+    datetime_obj = [date_.replace(tzinfo=UTC()) for date_ in datetime_object]
+    timestamp = [timegm(date_.timetuple()) for date_ in datetime_obj]
+
+    df[new_column_name] = pd.DataFrame(timestamp)
+
+    df['timest_'] = pd.to_datetime(df['timest_'], unit='s')
+    df.set_index(pd.DatetimeIndex(df['timest_']), inplace=True)
+    df.drop(['timest_'], axis=1, inplace=True)
+
+    return df
+
+##############################################################################################################
 def add_legs_index(df, **kwargs):
 
     if 'leg_dates' not in kwargs:
@@ -687,7 +746,5 @@ def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=
         ax.set_ylabel('Correlation')
         ax.grid(which='major', axis='y', linestyle='--')
         ax.legend(loc=0)
-
-
 
     return corrs
