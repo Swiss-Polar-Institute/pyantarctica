@@ -17,6 +17,7 @@
 
 import numpy as np
 import pandas as pd
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 class ACEdata:
@@ -64,8 +65,8 @@ class ACEdata:
             body = 11#146
             nantype = ''
             delimiter = '\s+'
-            self.fullfolder = self.data_folder + self.raw_folder + '/' + self.dataname + extension
-
+            self.fullfolder = self.data_folder + self.dataname + extension
+            print(self.fullfolder)
         elif self.name is 'windspeed_metstation':
             self.dataname = 'windspeed_metstation'
             extension = '.csv'
@@ -546,23 +547,21 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
             OUTPUT
                 - time-indexed DF with particle sizes
             EXAMPLE
-
-
     '''
 
-    particles = pd.read_csv(data_folder + '/intermediate/filtered_particle_size_distribution_T3.csv')
+    particles = pd.read_csv(data_folder + '03_filtered_particle_size_distribution_T' + str(filtering_parameter) + '.csv')
     particles.set_index('timest_',inplace=True)
     particles.index = pd.to_datetime(particles.index,format='%Y-%m-%d %H:%M:%S')
     #print(particles.index)
 
     if mode.lower() == 'single_bins':
         if savedata:
-            particles.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
+            particles.to_csv(aggregated_no_noise + '/03_particles_' + mode + '.csv', sep=',', na_rep='')
         return particles
 
-    aero_l700 = ACEdata(data_folder=data_folder, name='aerosol')
+    aero_l700 = ACEdata(data_folder='data/raw/7_aerosols/', name='aerosol')
     aero_l700 = aero_l700.datatable
-    aero_l400 = pd.read_csv(data_folder + '/raw/particles_greater_400nm.txt', na_values='NAN')
+    aero_l400 = pd.read_csv('data/raw/7_aerosols/particles_greater_400nm.txt', na_values='NAN')
     aero_l400.index = aero_l700.index
 
     if mode.lower() == 'all':
@@ -575,7 +574,7 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
             particles.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
         return particles
 
-    part_legend = pd.read_table('data/raw/04_diameterforfile_03.txt')
+    part_legend = pd.read_table('data/raw/7_Aerosols/04_diameterforfile_03.txt')
 
     if mode.lower() == 'aggregated':
         part_agg = pd.DataFrame()
@@ -697,28 +696,30 @@ def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=
         Retrieve correlation to the whole series, and, if legs are specified, to independend legs.
     '''
     if 'leg' not in data.columns.tolist():
-        data = dataset.add_legs_index(data)
+        data = add_legs_index(data)
     if 'leg' not in particles.columns.tolist():
-        particles = dataset.add_legs_index(particles)
+        particles = add_legs_index(particles)
 
     corrs = {}
-
+    N = []
     if legs:
         for leg in legs:
             for col in particles.columns.tolist()[:-1]:
-
                 p_leg = particles.loc[particles.loc[:,'leg'] == leg,col]
                 va_leg = data.loc[data.loc[:,'leg'] == leg, var]
                 corrs['corr_' + col + '_' + str(leg)] = p_leg.corr(va_leg)
+                # N[col + '_' + str(leg)] =
+                N.append(np.sum(p_leg.notnull() & va_leg.notnull()))
 
     for col in particles.columns.tolist()[:-1]:
 
         p_leg = particles.loc[particles.loc[:,'leg'] != 0 ,col]
         va_leg = data.loc[data.loc[:,'leg'] != 0, var]
         corrs['corr_' + col + '_' + 'total'] = p_leg.corr(va_leg)
+        #N[col + '_' + 'total'] =
+        N.append(np.sum(p_leg.notnull() & va_leg.notnull()))
 
     if plots:
-
         if len(legs) != 3:
             print('still need to adapt to single series correlation, quick fix!')
             return corrs
@@ -739,6 +740,19 @@ def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=
             ax.bar(n+group*bar_w, vals, bar_w, label=legend[group])
             in_ = end_
 
+        bars = [rect for rect in ax.get_children() if isinstance(rect, mpl.patches.Rectangle)]
+        for b, bar in enumerate(bars):
+            if b > len(N)-1:
+                break
+
+            height = bar.get_height()
+            # print(b,N[b],N)
+            if height > 0:
+                plt.text(bar.get_x() + bar.get_width()/2.0, height, N[b], ha='center', va='top')
+            elif height < 0:
+                plt.text(bar.get_x() + bar.get_width()/2.0, height, N[b], ha='center', va='bottom')
+
+
         ax.set_title('Correlations of ' + var + ' to particle groups')
         ax.set_xticks(n + 2*bar_w)
         ax.set_xticklabels(particles.columns.tolist())
@@ -746,5 +760,7 @@ def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=
         ax.set_ylabel('Correlation')
         ax.grid(which='major', axis='y', linestyle='--')
         ax.legend(loc=0)
+
+
 
     return corrs
