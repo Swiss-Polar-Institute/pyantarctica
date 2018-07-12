@@ -11,20 +11,18 @@ import pyantarctica.modeling as mod
 import pyantarctica.visualizing as viz
 ```
 
+Every notebook in the ACE-DATA data science project repository provides relatively simple (hopefully) and straightforward examples and scripts to run steps in the ASAID project analysis pipeline.
 
-
-
-
+See e.g. data preparation scrips `PROJ_XX_DataPreparation.ipynb` where XX is the subproject number.
 
 ## Installation
 
-from source
+- from source:
+  - `pip install -e --dev ../pyantarctica`
 
-.. pip install -e --dev ../pyantartica
+- from the PyPI repos:
+  - `pip install pyantarctica`
 
-from the PyPI repos
-
-.. pip install pyantarctica
 
 ## Requirements
 

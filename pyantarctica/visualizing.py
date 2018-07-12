@@ -415,7 +415,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     cax, _ = clb.make_axes(ax)
     cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
 
-    return im
+    return im, ax
 
 
 def scatterplot_matrix(df, color=None):
