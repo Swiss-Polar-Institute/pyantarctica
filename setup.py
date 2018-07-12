@@ -33,7 +33,7 @@ extras_require = {
 
 setup(
     name="pyantarctica",
-    version="0.1.1.dev20180606",
+    version="0.1.2.dev20180712",
     license='Apache License 2.0',
     url="",
 
@@ -41,7 +41,7 @@ setup(
     author_email="michele.volpi@datascience.ch",
 
     description="Umbrella package for ACE-DATA (sub-)project(s).",
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
 
     packages=find_packages(),
     zip_safe=True,

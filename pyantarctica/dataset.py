@@ -448,7 +448,7 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
         Outer merge of two datatables based on a common resampling of time intervals:
             INPUTS
                 - df1      : DataFrames indexed by time
-                - time_bin : Aggregation bin, in seconds
+                - time_bin : Aggregation bin, in minutes
                 - strategy : {'col': {'colname_min': np.min ...
                     dictionary of (possibly multiple) data aggregation strategies. New columns will have
                     corresponding subscript. df1 and df2 should be the input variable names
