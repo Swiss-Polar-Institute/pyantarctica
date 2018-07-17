@@ -29,7 +29,6 @@ def plot_predicted_timeseries(trn_, tst_, y_ts_h, y_tr_h, SEP_METHOD):
 
     if SEP_METHOD is 'time':
         # %matplotlib qt
-
         trn_ = trn.reset_index(drop=True)
         s1 = len(trn_)
         tst_ = tst.reset_index(drop=True)
@@ -378,7 +377,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                             plt.savefig(options['SAVEFOLDER'] + errmeasure + '_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + \
                                 sep_method + '_' +  varset + '.png', bbox_inches='tight')
 
-def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter', plotlegend=True):
+def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
     '''
         Visualize data on a polar stereographic projection map using Basemap on matplotlib. It probably needs to be updated in the future as this package is no longer mantained since easily 2013-2014 or something like that. But I don't know about options that are as easy and as flexible (it is basically matplotlib)
 
@@ -432,19 +431,13 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         print('unrecognized plot')
         return
 
+    ax = plt.gca()
+    # ax.set_title(labplot,fontsize=35)
 
-    if plotlegend:
-        ax = plt.gca()
-        # ax.set_title(labplot,fontsize=35)
-        cax, _ = clb.make_axes(ax)
-        cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
-        return im, ax
+    cax, _ = clb.make_axes(ax)
+    cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
 
-    else:
-        return im
-
-
-
+    return im, ax
 
 
 def scatterplot_matrix(df, color=None):
