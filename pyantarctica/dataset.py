@@ -650,7 +650,7 @@ def subset_data_stack_variables(data, varset, seatype='total', mode='subset'):
                 df = subset_data_stack_variables(stack, 'ecmwf')
     '''
 
-    if varset.lower() == 'wave':
+    if (varset.lower() == 'wave')|(varset.lower() == 'waves'):
         cols_total = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind']
         cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind']
     elif varset.lower() == 'wave_nowind':
