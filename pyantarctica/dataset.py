@@ -20,6 +20,8 @@ import pandas as pd
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+from datetime import datetime, timedelta
+
 class ACEdata:
     """Waves and Aerosols dataset:
     Initialization args:
@@ -689,8 +691,7 @@ def subset_data_stack_variables(data, varset, seatype='total', mode='subset'):
         print(cols)
         return cols
 
-
-
+##############################################################################################################
 def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=True):
     '''
         Retrieve correlation to the whole series, and, if legs are specified, to independend legs.
@@ -761,6 +762,40 @@ def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=
         ax.grid(which='major', axis='y', linestyle='--')
         ax.legend(loc=0)
 
-
-
     return corrs
+
+##############################################################################################################
+def read_traj_file_to_numpy(filename, ntime):
+
+    # ntime = 81#int(period / timestep)
+    #
+    with open(filename) as fname:
+            header = fname.readline().split()
+            fname.readline()
+            variables = fname.readline().split()
+
+    starttime = datetime.strptime(header[2], '%Y%m%d_%H%M')
+
+    dtypes = ['f8']*(len(variables))
+    dtypes[variables.index('time')] = 'datetime64[s]'
+
+    convertfunc = lambda x: starttime + timedelta(**{'hours': float(x)})
+    array = np.genfromtxt(filename, skip_header=5, names=variables,
+                  missing_values='-999.99', dtype=dtypes,
+                  converters={'time': convertfunc}, usemask=True)
+
+    ntra = int(array.size / ntime)
+
+    for var in variables:
+
+        if (var == 'time'):
+            continue
+        array[var] = array[var].filled(fill_value=np.nan)
+        # timestep, period = (array['time'][1] - array['time'][0], array['time'][-1] - array['time'][0])
+
+    array = array.reshape((ntra, ntime))
+
+    traj_ensemble = [line for nn in range (0,56) for it in range(0,81) for line in array[nn][it]]
+    traj_ensemble = np.reshape(traj_ensemble,(ntra, ntime, -1))
+
+    return traj_ensemble, variables
