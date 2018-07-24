@@ -766,9 +766,11 @@ def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=
 
 ##############################################################################################################
 def read_traj_file_to_numpy(filename, ntime):
-
-    # ntime = 81#int(period / timestep)
-    #
+    '''
+        traj_ensemble: Provides a datacube containing N_trajectories x M_backtracking_time_intervals x D_variables_model_out
+        columns : name of D_variables_model_out
+        starttime : beggining of the backtracking time series in the enseble        
+    '''
     with open(filename) as fname:
             header = fname.readline().split()
             fname.readline()
@@ -798,4 +800,4 @@ def read_traj_file_to_numpy(filename, ntime):
     traj_ensemble = [line for nn in range (0,56) for it in range(0,81) for line in array[nn][it]]
     traj_ensemble = np.reshape(traj_ensemble,(ntra, ntime, -1))
 
-    return traj_ensemble, variables
+    return traj_ensemble, variables, starttime
