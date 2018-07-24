@@ -20,16 +20,15 @@ from setuptools import find_packages, setup
 
 install_requires = [
     'numpy',
-    'scikit-learn', 
-    'pandas', 
+    'scikit-learn',
+    'pandas',
     'matplotlib',
-    'GPy', 
+    'GPy',
 ]
 
 tests_require = []
 
-extras_require = {
-}
+extras_require = []
 
 setup(
     name="pyantarctica",
@@ -42,6 +41,7 @@ setup(
 
     description="Umbrella package for ACE-DATA (sub-)project(s).",
     long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
 
     packages=find_packages(),
     zip_safe=True,
