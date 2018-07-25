@@ -551,7 +551,7 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
             EXAMPLE
     '''
 
-    particles = pd.read_csv(data_folder + '03_filtered_particle_size_distribution_T' + str(filtering_parameter) + '.csv')
+    particles = pd.read_csv(data_folder + 'intermediate/7_aerosols/03_filtered_particle_size_distribution_T' + str(filtering_parameter) + '.csv')
     particles.set_index('timest_',inplace=True)
     particles.index = pd.to_datetime(particles.index,format='%Y-%m-%d %H:%M:%S')
     #print(particles.index)
@@ -561,9 +561,9 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
             particles.to_csv(aggregated_no_noise + '/03_particles_' + mode + '.csv', sep=',', na_rep='')
         return particles
 
-    aero_l700 = ACEdata(data_folder='data/raw/7_aerosols/', name='aerosol')
+    aero_l700 = ACEdata(data_folder=data_folder + 'raw/7_aerosols/', name='aerosol')
     aero_l700 = aero_l700.datatable
-    aero_l400 = pd.read_csv('data/raw/7_aerosols/particles_greater_400nm.txt', na_values='NAN')
+    aero_l400 = pd.read_csv(data_folder + 'raw/7_aerosols/particles_greater_400nm.txt', na_values='NAN')
     aero_l400.index = aero_l700.index
 
     if mode.lower() == 'all':
@@ -576,7 +576,7 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
             particles.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
         return particles
 
-    part_legend = pd.read_table('data/raw/7_Aerosols/04_diameterforfile_03.txt')
+    part_legend = pd.read_table(data_folder + 'raw/7_aerosols/04_diameterforfile_03.txt')
 
     if mode.lower() == 'aggregated':
         part_agg = pd.DataFrame()
@@ -769,7 +769,7 @@ def read_traj_file_to_numpy(filename, ntime):
     '''
         traj_ensemble: Provides a datacube containing N_trajectories x M_backtracking_time_intervals x D_variables_model_out
         columns : name of D_variables_model_out
-        starttime : beggining of the backtracking time series in the enseble        
+        starttime : beggining of the backtracking time series in the enseble
     '''
     with open(filename) as fname:
             header = fname.readline().split()

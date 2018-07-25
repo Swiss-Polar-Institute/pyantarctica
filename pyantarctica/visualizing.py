@@ -255,12 +255,12 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True):
 
 
                 for ind, meth in enumerate(options['REGR_WITH_WEIGTHS']):
-                    index = np.arange(len(tickname))
+                    index = np.arange(len(options['COLNAMES']))
                     fig, ax = plt.subplots(len(tickname), len_plot, sharey=False,
                                     tight_layout=False,
                                     figsize=(15,10), squeeze=False)
 
-                    for legind,leg in enumerate(options['LEG_P']):
+                    for legind, leg in enumerate(options['LEG_P']):
                         for ind_w, parname in enumerate(tickname):
                             string_plots = sea + '_leg_' + str(leg) + '_' + sep_method + '_' + \
                             meth + '_' +  varset
@@ -274,7 +274,7 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True):
                             w = np.array(w)
                             s = np.array(s)
 
-                            w[w > 10] = 10
+                            # w[w > 10] = 10
                             ax[ind_w,legind].bar(index, w, bar_w,
                                                  color=tuple(colors[ind,:]), yerr=s)#olors[ind]'
                             index = index + bar_w
