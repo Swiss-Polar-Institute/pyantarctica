@@ -237,7 +237,7 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 
 
 
-def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True):
+def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True, ylim=[None, None]):
 
     try:
         len_plot = len([options['LEG_P']])
@@ -250,9 +250,9 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True):
         for sep_method in options['SEP_METHOD']:
             for varset in options['VARSET']:
 
-                tickname = dataset.subset_data_stack_variables([],
-                        varset, seatype=sea, mode='returnnames')
-
+                tickname = options['VARNAMES']
+# dataset.subset_data_stack_variables([],
+#         varset, seatype=sea, mode='returnnames')
 
                 for ind, meth in enumerate(options['REGR_WITH_WEIGTHS']):
                     index = np.arange(len(options['COLNAMES']))
@@ -275,6 +275,7 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True):
                             s = np.array(s)
 
                             # w[w > 10] = 10
+                            # print(ind_w, legind, w.shape, s.shape, )
                             ax[ind_w,legind].bar(index, w, bar_w,
                                                  color=tuple(colors[ind,:]), yerr=s)#olors[ind]'
                             index = index + bar_w
@@ -288,6 +289,7 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True):
         #                     ax[ind_w-1,leg-1].set_yticks(np.arange(-2,2,0.5))
         #                     ax[ind_w-1,leg-1].set_yticklabels(np.arange(-2,2,0.5),minor=False)
                             ax[ind_w,legind].grid(color='black', which='both', axis='y', linestyle=':')
+                            ax[ind_w,legind].set_ylim(ylim)
 
                             for c in options['AGGREGATES']:
                                 ax[ind_w,legind].axvline(c)
