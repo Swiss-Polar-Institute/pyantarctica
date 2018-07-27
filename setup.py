@@ -23,7 +23,7 @@ install_requires = [
     'scikit-learn',
     'pandas',
     'matplotlib',
-    'GPy',
+    'mpl_toolkits',
 ]
 
 tests_require = []
