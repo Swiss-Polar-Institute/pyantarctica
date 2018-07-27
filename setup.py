@@ -28,7 +28,7 @@ install_requires = [
 
 tests_require = []
 
-extras_require = []
+extras_require = {}
 
 setup(
     name="pyantarctica",
