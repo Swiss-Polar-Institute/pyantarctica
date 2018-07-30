@@ -22,8 +22,7 @@ install_requires = [
     'numpy',
     'scikit-learn',
     'pandas',
-    'matplotlib',
-    'mpl_toolkits',
+    'matplotlib'
 ]
 
 tests_require = []
