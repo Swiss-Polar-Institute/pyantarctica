@@ -21,9 +21,13 @@ import matplotlib as mpl
 
 import pyantarctica.dataset as dataset
 import matplotlib.pyplot as plt
-import mpl_toolkits.basemap as carto
 import matplotlib.colorbar as clb
 
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+
+# import mpl_toolkits.basemap as carto
+##############################################################################################################
 def plot_predicted_timeseries(trn_, tst_, y_ts_h, y_tr_h, SEP_METHOD):
     # Should probably be moved in a visualization module, here not really modeling stuff...
 
@@ -66,6 +70,7 @@ def plot_predicted_timeseries(trn_, tst_, y_ts_h, y_tr_h, SEP_METHOD):
 
     del trn_, tst_, leg_
 
+##############################################################################################################
 def aggregated_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True):
   # aggregated_bins_regression_plot_weights
     # Produce plots of weight importance, given set of weight parameters
@@ -149,7 +154,7 @@ def aggregated_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True)
                     plt.savefig(options['SAVEFOLDER'] + 'weights_' + 'agg_bins' + '_' + sea + '_leg_' + str(leg) + '_' + \
                          sep_method + '_' +  varset + '.png', bbox_inches='tight')
 
-
+##############################################################################################################
 def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 
     try:
@@ -237,6 +242,7 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 
 
 
+##############################################################################################################
 def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True, ylim=[None, None]):
 
     try:
@@ -305,7 +311,7 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True, yli
                                         sep_method + '_' +  varset + '.png', bbox_inches='tight')
 
 
-
+##############################################################################################################
 def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 
     try:
@@ -379,7 +385,8 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                             plt.savefig(options['SAVEFOLDER'] + errmeasure + '_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + \
                                 sep_method + '_' +  varset + '.png', bbox_inches='tight')
 
-def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
+##############################################################################################################
+def visualize_stereo_map_DEPRECATED(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
     '''
         Visualize data on a polar stereographic projection map using Basemap on matplotlib. It probably needs to be updated in the future as this package is no longer mantained since easily 2013-2014 or something like that. But I don't know about options that are as easy and as flexible (it is basically matplotlib)
 
@@ -441,7 +448,75 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
 
     return im, ax
 
+##############################################################################################################
+def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
+    '''
+        Visualize data on a polar stereographic projection map using Basemap on matplotlib. It probably needs to be updated in the future as this package is no longer mantained since easily 2013-2014 or something like that. But I don't know about options that are as easy and as flexible (it is basically matplotlib)
 
+            INPUTS
+                - coordinates: those are basically fixed, from the boad path. Still given as argument for flexibility
+                - values: can be a 1D vector passing values (and a colormap is build accordingly) or it can be a 2D vector Nx3 corresponding to some colormap to be used as plots
+                - fill* : colors to fill continents and seas.
+                - label : the label for the scatter series, to use for legend and so on
+                - min_, max_: min / max values to clip variable to plot. Default are min / max of the series
+                - plottype : (BETA) use differnt plotting tools (e.g. scatter or plot, etc.)
+            OUTPUTS
+                - the most awesome map of the antarctic continent, without penguins
+
+            EXAMPLE
+
+            TODO
+                - Add support for _custom_ background image (e.g. sea surface temperature, wind magnitude, etc.) (use Basemap.contourf() to interpolate linearly within a grid of values)
+
+            NOTE
+                - The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
+                - Latitude is in °N, longitude in is °E
+    '''
+
+    if coordinates.shape[0] != values.shape[0]:
+        print('size of gps coordinates and variable to be plotted does not match')
+        return
+
+    fig = plt.gcf()
+    # prepare basemap
+    ax = fig.add_subplot(111, projection=ccrs.SouthPolarStereo())
+
+    # ax.set_proj
+    ax.set_extent([-180, 180, -90, -35], ccrs.PlateCarree())
+    ax.coastlines(linewidth=1.5)
+    ax.add_feature(cfeature.LAND, facecolor=fillconts)
+    ax.add_feature(cfeature.OCEAN, facecolor=fillsea)
+    ax.gridlines(color='black', linestyle='--', alpha=0.5)
+    #m.shadedrelief()
+    # prepare colors
+    cmap = plt.cm.get_cmap('viridis')
+    normalize = mpl.colors.Normalize(vmin=min_va, vmax=max_va)
+    colors = [cmap(normalize(value)) for value in values]
+
+    # geo coord to plot coord
+    # lon, lat = m(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values)
+    # map boat samples with values
+    if plottype == 'scatter':
+        ax.scatter(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values,
+            transform=ccrs.PlateCarree(),
+            color=colors,s=markersize, linewidth=0, label=labplot)
+    elif plottype == 'plot':
+        ax.plot(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values,
+            transform=ccrs.PlateCarree(),
+            color=colors,s=markersize, linewidth=0, label=labplot)
+        # im = m.plot(lon,lat,color=colors,linewidth=markersize,label=labplot)
+    else:
+        print('unrecognized plot')
+        return
+
+    # ax.set_title(labplot,fontsize=35)
+
+    cax, _ = clb.make_axes(ax)
+    cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
+
+    return ax
+
+##############################################################################################################
 def scatterplot_matrix(df, color=None):
 
     df.columns = [str(cc) for cc in df.columns]
