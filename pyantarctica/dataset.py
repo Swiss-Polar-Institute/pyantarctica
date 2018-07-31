@@ -477,7 +477,7 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
             df1_d[keys]= {keys + op : operations[op] for op in operations}
 
         out = df1.resample(res_).agg(df1_d)
-
+        # loffeset = mean of timestamp window timedelta(minutes = time_bin/2)
         out.columns = out.columns.droplevel(level=0)
 
     else:
