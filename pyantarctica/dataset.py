@@ -274,83 +274,83 @@ class ACEdata:
         self.datatable.drop(['timest_'], axis=1, inplace=True)
 
 ##############################################################################################################
-    def filter_particle_sizes(self, threshold=3, mode='full', NORM_METHOD='fancy', save=''):
-        """ IN :
-                threshold: check for increase in neighboring values (multiplicative)
-                mode:   full: check within neighborhing bins AND neighborhing rows (time smoothness)
-                        bin: check only withing neighboring bins
-            OUT:
-                returns filtered data table in the ACEdata object.
-
-            EXAMPLE:
-            partSize.filter_particlesizes(threhdold=5)
-        """
-
-        if self.name.lower() != 'particle_size_distribution':
-            print('not the particle size data')
-            return self
-
-        # NORM_METHOD = 'fancy' # global_threshold, that should not be used if not for SPEEEEEEEDDDOAAAHH
-        conds = []
-        if NORM_METHOD.lower() == 'fancy':
-
-            par_ = np.pad(self.datatable.values,(1,1), mode='symmetric')
-            s1, s2 = par_.shape
-            conds = np.zeros((s1-2,s2-2),dtype=bool)
-
-            for ro in range(1,s1-1):
-
-                rle = np.zeros((1,s2-2),dtype=bool)
-                rri = np.zeros((1,s2-2),dtype=bool)
-                rup = np.zeros((1,s2-2),dtype=bool)
-                rdo = np.zeros((1,s2-2),dtype=bool)
-
-                for co in range(1,s2-1):
-
-                    if ~np.isnan((par_[ro,co-1],par_[ro,co])).any():#
-                        rle[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro,co-1])) > np.log(threshold))
-
-                    if ~np.isnan((par_[ro,co+1],par_[ro,co])).any():#(par_[ro,co],par_[ro,co+1])).any():
-                        rri[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro,co+1])) > np.log(threshold))
-
-                        if mode.lower == 'full':
-                            if ~np.isnan((par_[ro-1,co],par_[ro,co])).any():#par_[ro,co],par_[ro-1,co])).any():
-                                rup[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro-1,co])) > np.log(threshold))
-
-                            if ~np.isnan((par_[ro+1,co],par_[ro,co])).any():#(par_[ro,co],par_[ro+1,co])).any():
-                                rdo[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro+1,co])) > np.log(threshold))
-
-                comb_ = [rle,rri,rup,rdo]
-        #         print(comb_)
-        #         print(np.any(comb_,axis=0))
-
-                conds[ro-1,:] = np.any(comb_,axis=0)
-
-            del comb_
-
-        elif NORM_METHOD.lower() == 'global':
-            conds = self.datatable > 10000
-            conds = conds.values
-
-
-        temp_ = self.datatable.copy()
-        temp_.iloc[conds] = np.nan
-        # bad_rows = temp_.loc[(temp_ > 8000).any(axis=1)].index
-        bad_rows = np.where((temp_ > 300).any(axis=1))[0]
-        conds[bad_rows,:] = True
-        bad_rows = (temp_.isnull()).sum(axis=1) > 50
-        print('nan bad rows (>50): ' + str(np.sum(bad_rows)))
-        conds[bad_rows,:] = True
-
-        self.particle_filtered = self.datatable.copy()
-        self.particle_filtered.iloc[conds] = np.nan
-
-        if save:
-            print('saving in %s ...' %(save))
-            self.particle_filtered.to_csv(save)
-
-        del temp_, bad_rows
-        # return self.particle_filtered
+    # def filter_particle_sizes(self, threshold=3, mode='full', NORM_METHOD='fancy', save=''):
+    #     """ IN :
+    #             threshold: check for increase in neighboring values (multiplicative)
+    #             mode:   full: check within neighborhing bins AND neighborhing rows (time smoothness)
+    #                     bin: check only withing neighboring bins
+    #         OUT:
+    #             returns filtered data table in the ACEdata object.
+    #
+    #         EXAMPLE:
+    #         partSize.filter_particlesizes(threhdold=5)
+    #     """
+    #
+    #     if self.name.lower() != 'particle_size_distribution':
+    #         print('not the particle size data')
+    #         return self
+    #
+    #     # NORM_METHOD = 'fancy' # global_threshold, that should not be used if not for SPEEEEEEEDDDOAAAHH
+    #     conds = []
+    #     if NORM_METHOD.lower() == 'fancy':
+    #
+    #         par_ = np.pad(self.datatable.values,(1,1), mode='symmetric')
+    #         s1, s2 = par_.shape
+    #         conds = np.zeros((s1-2,s2-2),dtype=bool)
+    #
+    #         for ro in range(1,s1-1):
+    #
+    #             rle = np.zeros((1,s2-2),dtype=bool)
+    #             rri = np.zeros((1,s2-2),dtype=bool)
+    #             rup = np.zeros((1,s2-2),dtype=bool)
+    #             rdo = np.zeros((1,s2-2),dtype=bool)
+    #
+    #             for co in range(1,s2-1):
+    #
+    #                 if ~np.isnan((par_[ro,co-1],par_[ro,co])).any():#
+    #                     rle[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro,co-1])) > np.log(threshold))
+    #
+    #                 if ~np.isnan((par_[ro,co+1],par_[ro,co])).any():#(par_[ro,co],par_[ro,co+1])).any():
+    #                     rri[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro,co+1])) > np.log(threshold))
+    #
+    #                     if mode.lower == 'full':
+    #                         if ~np.isnan((par_[ro-1,co],par_[ro,co])).any():#par_[ro,co],par_[ro-1,co])).any():
+    #                             rup[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro-1,co])) > np.log(threshold))
+    #
+    #                         if ~np.isnan((par_[ro+1,co],par_[ro,co])).any():#(par_[ro,co],par_[ro+1,co])).any():
+    #                             rdo[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro+1,co])) > np.log(threshold))
+    #
+    #             comb_ = [rle,rri,rup,rdo]
+    #     #         print(comb_)
+    #     #         print(np.any(comb_,axis=0))
+    #
+    #             conds[ro-1,:] = np.any(comb_,axis=0)
+    #
+    #         del comb_
+    #
+    #     elif NORM_METHOD.lower() == 'global':
+    #         conds = self.datatable > 10000
+    #         conds = conds.values
+    #
+    #
+    #     temp_ = self.datatable.copy()
+    #     temp_.iloc[conds] = np.nan
+    #     # bad_rows = temp_.loc[(temp_ > 8000).any(axis=1)].index
+    #     bad_rows = np.where((temp_ > 300).any(axis=1))[0]
+    #     conds[bad_rows,:] = True
+    #     bad_rows = (temp_.isnull()).sum(axis=1) > 50
+    #     print('nan bad rows (>50): ' + str(np.sum(bad_rows)))
+    #     conds[bad_rows,:] = True
+    #
+    #     self.particle_filtered = self.datatable.copy()
+    #     self.particle_filtered.iloc[conds] = np.nan
+    #
+    #     if save:
+    #         print('saving in %s ...' %(save))
+    #         self.particle_filtered.to_csv(save)
+    #
+    #     del temp_, bad_rows
+    #     # return self.particle_filtered
 
 ##############################################################################################################
 def zeropad_date(x):
@@ -503,35 +503,79 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
     return out
 
 ##############################################################################################################
-def filter_particle_sizes(datatable,threshold=3):
+def filter_particle_sizes(pSize, threshold=3, mode='full', NORM_METHOD='fancy', save=''):
+    """ IN :
+            threshold: check for increase in neighboring values (multiplicative)
+            mode:   full: check within neighborhing bins AND neighborhing rows (time smoothness)
+                    bin: check only withing neighboring bins
+        OUT:
+            returns filtered particle data table
 
-    par_ = np.pad(datatable.values,(1,1), mode='symmetric')
-    s1, s2 = par_.shape
-    conds = np.zeros((s1-2,s2-2),dtype=bool)
+        EXAMPLE:
+        partSize_filt = pyantarctica.dataset.filter_particlesizes(partSize,threhdold=5)
+    """
 
-    for ro in range(1,s1-1):#1,s1-1):#s1):
-        rle = np.zeros((1,s2-2),dtype=bool)
-        rri = np.zeros((1,s2-2),dtype=bool)
-        rup = np.zeros((1,s2-2),dtype=bool)
-        rdo = np.zeros((1,s2-2),dtype=bool)
-        for co in range(1,s2-1):
+    # NORM_METHOD = 'fancy' # global_threshold, that should not be used if not for SPEEEEEEEDDDOAAAHH
+    conds = []
+    if NORM_METHOD.lower() == 'fancy':
 
-            if ~np.isnan((par_[ro,co],par_[ro,co-1])).any():
-                rle[:,co-1] = (np.abs(par_[ro,co] - par_[ro,co-1])  > threshold)
+        par_ = np.pad(pSize,(1,1), mode='symmetric')
+        s1, s2 = par_.shape
+        conds = np.zeros((s1-2,s2-2),dtype=bool)
 
-            if ~np.isnan((par_[ro,co],par_[ro,co+1])).any():
-                rri[:,co-1] = (np.abs(par_[ro,co] - par_[ro,co+1])  > threshold)
+        for ro in range(1,s1-1):
 
-            if ~np.isnan((par_[ro,co],par_[ro-1,co])).any():
-                rup[:,co-1] = (np.abs(par_[ro,co] - par_[ro-1,co])  > threshold)
+            rle = np.zeros((1,s2-2),dtype=bool)
+            rri = np.zeros((1,s2-2),dtype=bool)
+            rup = np.zeros((1,s2-2),dtype=bool)
+            rdo = np.zeros((1,s2-2),dtype=bool)
 
-            if ~np.isnan((par_[ro,co],par_[ro+1,co])).any():
-                rdo[:,co-1] = (np.abs(par_[ro,co] - par_[ro+1,co])  > threshold)
+            for co in range(1,s2-1):
 
-        conds[ro-1,:] = rle# + rri + rup + rdo
+                if ~np.isnan((par_[ro,co-1],par_[ro,co])).any():#
+                    rle[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro,co-1])) > np.log(threshold))
 
-    filtered[conds] = np.nan
-    return filtered
+                if ~np.isnan((par_[ro,co+1],par_[ro,co])).any():#(par_[ro,co],par_[ro,co+1])).any():
+                    rri[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro,co+1])) > np.log(threshold))
+
+                    if mode.lower == 'full':
+                        if ~np.isnan((par_[ro-1,co],par_[ro,co])).any():#par_[ro,co],par_[ro-1,co])).any():
+                            rup[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro-1,co])) > np.log(threshold))
+
+                        if ~np.isnan((par_[ro+1,co],par_[ro,co])).any():#(par_[ro,co],par_[ro+1,co])).any():
+                            rdo[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro+1,co])) > np.log(threshold))
+
+            comb_ = [rle,rri,rup,rdo]
+    #         print(comb_)
+    #         print(np.any(comb_,axis=0))
+
+            conds[ro-1,:] = np.any(comb_,axis=0)
+
+        del comb_
+
+    elif NORM_METHOD.lower() == 'global':
+        conds = pSize > 10000
+        conds = conds.values
+
+
+    temp_ = pSize.copy()
+    temp_.iloc[conds] = np.nan
+    # bad_rows = temp_.loc[(temp_ > 8000).any(axis=1)].index
+    bad_rows = np.where((temp_ > 300).any(axis=1))[0]
+    conds[bad_rows,:] = True
+    bad_rows = (temp_.isnull()).sum(axis=1) > 50
+    print('nan bad rows (>50): ' + str(np.sum(bad_rows)))
+    conds[bad_rows,:] = True
+
+    particle_filtered = pSize.copy()
+    particle_filtered.iloc[conds] = np.nan
+
+    if save:
+        print('saving in %s ...' %(save))
+        particle_filtered.to_csv(save)
+
+    del temp_, bad_rows
+    return particle_filtered
 
 ##############################################################################################################
 def generate_particle_data(data_folder='./data/', mode='all', data_output='./data/intermediate/',
@@ -631,12 +675,28 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
         return part_agg
 
 ##############################################################################################################
-def read_standard_dataframe(data_folder, datetime_index_name='timest_'):
+def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_legs=True):
+    '''
+        Subset variables of a dataset stack:
+            INPUTS
+                - data_folder: from where to read the *_postprocessed.csv datafile
+                - datetime_index_name: if the datetime index column has non default name
+                - crop_legs: remove non-leg data (keep only data from legs 1-3)
 
+            OUPUTS
+                - dataframe
+            EXAMPLE
+                df = read_standard_dataframe(FOLDER_, crop_legs=False)
+    '''
     data = pd.read_csv(data_folder)
     data.set_index('timest_', inplace=True)
     data.index = pd.to_datetime(data.index, format='%Y-%m-%d %H:%M:%S')
-    #print(data.index)
+
+    if crop_legs:
+        data = add_legs_index(data)
+        wind = data[data['leg'] != 0]
+        data = data.drop('leg',axis=1)
+
     return data
 
 ##############################################################################################################

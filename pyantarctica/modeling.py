@@ -76,7 +76,7 @@ def sample_trn_test_index(index,split=2.0/3,group=20,mode='final'):
     s2 = s0-s1
 
     if mode == 'final':
-        if N_tst == 'all':
+        if group == 'all':
             ind_set[(s1+1):] = 2
             return
         else:
