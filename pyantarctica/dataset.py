@@ -355,6 +355,7 @@ class ACEdata:
 ##############################################################################################################
 def zeropad_date(x):
     return '0' + str(x) if len(x) < 2 else str(x)
+
 ##############################################################################################################
 def parsetime_date(x):
     if len(x.split(' ')) > 1:
@@ -694,9 +695,8 @@ def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_leg
 
     if crop_legs:
         data = add_legs_index(data)
-        wind = data[data['leg'] != 0]
+        data = data[data['leg'] != 0]
         data = data.drop('leg',axis=1)
-
     return data
 
 ##############################################################################################################
