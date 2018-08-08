@@ -23,6 +23,8 @@ See e.g. data preparation scrips `PROJ_XX_DataPreparation.ipynb` where XX is the
 - from the PyPI repos:
   - `pip install pyantarctica`
 
+ - from the GitLab:
+    - `pip install -e git+https://gitlab.datascience.ch/ACE-ASAID/pyantarctica.git#egg=pyantarctica`
 
 ## Requirements
 

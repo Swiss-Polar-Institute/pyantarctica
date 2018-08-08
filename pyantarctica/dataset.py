@@ -435,8 +435,7 @@ def add_legs_index(df, **kwargs):
         return df
 
 
-    dd = pd.Series(data=np.zeros((len(df.index),)), index=df.index, name='leg')
-    #df['leg'] = pd.Series()
+    dd = pd.Series(data=np.zeros((len(df.index))), index=df.index, name='leg')
 
     c = 0
     while c < len(codes):
@@ -445,6 +444,7 @@ def add_legs_index(df, **kwargs):
 
     # dd.loc[dd['leg'].isnull()] = 0
     df = df.assign(leg=dd)
+
     return df
 
 ##############################################################################################################
@@ -697,6 +697,7 @@ def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_leg
         data = add_legs_index(data)
         data = data[data['leg'] != 0]
         data = data.drop('leg',axis=1)
+
     return data
 
 ##############################################################################################################
