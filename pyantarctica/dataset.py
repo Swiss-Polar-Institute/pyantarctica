@@ -280,10 +280,8 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
             particles.to_csv(aggregated_no_noise + '/03_particles_' + mode + '.csv', sep=',', na_rep='')
         return particles
 
-    aero_l700 = ACEdata(data_folder=data_folder + 'raw/7_aerosols/', name='aerosol')
-    aero_l700 = aero_l700.datatable
-    aero_l400 = pd.read_csv(data_folder + 'raw/7_aerosols/particles_greater_400nm.txt', na_values='NAN')
-    aero_l400.index = aero_l700.index
+    aero_l700 = read_standard_dataframe(data_folder + 'intermediate/7_aerosols/12_Aerosol_larger_700nm_postprocessed.csv')
+    aero_l400 = read_standard_dataframe(data_folder +  'intermediate/7_aerosols/13_Aerosol_larger_400nm_postprocessed.csv')
 
     if mode.lower() == 'all':
         particles = particles.assign(newcol=aero_l400)
