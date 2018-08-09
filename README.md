@@ -2,7 +2,7 @@
 
 Package for ACE-DATA/ASAID. Data handling, run statistical models, visualization and (not much) more (for now)
 
-## Usage
+## Usage
 
 ```python
 import pyantarctica
@@ -15,7 +15,7 @@ Every notebook in the ACE-DATA data science project repository provides relative
 
 See e.g. data preparation scrips `PROJ_XX_DataPreparation.ipynb` where XX is the subproject number.
 
-## Installation
+## Installation
 
 - from source:
   - `pip install -e pyantarctica_folder`
@@ -28,9 +28,9 @@ See e.g. data preparation scrips `PROJ_XX_DataPreparation.ipynb` where XX is the
   - and editable clone of the repository will be available locally
   - * access required
 
-## Requirements
+## Requirements
 
-LIST TO BE UPDATED 
+LIST TO BE UPDATED
 
 ## Release process
 
@@ -42,7 +42,7 @@ LIST TO BE UPDATED
 
 Python 3 preferred, but not required.
 
-## License
+## License
 
 Copyright 2017-2018 - Swiss Data Science Center (SDSC)
 
@@ -55,7 +55,7 @@ http://www.apache.org/licenses/LICENSE-2.0
 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and limitations under the License.
 
-## Authors
+## Authors
 
 - Michele Volpi, SDSC, michele.volpi@sdsc.ethz.ch
 - Sebastian Landwehr, PSI, sebastian.landwehr@psi.ch
