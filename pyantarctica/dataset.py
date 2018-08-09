@@ -864,8 +864,3 @@ def read_traj_file_to_numpy(filename, ntime):
     traj_ensemble = np.reshape(traj_ensemble,(ntra, ntime, -1))
 
     return traj_ensemble, variables, starttime
-
-
-def testing_(salutation='ciao'):
-    print('hi there, ' + salutation + '!')
-    return
