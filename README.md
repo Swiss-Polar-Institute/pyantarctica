@@ -28,10 +28,6 @@ See e.g. data preparation scrips `PROJ_XX_DataPreparation.ipynb` where XX is the
   - and editable clone of the repository will be available locally
   - * access required
 
-## Requirements
-
-LIST TO BE UPDATED
-
 ## Release process
 
 1. Update version in `setup.py`, commit and tag.
@@ -59,3 +55,15 @@ See the License for the specific language governing permissions and limitations 
 
 - Michele Volpi, SDSC, michele.volpi@sdsc.ethz.ch
 - Sebastian Landwehr, PSI, sebastian.landwehr@psi.ch
+
+## Requirements
+
+Working with following extra packages:
+
+Cartopy==0.16.0
+GPy==1.9.2
+matplotlib==2.2.2
+numpy==1.14.5
+pandas==0.23.0
+pickleshare==0.7.4
+scikit-learn==0.19.1
