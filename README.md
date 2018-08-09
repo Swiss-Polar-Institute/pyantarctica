@@ -18,26 +18,44 @@ See e.g. data preparation scrips `PROJ_XX_DataPreparation.ipynb` where XX is the
 ## Installation
 
 - from source:
-  - `pip install -e --dev ../pyantarctica`
+  - `pip install -e pyantarctica_folder`
 
 - from the PyPI repos:
   - `pip install pyantarctica`
 
 - from the GitLab:
   - `pip install -e git+https://gitlab.datascience.ch/ACE-ASAID/pyantarctica.git#egg=pyantarctica`
+  - and editable clone of the repository will be available locally
+  - * access required
 
 ## Requirements
 
-see setup.py
+LIST TO BE UPDATED 
 
 ## Release process
 
 1. Update version in `setup.py`, commit and tag.
 2. Run `rm -rf dist && python setup.py sdist bdist_wheel && twine upload dist/*`
-3. Change the bump the version to development (`X.Y.Z+1.devYYYYMMDD`)
+3. Change the bump of the version to development (`X.Y.Z+1.devYYYYMMDD`)
 
 ## Compatibility
 
+Python 3 preferred, but not required.
+
 ## License
 
+Copyright 2017-2018 - Swiss Data Science Center (SDSC)
+
+A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and Eidgenössische Technische Hochschule Zürich (ETHZ).
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at:
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+
 ## Authors
+
+- Michele Volpi, SDSC, michele.volpi@sdsc.ethz.ch
+- Sebastian Landwehr, PSI, sebastian.landwehr@psi.ch
