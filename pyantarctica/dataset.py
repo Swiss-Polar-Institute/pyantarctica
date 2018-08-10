@@ -129,7 +129,7 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position=
                 - strategy : {'col': {'colname_min': np.min ...
                     dictionary of (possibly multiple) data aggregation strategies. New columns will have
                     corresponding subscript. df1 and df2 should be the input variable names
-                - index_position : position of the index wrt the resampling : 'beginning', 'middle' or 'final'
+                - index_position : position of the index wrt the resampling : 'initial', 'middle' or 'final'
             OUTPUT
                 - resampled dataframe with uninterrupted datetime index
             EXAMPLE
