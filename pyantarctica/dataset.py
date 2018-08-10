@@ -326,7 +326,7 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
         part_agg['>700'] = aero_l700
 
         if savedata:
-            part_agg.to_csv(data_output + '/git particles_' + mode + '.csv', sep=',', na_rep='')
+            part_agg.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
         return part_agg
 
 ##############################################################################################################
