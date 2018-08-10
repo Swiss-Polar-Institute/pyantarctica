@@ -58,7 +58,8 @@ See the License for the specific language governing permissions and limitations 
 
 ## Requirements
 
-Working with following extra packages:
+Working with following extra packages (does not include package dependencies):
+
 
 ```python
     install_requires = [
