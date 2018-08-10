@@ -120,7 +120,7 @@ def add_legs_index(df, **kwargs):
     return df
 
 ##############################################################################################################
-def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
+def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position='middle'):
     """
         Outer merge of two datatables based on a common resampling of time intervals:
             INPUTS
@@ -129,6 +129,7 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
                 - strategy : {'col': {'colname_min': np.min ...
                     dictionary of (possibly multiple) data aggregation strategies. New columns will have
                     corresponding subscript. df1 and df2 should be the input variable names
+                - index_position : position of the index wrt the resampling : 'beginning', 'middle' or 'final'
             OUTPUT
                 - resampled dataframe with uninterrupted datetime index
             EXAMPLE
@@ -143,37 +144,20 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new'):
     """
     res_ = str(time_bin) + 'T'
 
+    df = pd.DataFrame()
 
-    if mode == 'old': # This one gets a FutureWarning! But the alternative is _very_ slow
-        df1_d = dict.fromkeys(df1.columns,[])
-        for keys in df1_d:
-            df1_d[keys]= {keys + op : operations[op] for op in operations}
+    for cols in df1.columns.tolist()[0:]:
+        for op, val in operations.items():
+             df[cols+op] = df1[cols].groupby(pd.Grouper(freq=res_)).agg(val)
 
-        out = df1.resample(res_).agg(df1_d)
-        # loffeset = mean of timestamp window timedelta(minutes = time_bin/2)
-        out.columns = out.columns.droplevel(level=0)
+    if index_position == 'initial':
+        time_shift = 0
+    elif index_position == 'middle':
+        time_shift = time_bin/2
+    elif index_position == 'final':
+        time_shift = time_bin
 
-    else:
-        def my_agg(x,ops):
-            ops_cols = {}
-            # print(x.columns.tolist())
-            #ops_cols = {'hs_m': x['hs'].agg(np.mean),
-            #            'hs_s': x['hs'].agg(np.std)}
-
-            for cols in x.columns.tolist():
-                for op, val in ops.items():
-                    ops_cols[cols+op] = x[cols].agg(val)
-
-            #print([key for key in ops_cols.keys()])
-            # return ops_cols
-            return pd.Series(ops_cols, index=[key for key in ops_cols.keys()])
-
-        # print(my_agg(df1, operations))
-        #out = df1.resample(res_).apply(my_agg)
-        out = df1.groupby(pd.Grouper(freq=res_)).apply(my_agg,ops=operations)
-
-    # out.columns = out.columns.droplevel(level=0)
-    return out
+    return df.shift(time_shift,'T')
 
 ##############################################################################################################
 def filter_particle_sizes(pSize, threshold=3, mode='full', NORM_METHOD='fancy', save=''):
@@ -342,7 +326,7 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
         part_agg['>700'] = aero_l700
 
         if savedata:
-            part_agg.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
+            part_agg.to_csv(data_output + '/git particles_' + mode + '.csv', sep=',', na_rep='')
         return part_agg
 
 ##############################################################################################################
