@@ -94,6 +94,9 @@ def add_legs_index(df, **kwargs):
     else:
         leg_dates = kwargs['leg_dates']
 
+
+    # merz_glacier = ['2017-01-29', '2017-01-31']
+
     if 'codes' not in kwargs:
         codes = [1, 2, 3]
     else:
@@ -113,6 +116,9 @@ def add_legs_index(df, **kwargs):
     while c < len(codes):
         dd.loc[leg_dates[c][0]:leg_dates[c][1]] = codes[c]
         c += 1
+
+    if 'merz_glacier' in kwargs:
+        dd.loc[merz_glacier[0]:merz_glacier[1]] = -1
 
     # dd.loc[dd['leg'].isnull()] = 0
     df = df.assign(leg=dd)
@@ -135,7 +141,7 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position=
             EXAMPLE
 
             operations = {'min': np.min , 'mean': np.mean, 'max': np.max,'sum': np.sum}
-            df_res = dataset.ts_aggregate_timebins(df1, 15*60, operations)
+            df_res = dataset.ts_aggregate_timebins(df1, 15, operations)
             print(df_res.head())
             PREV VERSION LOGIC:
             df1_d = dict.fromkeys(df1.columns,[])
@@ -153,11 +159,13 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position=
     if index_position == 'initial':
         time_shift = 0
     elif index_position == 'middle':
-        time_shift = time_bin/2
+        time_shift = int(np.ceil(time_bin/2*60)) # From minutes to seconds, to round up to the second.
     elif index_position == 'final':
-        time_shift = time_bin
+        time_shift = int(np.ceil(time_bin/2*60))
 
-    return df.shift(time_shift,'T')
+    # print(time_ shift)
+
+    return df.shift(time_shift, 's')
 
 ##############################################################################################################
 def filter_particle_sizes(pSize, threshold=3, mode='full', NORM_METHOD='fancy', save=''):
