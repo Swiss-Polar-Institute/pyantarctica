@@ -545,7 +545,7 @@ def scatterplot_matrix(df, color=None):
     return fig, ax
 
 ##############################################################################################################
-def plot_binned_parameters_versus_aerosols(df, aerosol, subset_columns_parameters, nbins=25, range_par=1):
+def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameters, nbins=25, range_par=1):
 
     f, ax = plt.subplots(2,len(subset_columns_parameters),figsize=(20,6), sharex=False,
     gridspec_kw = {'height_ratios':[2, 1]})
