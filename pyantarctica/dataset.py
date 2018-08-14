@@ -356,7 +356,7 @@ def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_leg
                 df = read_standard_dataframe(FOLDER_, crop_legs=False)
     '''
     data = pd.read_csv(data_folder)
-    data.set_index('timest_', inplace=True)
+    data.set_index(datetime_index_name, inplace=True)
     data.index = pd.to_datetime(data.index, format='%Y-%m-%d %H:%M:%S')
 
     if crop_legs:
