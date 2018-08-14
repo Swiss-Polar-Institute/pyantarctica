@@ -543,3 +543,47 @@ def scatterplot_matrix(df, color=None):
                 ax[row,col].set_xlabel('')
 
     return fig, ax
+
+##############################################################################################################
+def plot_binned_parameters_versus_aerosols(df, aerosol, subset_columns_parameters, nbins=25, range_par=1):
+
+    f, ax = plt.subplots(2,len(subset_columns_parameters),figsize=(20,6), sharex=False,
+    gridspec_kw = {'height_ratios':[2, 1]})
+
+    for vvnum, vv in enumerate(subset_columns_parameters):
+
+        joind = df[vv].notnull() & aerosol.notnull()
+        bins = np.linspace(np.percentile(df[vv].loc[joind],range_par[0]*100),
+                np.percentile(df[vv].loc[joind],range_par[1]*100),
+                nbins+1)
+
+        bins_h = pd.cut(df[vv].loc[joind], bins, labels=[str(x) for x in range(nbins)], retbins=False)#[str(xx) for xx in range(nbins)])
+#         print(bins_h)
+
+        ax[0,vvnum].errorbar(np.arange(nbins),
+                        aerosol.loc[joind].groupby(bins_h).agg(np.nanmean),
+                        yerr=aerosol.loc[joind].groupby(bins_h).agg(np.nanstd),
+                        ls='none', color='black')
+        ax[0,vvnum].plot(np.arange(nbins),
+                        aerosol.loc[joind].groupby(bins_h).mean(), ls='-', color='red', linewidth=2)
+#         ax[0,vvnum].boxplot(wave_aero[aero_aggregation].loc[joind].groupby(bins_h).values(), sym='k+',
+#                             notch=1)
+        ax[0,vvnum].set_ylim(0,2*np.max(aerosol.loc[joind].groupby(bins_h).mean()))
+        ax[1,vvnum].bar(np.arange(nbins),aerosol.loc[joind].groupby(bins_h).count())#, ls='dotted', linewidth=0.5, marker='o', color='black')
+        ax[1,vvnum].set_xlabel(vv)
+
+        if vvnum != 0:
+            ax[0,vvnum].set_yticklabels([])
+            ax[1,vvnum].set_yticklabels([])
+        elif vvnum == 0:
+            ax[0,vvnum].set_ylabel('Aerosol value \n (mean per bin)')
+            ax[1,vvnum].set_ylabel('Datapoint count')
+
+        labels_ = ['{:.2f}'.format(xx) for xx in bins]
+#         print(labels_)
+        ax[1,vvnum].set_xticks(np.arange(0,nbins+1,10))
+        ax[1,vvnum].set_xticklabels(labels_[::10],fontsize=6)#wave_aero[vv].loc[joind].groupby(bins_h).mean())
+        ax[0,vvnum].set_xticks(np.arange(0,nbins+1,10))
+        ax[0,vvnum].set_xticklabels(labels_[::10], fontsize=6)#wave_aero[vv].loc[joind].groupby(bins_h).mean())
+
+    return ax
