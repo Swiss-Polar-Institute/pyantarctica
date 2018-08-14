@@ -78,9 +78,13 @@ def add_datetime_index_from_column(df, old_column_name, string_format='%d.%m.%Y 
 
     df[new_column_name] = pd.DataFrame(timestamp)
 
-    df['timest_'] = pd.to_datetime(df['timest_'], unit='s')
-    df.set_index(pd.DatetimeIndex(df['timest_']), inplace=True)
-    df.drop(['timest_'], axis=1, inplace=True)
+    #df['timest_'] = pd.to_datetime(df['timest_'], unit='s')
+    #df.set_index(pd.DatetimeIndex(df['timest_']), inplace=True)
+    #df.drop(['timest_'], axis=1, inplace=True)
+    # SL: change from hardcoded timest_ to input new_column_name
+    df[new_column_name] = pd.to_datetime(df[new_column_name], unit='s')
+    df.set_index(pd.DatetimeIndex(df[new_column_name]), inplace=True)
+    df.drop([new_column_name], axis=1, inplace=True)
 
     return df
 
@@ -352,7 +356,7 @@ def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_leg
                 df = read_standard_dataframe(FOLDER_, crop_legs=False)
     '''
     data = pd.read_csv(data_folder)
-    data.set_index('timest_', inplace=True)
+    data.set_index(datetime_index_name, inplace=True)
     data.index = pd.to_datetime(data.index, format='%Y-%m-%d %H:%M:%S')
 
     if crop_legs:
