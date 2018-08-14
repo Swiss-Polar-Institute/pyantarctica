@@ -78,9 +78,13 @@ def add_datetime_index_from_column(df, old_column_name, string_format='%d.%m.%Y 
 
     df[new_column_name] = pd.DataFrame(timestamp)
 
-    df['timest_'] = pd.to_datetime(df['timest_'], unit='s')
-    df.set_index(pd.DatetimeIndex(df['timest_']), inplace=True)
-    df.drop(['timest_'], axis=1, inplace=True)
+    #df['timest_'] = pd.to_datetime(df['timest_'], unit='s')
+    #df.set_index(pd.DatetimeIndex(df['timest_']), inplace=True)
+    #df.drop(['timest_'], axis=1, inplace=True)
+    # SL: change from hardcoded timest_ to input new_column_name
+    df[new_column_name] = pd.to_datetime(df[new_column_name], unit='s')
+    df.set_index(pd.DatetimeIndex(df[new_column_name]), inplace=True)
+    df.drop([new_column_name], axis=1, inplace=True)
 
     return df
 
