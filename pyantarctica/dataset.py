@@ -19,6 +19,7 @@
 
 import numpy as np
 import pandas as pd
+
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
@@ -171,12 +172,13 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position=
 
     return df.shift(time_shift, 's')
 
-##############################################################################################################
-def filter_particle_sizes(pSize, threshold=3, mode='full', NORM_METHOD='fancy', save=''):
+
+def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
     """ IN :
-            threshold: check for increase in neighboring values (multiplicative)
-            mode:   full: check within neighborhing bins AND neighborhing rows (time smoothness)
-                    bin: check only withing neighboring bins
+            threshold: check for increase in neighboring values depending on the 'mode'
+            window: size of the square moving windows to retrieve statistics
+            mode:   mean: hard threhdold "times" deviation from the mean
+                    std: threhdold times standard deviation from the mean of valiues in window of size 'window'
         OUT:
             returns filtered particle data table
 
@@ -184,67 +186,85 @@ def filter_particle_sizes(pSize, threshold=3, mode='full', NORM_METHOD='fancy', 
         partSize_filt = pyantarctica.dataset.filter_particlesizes(partSize,threhdold=5)
     """
 
-    # NORM_METHOD = 'fancy' # global_threshold, that should not be used if not for SPEEEEEEEDDDOAAAHH
-    conds = []
-    if NORM_METHOD.lower() == 'fancy':
+    """
+         HELPERS: sample 3x3 window of point and vectorize it into rows where the first element in the row is the measure on which the 3x3 window is centered.
+    """
 
-        par_ = np.pad(pSize,(1,1), mode='symmetric')
-        s1, s2 = par_.shape
-        conds = np.zeros((s1-2,s2-2),dtype=bool)
+    def ret_neigh(i,j, window = 3):
+        if window == 1:
+            fil_ = [[i, j], [i, j-1], [i,j+1]]
 
-        for ro in range(1,s1-1):
+        if window == 2:
+            fil_ = [[i, j],             [i-1, j],
+                            [i,   j-1],           [i,  j+1],
+                                        [i+1, j]]
+        if window == 3:
+            fil_ = [[i, j], [i-1, j-1], [i-1, j], [i-1,j+1],
+                            [i,   j-1],           [i,  j+1],
+                            [i+1, j-1], [i+1, j], [i+1,j+1]]
+        elif window == 5:
+            fil_ = [[i, j], [i-2, j-2], [i-2, j-1], [i-2,j], [i-2, j+1], [i-2, j+2],
+                            [i-1, j-2], [i-1, j-1], [i-1,j], [i-1, j+1], [i-1, j+2],
+                            [i,   j-2], [i,   j-1],          [i,   j+1], [i,   j+2],
+                            [i+1, j-2], [i+1, j-1], [i+1,j], [i+1, j+1], [i+1, j+2],
+                            [i+2, j-2], [i+2, j-1], [i+2,j], [i+2, j+1], [i+2, j+2]]
 
-            rle = np.zeros((1,s2-2),dtype=bool)
-            rri = np.zeros((1,s2-2),dtype=bool)
-            rup = np.zeros((1,s2-2),dtype=bool)
-            rdo = np.zeros((1,s2-2),dtype=bool)
-
-            for co in range(1,s2-1):
-
-                if ~np.isnan((par_[ro,co-1],par_[ro,co])).any():#
-                    rle[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro,co-1])) > np.log(threshold))
-
-                if ~np.isnan((par_[ro,co+1],par_[ro,co])).any():#(par_[ro,co],par_[ro,co+1])).any():
-                    rri[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro,co+1])) > np.log(threshold))
-
-                    if mode.lower == 'full':
-                        if ~np.isnan((par_[ro-1,co],par_[ro,co])).any():#par_[ro,co],par_[ro-1,co])).any():
-                            rup[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro-1,co])) > np.log(threshold))
-
-                        if ~np.isnan((par_[ro+1,co],par_[ro,co])).any():#(par_[ro,co],par_[ro+1,co])).any():
-                            rdo[:,co-1] = (np.abs(np.log(1e-10 + par_[ro,co]) - np.log(1e-10 + par_[ro+1,co])) > np.log(threshold))
-
-            comb_ = [rle,rri,rup,rdo]
-    #         print(comb_)
-    #         print(np.any(comb_,axis=0))
-
-            conds[ro-1,:] = np.any(comb_,axis=0)
-
-        del comb_
-
-    elif NORM_METHOD.lower() == 'global':
-        conds = pSize > 10000
-        conds = conds.values
+        return fil_
 
 
-    temp_ = pSize.copy()
-    temp_.iloc[conds] = np.nan
-    # bad_rows = temp_.loc[(temp_ > 8000).any(axis=1)].index
-    bad_rows = np.where((temp_ > 300).any(axis=1))[0]
-    conds[bad_rows,:] = True
-    bad_rows = (temp_.isnull()).sum(axis=1) > 50
-    print('nan bad rows (>50): ' + str(np.sum(bad_rows)))
-    conds[bad_rows,:] = True
+    def ret_values(data):
+        em = np.zeros((data.shape[0]*data.shape[1],9))
+        d_pad = np.pad(data,(1,1), mode='symmetric')
+        col = 0
+        for i in np.arange(1,d_pad.shape[0]-1):
+            for j in np.arange(1,d_pad.shape[1]-1):
+                fil_ = ret_neigh(i,j)
+                em[col][:] = [d_pad[fil_[c][0]][fil_[c][1]] for c in range(9)]
+                col += 1
+        return em
 
-    particle_filtered = pSize.copy()
-    particle_filtered.iloc[conds] = np.nan
+    part_size = pSize.copy().values
+    vect_filt = ret_values(part_size)
+
+    # print(mea)
+    if mode=='mean':
+        mea = np.nanmean(vect_filt[:,1:],axis=1)
+        local_t  = vect_filt[:,0] > (threshold * mea)
+    elif mode=='std':
+        mea = np.nanmean(vect_filt[:,1:],axis=1)
+        sig = np.nanstd(vect_filt[:,1:])
+        local_t = vect_filt[:,0] > (mea + threshold * sig)
+        local_t = local_t|(vect_filt[:,0] < (mea - threshold * sig))
+    elif mode=='any':
+        local_t = [np.any(vect_filt[jj,0] > threshold * vect_filt[jj,1:]) for jj in range(vect_filt.shape[0])]
+        local_t = np.array(local_t)
+
+    loca = np.reshape(local_t, part_size.shape)
+    part_size[loca] = np.nan
+
+    # Delete lines which are alone (e.g. nans above and nans below)
+    global_t = np.zeros((part_size.shape[0],1), dtype=bool)
+    for i in range(1,part_size.shape[0]-1):
+        line_above = np.sum(np.isnan(part_size[i-1,:])) > part_size.shape[1]*0.50
+        line_below = np.sum(np.isnan(part_size[i+1,:])) > part_size.shape[1]*0.50
+        global_t[i] = (line_above & line_below)
+        global_t[i] = (np.sum(np.isnan(part_size[i,:])) > part_size.shape[1]*0.50)
+        global_t[i] = global_t[i] | np.any(part_size[i,:] > 500)
+
+    part_size[np.where(global_t)[0],:] = np.nan
+
+    string_ = 'local_t : ' + str(np.sum(local_t)) + '; ' + 'global_t : ' + str(np.sum(global_t)) + '; '
+#    + 'joint_t : ' + str(np.sum(joint_t))
+    print(string_)
+
+    # print('filtered datapoints with threhsold ' + str(threshold) + ': ' + str(np.sum(loca)))
+    df = pd.DataFrame(part_size,index=pSize.index,columns=pSize.columns)
 
     if save:
-        print('saving in %s ...' %(save))
-        particle_filtered.to_csv(save)
+        df.to_csv(save)
 
-    del temp_, bad_rows
-    return particle_filtered
+    return df
+
 
 ##############################################################################################################
 def generate_particle_data(data_folder='./data/', mode='all', data_output='./data/intermediate/',
