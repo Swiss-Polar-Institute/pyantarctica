@@ -245,10 +245,16 @@ def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
     # Delete lines which are alone (e.g. nans above and nans below)
     global_t = np.zeros((part_size.shape[0],1), dtype=bool)
     for i in range(1,part_size.shape[0]-1):
-        line_above = np.sum(np.isnan(part_size[i-1,:])) > part_size.shape[1]*0.50
-        line_below = np.sum(np.isnan(part_size[i+1,:])) > part_size.shape[1]*0.50
+        line_above_na = np.sum(np.isnan(part_size[i-1,:])) > part_size.shape[1]*0.50
+        line_above_ze = np.sum(part_size[i-1,:] == 0) > part_size.shape[1]*0.50
+        line_above = line_above_na | line_above_ze
+
+        line_below_na = np.sum(np.isnan(part_size[i+1,:])) > part_size.shape[1]*0.50
+        line_below_ze = np.sum(part_size[i+1,:] == 0) > part_size.shape[1]*0.50
+        line_below = line_below_na | line_below_ze
+
         global_t[i] = (line_above & line_below)
-        global_t[i] = (np.sum(np.isnan(part_size[i,:])) > part_size.shape[1]*0.50)
+        # global_t[i] = global_t[i] | (np.sum(np.isnan(part_size[i,:])) > part_size.shape[1]*0.50)
         global_t[i] = global_t[i] | np.any(part_size[i,:] > 500)
 
     part_size[np.where(global_t)[0],:] = np.nan
