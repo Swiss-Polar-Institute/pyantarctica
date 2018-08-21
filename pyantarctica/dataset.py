@@ -273,7 +273,7 @@ def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
 
 
 ##############################################################################################################
-def generate_particle_data(data_folder='./data/', mode='all', data_output='./data/intermediate/',
+def generate_particle_data(data_folder='../data/', mode='all', data_output='./data/intermediate/',
                            savedata=False, filtering_parameter=3):
     '''
         Utility to get aerosol data
@@ -312,7 +312,7 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
         particles = particles.rename(columns={'newcol': '>700'})
 
         if savedata:
-            particles.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
+            particles.to_csv(data_output + '/00_particles_' + mode + '.csv', sep=',', na_rep='')
         return particles
 
     part_legend = pd.read_table(data_folder + 'raw/7_aerosols/04_diameterforfile_03.txt')
@@ -338,7 +338,7 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
         part_agg['>700'] = aero_l700
 
         if savedata:
-            part_agg.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
+            part_agg.to_csv(data_output + '/00_particles_' + mode + '.csv', sep=',', na_rep='')
         return part_agg
 
     if mode.lower() == 'aggregated_no_noise':
@@ -364,7 +364,7 @@ def generate_particle_data(data_folder='./data/', mode='all', data_output='./dat
         part_agg['>700'] = aero_l700
 
         if savedata:
-            part_agg.to_csv(data_output + '/particles_' + mode + '.csv', sep=',', na_rep='')
+            part_agg.to_csv(data_output + '/00_particles_' + mode + '.csv', sep=',', na_rep='')
         return part_agg
 
 ##############################################################################################################
