@@ -562,7 +562,7 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
 
         ax[0,vvnum].errorbar(np.arange(nbins),
                         aerosol.loc[joind].groupby(bins_h).agg(np.nanmean),
-                        yerr=aerosol.loc[joind].groupby(bins_h).agg(np.nanstd),
+                        yerr=0.5*aerosol.loc[joind].groupby(bins_h).agg(np.nanstd),
                         ls='none', color='black')
         ax[0,vvnum].plot(np.arange(nbins),
                         aerosol.loc[joind].groupby(bins_h).mean(), ls='-', color='red', linewidth=2)
