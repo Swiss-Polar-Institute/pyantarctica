@@ -159,7 +159,11 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position=
 
     for cols in df1.columns.tolist()[0:]:
         for op, val in operations.items():
-             df[cols+op] = df1[cols].groupby(pd.Grouper(freq=res_)).agg(val)
+            df[cols+op] = df1[cols].groupby(pd.Grouper(freq=res_)).agg(val)
+
+            nanind = (df1[cols].fillna(1).groupby(pd.Grouper(freq=res_)).count() != df1[cols].groupby(pd.Grouper(freq=res_)).count()) & (df1[cols].groupby(pd.Grouper(freq=res_)).count() == 0)
+
+            df[cols+op].iloc[np.where(nanind)] = np.nan
 
     if index_position == 'initial':
         time_shift = 0
@@ -169,9 +173,7 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position=
         time_shift = int(np.ceil(time_bin/2*60))
 
     # print(time_ shift)
-
     return df.shift(time_shift, 's')
-
 
 def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
     """ IN :
@@ -381,7 +383,7 @@ def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_leg
             EXAMPLE
                 df = read_standard_dataframe(FOLDER_, crop_legs=False)
     '''
-    data = pd.read_csv(data_folder)
+    data = pd.read_csv(data_folder, na_values=' ')
     data.set_index(datetime_index_name, inplace=True)
     data.index = pd.to_datetime(data.index, format='%Y-%m-%d %H:%M:%S')
 
