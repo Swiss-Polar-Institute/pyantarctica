@@ -18,7 +18,6 @@
 import numpy as np
 import pandas as pd
 
-
 def retrieve_model_av_std(summary):
     exps_ = [s[:-2] for s in list(summary.keys())]
     exps = set(exps_)
