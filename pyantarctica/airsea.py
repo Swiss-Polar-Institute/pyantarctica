@@ -2,31 +2,43 @@
 # I have coded these to my best knowledge, but I cannot quarantee for the content to be correct.
 # last reviewed by Sebastian Landwehr PSI 20.08.2018
 
+import pyantarctica.constants as constants
 
-def PSIu(zeta):
+
+
+def PSIu(zeta, option='default'):
+    #stability correction function for modifying the logarithmic wind speed profiles based on atmospheric stability
+    # use e.g. for: u(z)=u*/k[log(z/z0)-PSIu(z/L)]
+    #
+    # PSIu is integral of the semiempirical function PHIu
+    # PSIu(z/L)=INT_z0^z[1-PHI_u(z/L)]d(z/L)/(z/L)
+    # several forms of PHIu and PSIu are published and will be added as options
+    # default = 'Dyer_Hicks_1970'
+    
     import numpy as np
     # zeta=z/L or is it -z/L ???
     # with L = -u*^3/vkarman/(g<wT>/T+0.61g<wq>)
     #x=np.sqrt(np.sqrt(1-15*zeta)); #sqrt(sqrt) instead of ^.25
     if type(zeta) != np.ndarray:
         zeta = np.array([zeta])
-    x=zeta*0 # avoid warings
-    x[zeta<0]=np.sqrt(np.sqrt(1-15*zeta[zeta<0])); #sqrt(sqrt) instead of ^.25
-    
-    psi=2*np.log((1+x)/2)+np.log((1+x*x)/2)-2*np.arctan(x)+2*np.arctan(1); 
-    
-    psi[zeta>=0]=-5*zeta[zeta>=0];
+        
+    if option == 'default': # or Dyer_Hicks_1970
+        # Dyer and Hicks 1970       
+        x=zeta*0 # avoid warings
+        x[zeta<0]=np.sqrt(np.sqrt(1-15*zeta[zeta<0])); #sqrt(sqrt) instead of ^.25
+        psi=2*np.log((1+x)/2)+np.log((1+x*x)/2)-2*np.arctan(x)+2*np.arctan(1); 
+        psi[zeta>=0]=-5*zeta[zeta>=0];
+    elif option == 'Fairall_1996':
+        print('todo')
+        psi = []
+    else:
+        print('unexpected option: please use "default"')
+        psi = []
+            
     return psi
 
-    # use as:
-    # u(z)=u*/k[log(z/z0)-psi(z/L)]
 
-    # for z/L>0 (negative heat flux->stratification)
-    # u(z)=u*/k[log(z/z0)+5z/L]
-    # with PSIu=-5z/L
-
-def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20, z=10, zeta=0):
-    import numpy as np
+def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20, z=10, zeta=0): 
     # function coare_u2ustar (u,coare_direction,coare_version) 
     # uses wind speed dependend drag coefficient to iteratively convert between u* and uz
     #
@@ -40,7 +52,7 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
     # for citing this code please refere to:  
     # https://www.atmos-chem-phys.net/18/4297/2018/ equation (4),(5), and (6)
     # Sebastian Landwehr, PSI 2018
-
+    import numpy as np
 
     z0 = 1e-4 # default roughness length (could calculate this using first guess charnock and ustar)
     
@@ -59,8 +71,8 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
 
         
     t=TairC; # air temperature [C]
-    grav = 9.82; # const of gravitation
-    vkarman = 0.4; # van Karman constant
+    grav = constants.g; # const of gravitation
+    vkarman = constants.vanKarman; # van Karman constant
     gamma = 0.11; # roughness Reynolds number
     charnock = 0.011; # first guess charnock parameter (not used)
     visa=1.326e-5*(1+6.542e-3*t+8.301e-6*t*t-4.84e-9*t*t*t); # viscosity of air
@@ -104,6 +116,7 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
     return u
 
 def coare_u10_ustar (u, input_string='u10', coare_version='coare3.5', TairC=20):
+    #TO BE REMOVED
     # function coare_u10_ustar (u,coare_direction,coare_version) 
     # uses wind speed dependend drag coefficient to iteratively convert between u* and u10n
     #
