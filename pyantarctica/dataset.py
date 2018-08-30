@@ -24,11 +24,23 @@ import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
 ##############################################################################################################
-def zeropad_date(x):
-    return '0' + str(x) if len(x) < 2 else str(x)
+def parsetime(x):
+    """
+        Function to format timestamps to HH:MM:SS
 
-##############################################################################################################
-def parsetime_date(x):
+        :param x: string containing badly formatted timestams
+        :returns: nicely formatted timestamp string
+    """
+
+    def zeropad_date(x):
+        """
+            Helper to left-pad with 0s the timestamp
+
+            :params x: timestamp string to be zeropadded, if len(x)<2
+            :returns: left - 0 padded string of length 2
+        """
+        return '0' + str(x) if len(x) < 2 else str(x)
+
     if len(x.split(' ')) > 1:
         x, b = x.split(' ')
         toadd = ' ' + b
@@ -47,17 +59,23 @@ def parsetime_date(x):
         t_str = h + ':' + m + ':00'
 
     t_str += toadd
-    return t_str
-##############################################################################################################
 
-def add_datetime_index_from_column(df, old_column_name, string_format='%d.%m.%Y %H:%M:%S', new_column_name='timest_'):
+    return t_str
+
+##############################################################################################################
+def add_datetime_index_from_column(df, old_column_name, string_format='%d.%m.%Y %H:%M:%S', index_name='timest_'):
 
     """
-        Convert something that looks like a data, as specified by string_format into a python datetime index
+        Convert a column in a dataframe df to a datetime element and move it as index of the df. The string_format rule specifies how the raw string is formatted.
+
+        :param df: dataframe of the original data
+        :param old_column_name: column containing the raw datetime string to be converted
+        :param string_format: how the string is organized
+        :param index_name: new column to add with datetime, and moved as index
+        :returns: dataframe with datetime index named index_name
     """
 
     from datetime import datetime, tzinfo, timedelta
-    #from time import mktime
     from calendar import timegm
 
     class UTC(tzinfo):
@@ -75,20 +93,26 @@ def add_datetime_index_from_column(df, old_column_name, string_format='%d.%m.%Y 
     datetime_obj = [date_.replace(tzinfo=UTC()) for date_ in datetime_object]
     timestamp = [timegm(date_.timetuple()) for date_ in datetime_obj]
 
-    df[new_column_name] = pd.DataFrame(timestamp)
+    df[index_name] = pd.DataFrame(timestamp)
+    df[index_name] = pd.to_datetime(df[index_name], unit='s')
 
-    #df['timest_'] = pd.to_datetime(df['timest_'], unit='s')
-    #df.set_index(pd.DatetimeIndex(df['timest_']), inplace=True)
-    #df.drop(['timest_'], axis=1, inplace=True)
-    # SL: change from hardcoded timest_ to input new_column_name
-    df[new_column_name] = pd.to_datetime(df[new_column_name], unit='s')
-    df.set_index(pd.DatetimeIndex(df[new_column_name]), inplace=True)
-    df.drop([new_column_name], axis=1, inplace=True)
+    df.set_index(pd.DatetimeIndex(df[index_name]), inplace=True)
+    df.drop([index_name], axis=1, inplace=True)
 
     return df
 
 ##############################################################################################################
 def add_legs_index(df, **kwargs):
+
+    """
+        Add a leg identifier (defaults to [1,2,3]) to a datetime indexed dataframe of ACE measurements
+
+        :param df: datetime indexed dataframe to which add the leg index
+        :param kwargs: contains options to override defaults:
+        |   leg_dates : array indicating beginning and end (columns) of time period belonging to a leg / subleg (number of rows equals number of legs / sublegs)
+        |   codes : list indicating what code to use to denote legs. Defaults to integers in range [1,2,3,...] with 0 indicating out-of-leg datapoints
+        :returns: dataframe with a new column "leg" indicating to which leg the datapoint belongs to
+    """
 
     if 'leg_dates' not in kwargs:
         leg_dates = [['2016-12-20', '2017-01-21'], # leg 1
@@ -101,7 +125,7 @@ def add_legs_index(df, **kwargs):
     # merz_glacier = ['2017-01-29', '2017-01-31']
 
     if 'codes' not in kwargs:
-        codes = [1, 2, 3]
+        codes = np.arange(1,1+len(leg_dates))
     else:
         codes = kwargs['codes']
 
@@ -111,7 +135,6 @@ def add_legs_index(df, **kwargs):
     if 'leg' in df:
         print('leg column already there')
         return df
-
 
     dd = pd.Series(data=np.zeros((len(df.index))), index=df.index, name='leg')
 
@@ -132,24 +155,17 @@ def add_legs_index(df, **kwargs):
 def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position='middle'):
     """
         Outer merge of two datatables based on a common resampling of time intervals:
-            INPUTS
-                - df1      : DataFrames indexed by time
-                - time_bin : Aggregation bin, in minutes
-                - strategy : {'col': {'colname_min': np.min ...
-                    dictionary of (possibly multiple) data aggregation strategies. New columns will have
-                    corresponding subscript. df1 and df2 should be the input variable names
-                - index_position : position of the index wrt the resampling : 'initial', 'middle' or 'final'
-            OUTPUT
-                - resampled dataframe with uninterrupted datetime index
-            EXAMPLE
 
-            operations = {'min': np.min , 'mean': np.mean, 'max': np.max,'sum': np.sum}
-            df_res = dataset.ts_aggregate_timebins(df1, 15, operations)
+        :param df1: datetime indexed dataframe to resample
+        :param time_bin: aggregation time, in minutes
+        :param operations: dictionary containing a suffix to add to the column name (empty to keep same name in the returned df) and operation used to aggregate entries in the df. Example {'_min': np.nanmin, '_max':np.nanmax} returns a dataframe with columns '%colname_min' and '%colname_max', where %colname is the original column name.
+        :param index_position: position of the new timestamp index wrt to the resampling : 'initial', 'middle' or 'final'
+        :returns: resampled dataframe with uninterrupted datetime index and NaNs where needed
+        :Example:
+
+            operations = {'_min': np.min , '_mean': np.mean, '_max': np.max, '_sum': np.sum}
+            df_res = dataset.ts_aggregate_timebins(df1, 15, operations, index_position='initial')
             print(df_res.head())
-            PREV VERSION LOGIC:
-            df1_d = dict.fromkeys(df1.columns,[])
-            for keys in df1_d:
-                df1_d[keys]= {keys + op : operations[op] for op in operations}
     """
     res_ = str(time_bin) + 'T'
 
@@ -173,24 +189,25 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position=
     # print(time_ shift)
     return df.shift(time_shift, 's')
 
+##############################################################################################################
 def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
-    """ IN :
-            threshold: check for increase in neighboring values depending on the 'mode'
-            window: size of the square moving windows to retrieve statistics
-            mode:   mean: hard threhdold "times" deviation from the mean
-                    std: threhdold times standard deviation from the mean of valiues in window of size 'window'
-        OUT:
-            returns filtered particle data table
-
-        EXAMPLE:
-        partSize_filt = pyantarctica.dataset.filter_particlesizes(partSize,threhdold=5)
     """
+        Function to filter particle size distribution dataframes, where rows are datetime index entries and columns are subsequent, as given by the instrument, particle size bins.
 
-    """
-         HELPERS: sample 3x3 window of point and vectorize it into rows where the first element in the row is the measure on which the 3x3 window is centered.
+        :param pSize: datetime indexed dataframe of all particles. I think should be in dN/dlogD
+        :param threshold: check for a multiplicative increase, given by expected_value * threshold
+        :param window: size of the square moving windows to retrieve statistics, see ret_neigh()
+        :param mode: string specifying how to compute value to threholds: 'mean': the expected value is the mean of the values in the window. 'std' returns the standard deviation and 'any' all the values (to implement original filtering method)
+        :param save: if string is presented, save csv at this pointer
+        :returns: filtered particle dataframe, with same datetime index as pSize
     """
 
     def ret_neigh(i,j, window = 3):
+        """
+            helper with different hardcoded scanning windows. returns a list of indexes based on the centerpoint of the window.
+            .. todo:: automatize the window creation. This was a quick and dirt thing to see if it was working
+        """
+
         if window == 1:
             fil_ = [[i, j], [i-1, j], [i+1,j]]
 
@@ -212,14 +229,18 @@ def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
         return fil_
 
 
-    def ret_values(data):
-        em = np.zeros((data.shape[0]*data.shape[1],9))
+    def ret_values(data, window=3):
+        """
+            helper returning all the values in the data matrix contained in every window, as rows. it returns a matrix with size data.shape[0]*data.shape[1], and number of columns eequal to the number of elements in the scanning windows. Note that the center valie is returned at the first row, row=0.
+            .. todo:: make the inner loop faster by using actual index sampling, the clever way
+        """
+        em = np.zeros((data.shape[0]*data.shape[1],window**2))
         d_pad = np.pad(data,(1,1), mode='symmetric')
         col = 0
         for i in np.arange(1,d_pad.shape[0]-1):
             for j in np.arange(1,d_pad.shape[1]-1):
-                fil_ = ret_neigh(i,j)
-                em[col][:] = [d_pad[fil_[c][0]][fil_[c][1]] for c in range(9)]
+                fil_ = ret_neigh(i,j,window)
+                em[col][:] = [d_pad[fil_[c][0]][fil_[c][1]] for c in range(window**2)]
                 col += 1
         return em
 
@@ -260,10 +281,9 @@ def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
     part_size[np.where(global_t)[0],:] = np.nan
 
     string_ = 'local_t : ' + str(np.sum(local_t)) + '; ' + 'global_t : ' + str(np.sum(global_t)) + '; '
-#    + 'joint_t : ' + str(np.sum(joint_t))
+
     print(string_)
 
-    # print('filtered datapoints with threhsold ' + str(threshold) + ': ' + str(np.sum(loca)))
     df = pd.DataFrame(part_size,index=pSize.index,columns=pSize.columns)
 
     if save:
@@ -271,25 +291,25 @@ def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
 
     return df
 
-
 ##############################################################################################################
 def generate_particle_data(data_folder='../data/', mode='all', data_output='./data/intermediate/',
                            savedata=False, filtering_parameter=3):
     '''
-        Utility to get aerosol data
-            INPUTS
-                - data_folder: main directory where data is
-                - data_output: where to store aggregated dataframe
-                - mode: what to read and how:
-                    - 'all' : all particle data in columns (single bins AND >400, >700 nm)
-                    - 'single_bins' : only single bin data (without accumulated >400 and > 700nm)
-                    - 'aggregated': all particle data aggregated in superbins (with >400,>700 nm)
-                    - 'aggregated_no_noise' : as 'aggregated' but without noisy bins
-                - filtering_parameter: used to define which filtered data to read (see filter_particle_size   threshold): 3, 5, 10 : the larger, the more permissive
-                - savedata: store locally (in ./data/intermediate/) a copy of the assembled file
-            OUTPUT
-                - time-indexed DF with particle sizes
-            EXAMPLE
+        Utility to get aggregated aerosol data and store it in a df where columns are the different accregation. This function recomputes directly from locally stored filtered particle size data the aggregations. This function assumes that the folder structures are fixed.
+
+        .. todo:: remove data folder structure assumption. Or actually rethink the whole function.
+        .. todo:: actually maybe better to deprecate the whole function and prepare a notebook preparing the data directly, maybe easier for renku inclusion. Even better, a big script preparing the different datsets.
+
+        :params data_folder: pointer to data top directory
+        :params data_output: where to save aggregated dataframe
+        :params mode: what to read and how:
+        | 'all' : all particle data in columns (small particles single bins and >400, >700 nm)
+        | 'single_bins' : only single bin data (without accumulated >400 and > 700nm)
+        | 'aggregated': all particle data aggregated in superbins (with >400,>700 nm)
+        | 'aggregated_no_noise' : as 'aggregated' but without noisy bins
+        :params filtering_parameter: used to define which filtered data to read (see filter_particle_size   threshold): 3, 5, 10 : the larger, the more permissive
+        :params savedata: boolean, store locally (in ./data/intermediate/) a copy of the assembled file
+        :returns: datetime-indexed dataframe with particle sizes as columns
     '''
 
     particles = pd.read_csv(data_folder + 'intermediate/7_aerosols/03_filtered_particle_size_distribution_T' + str(filtering_parameter) + '.csv')
@@ -337,10 +357,6 @@ def generate_particle_data(data_folder='../data/', mode='all', data_output='./da
         part_agg['>400'] = aero_l400
         part_agg['>700'] = aero_l700
 
-        if savedata:
-            part_agg.to_csv(data_output + '/00_particles_' + mode + '.csv', sep=',', na_rep='')
-        return part_agg
-
     if mode.lower() == 'aggregated_no_noise':
 
         part_agg = pd.DataFrame()
@@ -363,23 +379,20 @@ def generate_particle_data(data_folder='../data/', mode='all', data_output='./da
         part_agg['>400'] = aero_l400
         part_agg['>700'] = aero_l700
 
-        if savedata:
-            part_agg.to_csv(data_output + '/00_particles_' + mode + '.csv', sep=',', na_rep='')
-        return part_agg
+    if savedata:
+        part_agg.to_csv(data_output + '/00_particles_' + mode + '.csv', sep=',', na_rep='')
+
+    return part_agg
 
 ##############################################################################################################
 def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_legs=True):
     '''
-        Subset variables of a dataset stack:
-            INPUTS
-                - data_folder: from where to read the *_postprocessed.csv datafile
-                - datetime_index_name: if the datetime index column has non default name
-                - crop_legs: remove non-leg data (keep only data from legs 1-3)
+        Helper function to read a "*_postprocessed.csv" file, and automatically crop out leg 1 - leg 3, and set as datetime index a specific column (or defaults to the standard)
 
-            OUPUTS
-                - dataframe
-            EXAMPLE
-                df = read_standard_dataframe(FOLDER_, crop_legs=False)
+        :params data_folder: from where to read the *_postprocessed.csv datafile
+        :params datetime_index_name: specify non-default datetime index column (= 'timest_')
+        :params crop_legs: boolean to specify whether to remove data outside leg 1 to leg 3
+        :returns: dataframe containing the original data, leg-cropped (if option active)
     '''
     data = pd.read_csv(data_folder, na_values=' ')
     data.set_index(datetime_index_name, inplace=True)
@@ -395,16 +408,13 @@ def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_leg
 ##############################################################################################################
 def subset_data_stack_variables(data, varset, seatype='total', mode='subset'):
     '''
-        Subset variables of a dataset stack:
-            INPUTS
-                - data: dataframe containing data with way too many columns. if it contains the "parbin" column (used by baselinescripts to retrieve the label to refress on) is returned by default as last columns
-                - varset: keyword specifiying the subset to get
-                - seatype: defaults to total. When wave parameters are to be retrieved, specify which kind of sea parameters to haveself
+        Subset variables of a dataset stack. This function is just a shorthand to not have to specify all vaiables when subsetting dataframes. Not the most clever way to deal with this honestly.
 
-            OUPUTS
-                - dataframe with a subset of input columns
-            EXAMPLE
-                df = subset_data_stack_variables(stack, 'ecmwf')
+        :params data: dataframe of data to subset
+        :params varset: keyword specifiying the subset to get
+        :params seatype: defaults to total. When "wave" parameters are to be retrieved, specify which kind of sea parameters to have
+        :params mode: subset : return actual dataframe or returnnames: return only column names per subset
+        :returns: either dataframe of data, or list of columns names.
     '''
 
     if (varset.lower() == 'wave')|(varset.lower() == 'waves'):
@@ -450,7 +460,15 @@ def subset_data_stack_variables(data, varset, seatype='total', mode='subset'):
 def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=True):
     '''
         Retrieve correlation to the whole series, and, if legs are specified, to independend legs.
+
+        :params data: dataframe of data, from which a column will be picked (var) and used to compute correlations to particle data
+        :params particles: dataframe containing different particle sizes bins, to which compute correlation with data
+        :params var: string indicating name of the data column to use
+        :params legs: IDs of the legs in which you want to computer correlations
+        :params plots: If True, plot the barplots indicating amount of correlations
+        :returns: dictionary containing correlations to particles, figure (no handles returned, get them via plt.gca, plt.gcf and so on)
     '''
+
     if 'leg' not in data.columns.tolist():
         data = add_legs_index(data)
     if 'leg' not in particles.columns.tolist():
@@ -508,7 +526,6 @@ def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=
             elif height < 0:
                 plt.text(bar.get_x() + bar.get_width()/2.0, height, N[b], ha='center', va='bottom')
 
-
         ax.set_title('Correlations of ' + var + ' to particle groups')
         ax.set_xticks(n + 2*bar_w)
         ax.set_xticklabels(particles.columns.tolist())
@@ -522,9 +539,13 @@ def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=
 ##############################################################################################################
 def read_traj_file_to_numpy(filename, ntime):
     '''
-        traj_ensemble: Provides a datacube containing N_trajectories x M_backtracking_time_intervals x D_variables_model_out
-        columns : name of D_variables_model_out
-        starttime : beggining of the backtracking time series in the enseble
+        Read air mass trajectory files as provided in project 11 -- read them from trajetories/lsl folder
+
+        :params filename: file to be parsed
+        :params ntime: numer of backtracking time points (i.e. how many rows per trajectory to read)
+        :returns: traj_ensemble, a datacube containing N_trajectories x M_backtracking_time_intervals x D_variables_model_out
+        :returns: columns : name of D_variables_model_out (variables provided by the lagranto model)
+        :returns: starttime : beggining of the backtracking time series in the ensemble
     '''
     with open(filename) as fname:
             header = fname.readline().split()

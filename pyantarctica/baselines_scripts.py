@@ -38,11 +38,11 @@ from sklearn.utils import shuffle
 
 from . import dataset, modeling
 
-## FUNCTIONS 
+## FUNCTIONS
 ##############################################################################################################
 def save_obj(obj, fname):
     """
-        SAVE OBJ DICT AS PICKLE BINARY
+        Save obj dict as pickle binary
 
         :param obj: dict, object to be saved
         :param fname: string, folder address and name of the archive to be saved
@@ -54,7 +54,7 @@ def save_obj(obj, fname):
 ##############################################################################################################
 def run_baselines_particle_size(data, **kwargs):
     """
-        RUN REGRESSION MODEL ON SINGLE REPLICA OF DATA (NO RANDOM RESAMPLING). Good for testing training and testing on manually specified splits
+        Run regression model(s) on single replica of data (no random resampling, but uses indexes). Good for testing training and testing on manually specified splits
 
         :param data: input dataset, training and test mixed, [x,y] labels last column
         :param kwargs: Dictionary containing options.  Fields are:
@@ -314,7 +314,7 @@ def run_baselines_particle_size(data, **kwargs):
 ##############################################################################################################
 def run_regression_indexed_data(data, inds, regression_model, NORM_X=True, NORM_Y=True):
     """
-        RUN REGRESSION MODEL ON SINGLE REPLICA OF DATA (NO RANDOM RESAMPLING). Good for testing training and testing on manually specified splits
+        Run regression model(s) on single replica of data (no random resampling). Good for testing training and testing on manually specified splits
 
         :param data: df, input dataset, training and test mixed, [x,y] labels last column
         :param inds: df or series, index vector of training (ind = 1) and test (ind = 2,...,S) for S test SPLITS
@@ -463,7 +463,7 @@ def run_regression_indexed_data(data, inds, regression_model, NORM_X=True, NORM_
 ##############################################################################################################
 def run_regression_simple_data(data_tr, data_ts, regression_model, NORM_X=True, NORM_Y=True):
     """
-        RUN REGRESSION MODEL ON SINGLE REPLICA OF DATA
+        Run regression model(s) on single replica of data
 
         :param data_tr: df, input training dataset, [x,y] labels last column
         :param data_ts: df, input test dataset, [x,y] labels last column
