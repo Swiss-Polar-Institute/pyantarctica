@@ -26,13 +26,21 @@ import matplotlib.colorbar as clb
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
-# import mpl_toolkits.basemap as carto
 ##############################################################################################################
-def plot_predicted_timeseries(trn_, tst_, y_ts_h, y_tr_h, SEP_METHOD):
-    # Should probably be moved in a visualization module, here not really modeling stuff...
+def plot_predicted_timeseries(trn_, tst_, y_tr_h, y_ts_h, SEP_METHOD):
+    """
+        Plot time series of training and test data.
+
+        .. todo:: probably needs a big update this function?
+
+        :param trn_: dataframe of training data true labels
+        :param tst_: dataframe of test data true labels
+        :param y_tr_h: dataframe of training predicted labels
+        :param y_ts_h: dataframe of test predicted labels
+        :returns: None
+    """
 
     if SEP_METHOD is 'time':
-        # %matplotlib qt
         trn_ = trn.reset_index(drop=True)
         s1 = len(trn_)
         tst_ = tst.reset_index(drop=True)
@@ -49,18 +57,11 @@ def plot_predicted_timeseries(trn_, tst_, y_ts_h, y_tr_h, SEP_METHOD):
 
     elif SEP_METHOD is 'random':
 
-        #trn_ = trn.copy()
-        #tst_ = tst.copy()
-        #trn_['y_h'] = y_tr_h
-        #tst_['y_h'] = y_ts_h
+        trn_ = trn_.sort_index()
+        tst_ = tst_.sort_index()
 
-        trn_ = trn_.sort_index()#.reset_index(drop=True)
-        tst_ = tst_.sort_index()#.reset_index(drop=True)
-
-#        leg_ = pd.concat([trn_.iloc[:,-2], tst_.iloc[:,-2]], ignore_index=False)
         leg_ = pd.concat([trn_, tst_], ignore_index=False)
 
-        # %matplotlib qt
         fig, ax = plt.subplots(1, 1, sharex=False, tight_layout=True, figsize=(12,6))
         ax.scatter(leg_.index, leg_, color='green', s=10, marker='o')
         ax.scatter(trn_.index, trn_, color='red', s=10, marker='x')
@@ -72,8 +73,19 @@ def plot_predicted_timeseries(trn_, tst_, y_ts_h, y_tr_h, SEP_METHOD):
 
 ##############################################################################################################
 def aggregated_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True):
-  # aggregated_bins_regression_plot_weights
-    # Produce plots of weight importance, given set of weight parameters
+    """
+        Plot weights associated to a linear regression model.
+
+        .. todo:: probably needs a big update this function?
+
+        :param stats: dictionary containing weights, as provided by the regression functions from the baseline_scripts module
+        :param sets: particle bin aggregations
+        :param options: same option dictionary provided to run_baselines functions (see help there)
+        :param colors: array of RGBA values
+        :param SAVE: boolean indicating wether to save or not the image, in the folder spefified in options.
+        :returns: None
+    """
+
     try:
         len_plot = len(options['LEG_P'])
     except TypeError:
@@ -134,17 +146,7 @@ def aggregated_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True)
 
                     ax[indbi,0].set_ylabel('' + bin_)
 
-                # if indbi < len(sets)-1:
-                    # ax[indbi,leg-1].set_xticklabels([])
-
-                # if indbi == len(sets)-1:
-                    # if len(tickname) > 6:
-                    # ax[-1,leg-1].set_xticklabels(tickname, rotation=90)
-                    # else:
-                    # ax[-1,leg-1].set_xticklabels(tickname)
-
                 index = np.arange(len(tickname))
-
 
                 plt.legend(options['REGR_WITH_WEIGTHS'])
                 plt.suptitle(sea + '_leg_' + str(leg) + '_' + sep_method + '_' +  varset)
@@ -156,7 +158,18 @@ def aggregated_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True)
 
 ##############################################################################################################
 def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
+    """
+        Plot errors RMSE or R2 (speficied in options['ERRMEASURE']) associated to a linear regression model
 
+        .. todo:: probably needs a big update this function?
+
+        :param stats: dictionary containing weights, as provided by the regression functions from the baseline_scripts module
+        :param sets: particle bin aggregations
+        :param options: same option dictionary provided to run_baselines functions (see help there)
+        :param colors: array of RGBA values
+        :param SAVE: boolean indicating wether to save or not the image, in the folder spefified in options.
+        :returns: None
+    """
     try:
         len_plot = len([options['LEG_P']])
     except TypeError:
@@ -240,10 +253,21 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                         plt.savefig(options['SAVEFOLDER'] + errmeasure + '_' + sea + '_leg_' + str(leg) + '_' + \
                                     sep_method + '_' +  varset + '.png', bbox_inches='tight')
 
-
-
 ##############################################################################################################
-def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True, ylim=[None, None]):
+def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True,ylim=[None, None]):
+        """
+            Plot weights associated to a linear regression modelself for every bin in a particle size distribution file.
+
+            .. todo:: probably needs a big update this function?
+
+            :param stats: dictionary containing weights, as provided by the regression functions from the baseline_scripts module
+            :param sets: particle bin aggregations
+            :param options: same option dictionary provided to run_baselines functions (see help there)
+            :param colors: array of RGBA values
+            :param SAVE: boolean indicating wether to save or not the image, in the folder spefified in options.
+            :param ylim: speficy limits on y-axis. If both upper and lower limits are None, defaults to matplotlib standards
+            :returns: None
+        """
 
     try:
         len_plot = len([options['LEG_P']])
@@ -257,8 +281,6 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True, yli
             for varset in options['VARSET']:
 
                 tickname = options['VARNAMES']
-# dataset.subset_data_stack_variables([],
-#         varset, seatype=sea, mode='returnnames')
 
                 for ind, meth in enumerate(options['REGR_WITH_WEIGTHS']):
                     index = np.arange(len(options['COLNAMES']))
@@ -300,7 +322,7 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True, yli
                             for c in options['AGGREGATES']:
                                 ax[ind_w,legind].axvline(c)
 
-    #             plt.legend([meth + ' ' + sep_method + ', param: ' + parname],loc=0)
+                                #             plt.legend([meth + ' ' + sep_method + ', param: ' + parname],loc=0)
                     plt.suptitle(meth + '_' + sea + '_leg_' + str(leg) + '_' + sep_method + '_' +  varset)
                     ax[-1,-1].set_xlabel('LEG ' + str(leg), fontsize=16)
                     ax[-1,-1].set_xticklabels(options['COLNAMES'],fontsize=5,rotation='vertical')
@@ -310,9 +332,20 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True, yli
                         plt.savefig(options['SAVEFOLDER'] + 'weights_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + \
                                         sep_method + '_' +  varset + '.png', bbox_inches='tight')
 
-
 ##############################################################################################################
 def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
+    """
+        Plot errors (as specified in options['ERRMEASURE']) associated to a linear regression modelself for every bin in a particle size distribution file.
+
+        .. todo:: probably needs a big update this function?
+
+        :param stats: dictionary containing weights, as provided by the regression functions from the baseline_scripts module
+        :param sets: particle bin aggregations
+        :param options: same option dictionary provided to run_baselines functions (see help there)
+        :param colors: array of RGBA values
+        :param SAVE: boolean indicating wether to save or not the image, in the folder spefified in options.
+        :returns: None
+    """
 
     try:
         len_plot = len([options['LEG_P']])
@@ -386,91 +419,25 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                                 sep_method + '_' +  varset + '.png', bbox_inches='tight')
 
 ##############################################################################################################
-def visualize_stereo_map_DEPRECATED(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
-    '''
-        Visualize data on a polar stereographic projection map using Basemap on matplotlib. It probably needs to be updated in the future as this package is no longer mantained since easily 2013-2014 or something like that. But I don't know about options that are as easy and as flexible (it is basically matplotlib)
-
-            INPUTS
-                - coordinates: those are basically fixed, from the boad path. Still given as argument for flexibility
-                - values: can be a 1D vector passing values (and a colormap is build accordingly) or it can be a 2D vector Nx3 corresponding to some colormap to be used as plots
-                - fill* : colors to fill continents and seas.
-                - label : the label for the scatter series, to use for legend and so on
-                - min_, max_: min / max values to clip variable to plot. Default are min / max of the series
-                - plottype : (BETA) use differnt plotting tools (e.g. scatter or plot, etc.)
-            OUTPUTS
-                - the most awesome map of the antarctic continent, without penguins
-
-            EXAMPLE
-
-            TODO
-                - Add support for _custom_ background image (e.g. sea surface temperature, wind magnitude, etc.) (use Basemap.contourf() to interpolate linearly within a grid of values)
-
-            NOTE
-                - The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
-                - Latitude is in °N, longitude in is °E
-    '''
-
-    if coordinates.shape[0] != values.shape[0]:
-        print('size of gps coordinates and variable to be plotted does not match')
-        return
-
-    # prepare basemap
-    m = carto.Basemap(projection='spstere',boundinglat=-32,lon_0=180,resolution='l')
-
-    m.drawcoastlines()
-    m.fillcontinents(color=fillconts)
-    m.drawmapboundary(fill_color=fillsea)
-    m.drawparallels(np.arange(-90.,81.,20.))
-    m.drawmeridians(np.arange(-180.,181.,20.))
-    #m.shadedrelief()
-    # prepare colors
-    cmap = plt.cm.get_cmap('viridis')
-    normalize = mpl.colors.Normalize(vmin=min_va, vmax=max_va)
-    colors = [cmap(normalize(value)) for value in values]
-
-    # geo coord to plot coord
-    lon, lat = m(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values)
-
-    # map boat samples with values
-    if plottype == 'scatter':
-        im = m.scatter(lon,lat,color=colors,s=markersize, linewidth=0, label=labplot)
-    elif plottype == 'plot':
-        im = m.plot(lon,lat,color=colors,linewidth=markersize,label=labplot)
-    else:
-        print('unrecognized plot')
-        return
-
-    ax = plt.gca()
-    # ax.set_title(labplot,fontsize=35)
-
-    cax, _ = clb.make_axes(ax)
-    cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
-
-    return im, ax
-
-##############################################################################################################
 def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
     '''
-        Visualize data on a polar stereographic projection map using Basemap on matplotlib. It probably needs to be updated in the future as this package is no longer mantained since easily 2013-2014 or something like that. But I don't know about options that are as easy and as flexible (it is basically matplotlib)
+        Visualize data on a polar stereographic projection map using cartopy on matplotlib.
 
-            INPUTS
-                - coordinates: those are basically fixed, from the boad path. Still given as argument for flexibility
-                - values: can be a 1D vector passing values (and a colormap is build accordingly) or it can be a 2D vector Nx3 corresponding to some colormap to be used as plots
-                - fill* : colors to fill continents and seas.
-                - label : the label for the scatter series, to use for legend and so on
-                - min_, max_: min / max values to clip variable to plot. Default are min / max of the series
-                - plottype : (BETA) use differnt plotting tools (e.g. scatter or plot, etc.)
-            OUTPUTS
-                - the most awesome map of the antarctic continent, without penguins
+        :param coordinates: give geographical coordinates of the points to plot
+        :param values: can be a 1D vector of values (and a colormap is build accordingly) or it can be a 2D vector Nx3 corresponding to some colormap to be used for each datapoint
+        :param fillconts: color to fill continents
+        :param fillsea: color to fill seas
+        :param labplot: the label for the data series, to use for legend and other handles
+        :param min_va: min values to clip lower values (should be min of the series)
+        :param max_va: max values to clip lower values (should be max of the series)
+        :param plottype : (BETA) use different plotting tools (scatter or plot so far)
+        :returns: axes handles of the caropy map.
 
-            EXAMPLE
+        .. todo:: fix colors for plot as in scatter, but color lines rather than pointsself.
+        .. todo:: add support for *custom* background image (e.g. sea surface temperature, wind magnitude, etc.) (use something.contourf() to interpolate linearly within a grid of values at known coordinates?)
 
-            TODO
-                - Add support for _custom_ background image (e.g. sea surface temperature, wind magnitude, etc.) (use Basemap.contourf() to interpolate linearly within a grid of values)
-
-            NOTE
-                - The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
-                - Latitude is in °N, longitude in is °E
+        .. note:: The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
+        .. note:: Latitude is in °N, longitude in is °E
     '''
 
     if coordinates.shape[0] != values.shape[0]:
@@ -519,6 +486,14 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
 ##############################################################################################################
 def scatterplot_matrix(df, color=None):
 
+    """
+        Shorthand to plot a matrix of scatterplotself.
+
+        :param df: dataframe contanining the data to be plotted, all columns versus all the others.
+        :returns: handles to figure and axes
+    """
+
+
     df.columns = [str(cc) for cc in df.columns]
 
     nrows, ncols = df.shape[1], df.shape[1]
@@ -545,7 +520,18 @@ def scatterplot_matrix(df, color=None):
     return fig, ax
 
 ##############################################################################################################
-def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameters, nbins=25, range_par=1):
+def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameters, nbins=25, range_par=[0,1]):
+
+    """
+        Plot binned parameters speficied in a dataframe (mean of bins) versus a corresponding mean value of aerosol concentration.
+
+        :param df: dataframe contanining the parameter data to be plotted
+        :param aerosol: datafram of matching aerosol data observations
+        :param subset_columns_parameters: subset of the columns from the df used to plot the binned data
+        :param nbins: integer number of bins to use when splitting data
+        :param range_par: (2,)-sized floats in [0,1] specific the lower and upper percentiles of the parameters data, used as limits on the x-axis before binning.
+        :returns: handles to figure and axes
+    """
 
     f, ax = plt.subplots(2,len(subset_columns_parameters),figsize=(20,6), sharex=False,
     gridspec_kw = {'height_ratios':[2, 1]})
@@ -557,20 +543,17 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
                 np.percentile(df[vv].loc[joind],range_par[1]*100),
                 nbins+1)
 
-        bins_h = pd.cut(df[vv].loc[joind], bins, labels=[str(x) for x in range(nbins)], retbins=False)#[str(xx) for xx in range(nbins)])
-#         print(bins_h)
+        bins_h = pd.cut(df[vv].loc[joind], bins, labels=[str(x) for x in range(nbins)], retbins=False)
+
 
         ax[0,vvnum].errorbar(np.arange(nbins),
                         aerosol.loc[joind].groupby(bins_h).agg(np.nanmean),
                         yerr=0.5*aerosol.loc[joind].groupby(bins_h).agg(np.nanstd),
                         ls='none', color='black')
+        ax[0,vvnum].plot(np.arange(nbins), aerosol.loc[joind].groupby(bins_h).mean(), ls='-', color='red', linewidth=2)
 
-        ax[0,vvnum].plot(np.arange(nbins),
-                        aerosol.loc[joind].groupby(bins_h).mean(), ls='-', color='red', linewidth=2)
-#         ax[0,vvnum].boxplot(wave_aero[aero_aggregation].loc[joind].groupby(bins_h).values(), sym='k+',
-#                             notch=1)
         ax[0,vvnum].set_ylim(0,2*np.max(aerosol.loc[joind].groupby(bins_h).mean()))
-        ax[1,vvnum].bar(np.arange(nbins),aerosol.loc[joind].groupby(bins_h).count())#, ls='dotted', linewidth=0.5, marker='o', color='black')
+        ax[1,vvnum].bar(np.arange(nbins),aerosol.loc[joind].groupby(bins_h).count())
         ax[1,vvnum].set_xlabel(vv)
 
         if vvnum != 0:
@@ -581,11 +564,10 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
             ax[1,vvnum].set_ylabel('Datapoint count')
 
         labels_ = ['{:.2f}'.format(xx) for xx in bins]
-#         print(labels_)
+
         ax[1,vvnum].set_xticks(np.arange(0,nbins+1,10))
         ax[1,vvnum].set_xticklabels(labels_[::10],fontsize=6)#wave_aero[vv].loc[joind].groupby(bins_h).mean())
         ax[0,vvnum].set_xticks(np.arange(0,nbins+1,10))
         ax[0,vvnum].set_xticklabels(labels_[::10], fontsize=6)
-        #wave_aero[vv].loc[joind].groupby(bins_h).mean())
 
-    return ax
+    return f, ax

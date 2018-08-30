@@ -300,15 +300,15 @@ def generate_particle_data(data_folder='../data/', mode='all', data_output='./da
         .. todo:: remove data folder structure assumption. Or actually rethink the whole function.
         .. todo:: actually maybe better to deprecate the whole function and prepare a notebook preparing the data directly, maybe easier for renku inclusion. Even better, a big script preparing the different datsets.
 
-        :params data_folder: pointer to data top directory
-        :params data_output: where to save aggregated dataframe
-        :params mode: what to read and how:
+        :param data_folder: pointer to data top directory
+        :param data_output: where to save aggregated dataframe
+        :param mode: what to read and how:
         | 'all' : all particle data in columns (small particles single bins and >400, >700 nm)
         | 'single_bins' : only single bin data (without accumulated >400 and > 700nm)
         | 'aggregated': all particle data aggregated in superbins (with >400,>700 nm)
         | 'aggregated_no_noise' : as 'aggregated' but without noisy bins
-        :params filtering_parameter: used to define which filtered data to read (see filter_particle_size   threshold): 3, 5, 10 : the larger, the more permissive
-        :params savedata: boolean, store locally (in ./data/intermediate/) a copy of the assembled file
+        :param filtering_parameter: used to define which filtered data to read (see filter_particle_size   threshold): 3, 5, 10 : the larger, the more permissive
+        :param savedata: boolean, store locally (in ./data/intermediate/) a copy of the assembled file
         :returns: datetime-indexed dataframe with particle sizes as columns
     '''
 
@@ -389,9 +389,9 @@ def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_leg
     '''
         Helper function to read a "*_postprocessed.csv" file, and automatically crop out leg 1 - leg 3, and set as datetime index a specific column (or defaults to the standard)
 
-        :params data_folder: from where to read the *_postprocessed.csv datafile
-        :params datetime_index_name: specify non-default datetime index column (= 'timest_')
-        :params crop_legs: boolean to specify whether to remove data outside leg 1 to leg 3
+        :param data_folder: from where to read the *_postprocessed.csv datafile
+        :param datetime_index_name: specify non-default datetime index column (= 'timest_')
+        :param crop_legs: boolean to specify whether to remove data outside leg 1 to leg 3
         :returns: dataframe containing the original data, leg-cropped (if option active)
     '''
     data = pd.read_csv(data_folder, na_values=' ')
@@ -410,10 +410,10 @@ def subset_data_stack_variables(data, varset, seatype='total', mode='subset'):
     '''
         Subset variables of a dataset stack. This function is just a shorthand to not have to specify all vaiables when subsetting dataframes. Not the most clever way to deal with this honestly.
 
-        :params data: dataframe of data to subset
-        :params varset: keyword specifiying the subset to get
-        :params seatype: defaults to total. When "wave" parameters are to be retrieved, specify which kind of sea parameters to have
-        :params mode: subset : return actual dataframe or returnnames: return only column names per subset
+        :param data: dataframe of data to subset
+        :param varset: keyword specifiying the subset to get
+        :param seatype: defaults to total. When "wave" parameters are to be retrieved, specify which kind of sea parameters to have
+        :param mode: subset : return actual dataframe or returnnames: return only column names per subset
         :returns: either dataframe of data, or list of columns names.
     '''
 
@@ -461,11 +461,11 @@ def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=
     '''
         Retrieve correlation to the whole series, and, if legs are specified, to independend legs.
 
-        :params data: dataframe of data, from which a column will be picked (var) and used to compute correlations to particle data
-        :params particles: dataframe containing different particle sizes bins, to which compute correlation with data
-        :params var: string indicating name of the data column to use
-        :params legs: IDs of the legs in which you want to computer correlations
-        :params plots: If True, plot the barplots indicating amount of correlations
+        :param data: dataframe of data, from which a column will be picked (var) and used to compute correlations to particle data
+        :param particles: dataframe containing different particle sizes bins, to which compute correlation with data
+        :param var: string indicating name of the data column to use
+        :param legs: IDs of the legs in which you want to computer correlations
+        :param plots: If True, plot the barplots indicating amount of correlations
         :returns: dictionary containing correlations to particles, figure (no handles returned, get them via plt.gca, plt.gcf and so on)
     '''
 
@@ -541,8 +541,8 @@ def read_traj_file_to_numpy(filename, ntime):
     '''
         Read air mass trajectory files as provided in project 11 -- read them from trajetories/lsl folder
 
-        :params filename: file to be parsed
-        :params ntime: numer of backtracking time points (i.e. how many rows per trajectory to read)
+        :param filename: file to be parsed
+        :param ntime: numer of backtracking time points (i.e. how many rows per trajectory to read)
         :returns: traj_ensemble, a datacube containing N_trajectories x M_backtracking_time_intervals x D_variables_model_out
         :returns: columns : name of D_variables_model_out (variables provided by the lagranto model)
         :returns: starttime : beggining of the backtracking time series in the ensemble
