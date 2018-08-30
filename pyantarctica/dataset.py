@@ -15,8 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-
 import numpy as np
 import pandas as pd
 
@@ -194,7 +192,7 @@ def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
 
     def ret_neigh(i,j, window = 3):
         if window == 1:
-            fil_ = [[i, j], [i, j-1], [i,j+1]]
+            fil_ = [[i, j], [i-1, j], [i+1,j]]
 
         if window == 2:
             fil_ = [[i, j],             [i-1, j],

@@ -564,6 +564,7 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
                         aerosol.loc[joind].groupby(bins_h).agg(np.nanmean),
                         yerr=0.5*aerosol.loc[joind].groupby(bins_h).agg(np.nanstd),
                         ls='none', color='black')
+
         ax[0,vvnum].plot(np.arange(nbins),
                         aerosol.loc[joind].groupby(bins_h).mean(), ls='-', color='red', linewidth=2)
 #         ax[0,vvnum].boxplot(wave_aero[aero_aggregation].loc[joind].groupby(bins_h).values(), sym='k+',
@@ -584,6 +585,7 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
         ax[1,vvnum].set_xticks(np.arange(0,nbins+1,10))
         ax[1,vvnum].set_xticklabels(labels_[::10],fontsize=6)#wave_aero[vv].loc[joind].groupby(bins_h).mean())
         ax[0,vvnum].set_xticks(np.arange(0,nbins+1,10))
-        ax[0,vvnum].set_xticklabels(labels_[::10], fontsize=6)#wave_aero[vv].loc[joind].groupby(bins_h).mean())
+        ax[0,vvnum].set_xticklabels(labels_[::10], fontsize=6)
+        #wave_aero[vv].loc[joind].groupby(bins_h).mean())
 
     return ax
