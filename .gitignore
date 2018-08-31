@@ -1,6 +1,10 @@
 
 # Created by https://www.gitignore.io/api/vim,linux,emacs,macos,python,jupyternotebook
 
+# Sphinx
+# docs/build
+
+
 ### Emacs ###
 # -*- mode: gitignore; -*-
 *~
@@ -10,7 +14,7 @@
 *.elc
 auto-save-list
 tramp
-.\#*
+.\#
 
 # Org-mode
 .org-id-locations

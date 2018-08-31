@@ -1,0 +1,329 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pyantarctica.visualizing &#8212; The pyantarctica package</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="pyantarctica.baselines_scripts" href="baselines_scripts.html" />
+    <link rel="prev" title="pyantarctica.dataset" href="dataset.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="pyantarctica-visualizing">
+<h1>pyantarctica.visualizing<a class="headerlink" href="#pyantarctica-visualizing" title="Permalink to this headline">¶</a></h1>
+<p>Module containing plotting functions and small visualization functionalities, relying on <code class="docutils literal notranslate"><span class="pre">matplotlib</span></code></p>
+<span class="target" id="module-pyantarctica.visualizing"></span><dl class="function">
+<dt id="pyantarctica.visualizing.aggregated_bins_regression_plot_errors">
+<code class="descclassname">pyantarctica.visualizing.</code><code class="descname">aggregated_bins_regression_plot_errors</code><span class="sig-paren">(</span><em>stats</em>, <em>sets</em>, <em>options</em>, <em>colors</em>, <em>SAVE=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyantarctica/visualizing.html#aggregated_bins_regression_plot_errors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyantarctica.visualizing.aggregated_bins_regression_plot_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot errors RMSE or R2 (speficied in options[‘ERRMEASURE’]) associated to a linear regression model</p>
+<div class="admonition-todo admonition" id="index-0">
+<p class="first admonition-title">Todo</p>
+<p class="last">probably needs a big update this function?</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>stats</strong> – dictionary containing weights, as provided by the regression functions from the baseline_scripts module</li>
+<li><strong>sets</strong> – particle bin aggregations</li>
+<li><strong>options</strong> – same option dictionary provided to run_baselines functions (see help there)</li>
+<li><strong>colors</strong> – array of RGBA values</li>
+<li><strong>SAVE</strong> – boolean indicating wether to save or not the image, in the folder spefified in options.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyantarctica.visualizing.aggregated_bins_regression_plot_weights">
+<code class="descclassname">pyantarctica.visualizing.</code><code class="descname">aggregated_bins_regression_plot_weights</code><span class="sig-paren">(</span><em>stats</em>, <em>sets</em>, <em>options</em>, <em>colors</em>, <em>SAVE=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyantarctica/visualizing.html#aggregated_bins_regression_plot_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyantarctica.visualizing.aggregated_bins_regression_plot_weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot weights associated to a linear regression model.</p>
+<div class="admonition-todo admonition" id="index-1">
+<p class="first admonition-title">Todo</p>
+<p class="last">probably needs a big update this function?</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>stats</strong> – dictionary containing weights, as provided by the regression functions from the baseline_scripts module</li>
+<li><strong>sets</strong> – particle bin aggregations</li>
+<li><strong>options</strong> – same option dictionary provided to run_baselines functions (see help there)</li>
+<li><strong>colors</strong> – array of RGBA values</li>
+<li><strong>SAVE</strong> – boolean indicating wether to save or not the image, in the folder spefified in options.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyantarctica.visualizing.plot_binned_parameters_versus_averages">
+<code class="descclassname">pyantarctica.visualizing.</code><code class="descname">plot_binned_parameters_versus_averages</code><span class="sig-paren">(</span><em>df, aerosol, subset_columns_parameters, nbins=25, range_par=[0, 1]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyantarctica/visualizing.html#plot_binned_parameters_versus_averages"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyantarctica.visualizing.plot_binned_parameters_versus_averages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot binned parameters speficied in a dataframe (mean of bins) versus a corresponding mean value of aerosol concentration.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>df</strong> – dataframe contanining the parameter data to be plotted</li>
+<li><strong>aerosol</strong> – datafram of matching aerosol data observations</li>
+<li><strong>subset_columns_parameters</strong> – subset of the columns from the df used to plot the binned data</li>
+<li><strong>nbins</strong> – integer number of bins to use when splitting data</li>
+<li><strong>range_par</strong> – (2,)-sized floats in [0,1] specific the lower and upper percentiles of the parameters data, used as limits on the x-axis before binning.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">handles to figure and axes</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyantarctica.visualizing.plot_predicted_timeseries">
+<code class="descclassname">pyantarctica.visualizing.</code><code class="descname">plot_predicted_timeseries</code><span class="sig-paren">(</span><em>trn_</em>, <em>tst_</em>, <em>y_tr_h</em>, <em>y_ts_h</em>, <em>SEP_METHOD</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyantarctica/visualizing.html#plot_predicted_timeseries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyantarctica.visualizing.plot_predicted_timeseries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot time series of training and test data.</p>
+<div class="admonition-todo admonition" id="index-2">
+<p class="first admonition-title">Todo</p>
+<p class="last">probably needs a big update this function?</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>trn</strong> – dataframe of training data true labels</li>
+<li><strong>tst</strong> – dataframe of test data true labels</li>
+<li><strong>y_tr_h</strong> – dataframe of training predicted labels</li>
+<li><strong>y_ts_h</strong> – dataframe of test predicted labels</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyantarctica.visualizing.scatterplot_matrix">
+<code class="descclassname">pyantarctica.visualizing.</code><code class="descname">scatterplot_matrix</code><span class="sig-paren">(</span><em>df</em>, <em>color=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyantarctica/visualizing.html#scatterplot_matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyantarctica.visualizing.scatterplot_matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shorthand to plot a matrix of scatterplotself.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>df</strong> – dataframe contanining the data to be plotted, all columns versus all the others.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">handles to figure and axes</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyantarctica.visualizing.single_bins_regression_plot_errors">
+<code class="descclassname">pyantarctica.visualizing.</code><code class="descname">single_bins_regression_plot_errors</code><span class="sig-paren">(</span><em>stats</em>, <em>sets</em>, <em>options</em>, <em>colors</em>, <em>SAVE=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyantarctica/visualizing.html#single_bins_regression_plot_errors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyantarctica.visualizing.single_bins_regression_plot_errors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot errors (as specified in options[‘ERRMEASURE’]) associated to a linear regression modelself for every bin in a particle size distribution file.</p>
+<div class="admonition-todo admonition" id="index-3">
+<p class="first admonition-title">Todo</p>
+<p class="last">probably needs a big update this function?</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>stats</strong> – dictionary containing weights, as provided by the regression functions from the baseline_scripts module</li>
+<li><strong>sets</strong> – particle bin aggregations</li>
+<li><strong>options</strong> – same option dictionary provided to run_baselines functions (see help there)</li>
+<li><strong>colors</strong> – array of RGBA values</li>
+<li><strong>SAVE</strong> – boolean indicating wether to save or not the image, in the folder spefified in options.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyantarctica.visualizing.single_bins_regression_plot_weights">
+<code class="descclassname">pyantarctica.visualizing.</code><code class="descname">single_bins_regression_plot_weights</code><span class="sig-paren">(</span><em>stats, sets, options, colors, SAVE=True, ylim=[None, None]</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyantarctica/visualizing.html#single_bins_regression_plot_weights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyantarctica.visualizing.single_bins_regression_plot_weights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot weights associated to a linear regression modelself for every bin in a particle size distribution file.</p>
+<div class="admonition-todo admonition" id="index-4">
+<p class="first admonition-title">Todo</p>
+<p class="last">probably needs a big update this function?</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>stats</strong> – dictionary containing weights, as provided by the regression functions from the baseline_scripts module</li>
+<li><strong>sets</strong> – particle bin aggregations</li>
+<li><strong>options</strong> – same option dictionary provided to run_baselines functions (see help there)</li>
+<li><strong>colors</strong> – array of RGBA values</li>
+<li><strong>SAVE</strong> – boolean indicating wether to save or not the image, in the folder spefified in options.</li>
+<li><strong>ylim</strong> – speficy limits on y-axis. If both upper and lower limits are None, defaults to matplotlib standards</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pyantarctica.visualizing.visualize_stereo_map">
+<code class="descclassname">pyantarctica.visualizing.</code><code class="descname">visualize_stereo_map</code><span class="sig-paren">(</span><em>coordinates</em>, <em>values</em>, <em>min_va</em>, <em>max_va</em>, <em>markersize=75</em>, <em>fillconts='grey'</em>, <em>fillsea='aqua'</em>, <em>labplot=''</em>, <em>plottype='scatter'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pyantarctica/visualizing.html#visualize_stereo_map"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pyantarctica.visualizing.visualize_stereo_map" title="Permalink to this definition">¶</a></dt>
+<dd><p>Visualize data on a polar stereographic projection map using cartopy on matplotlib.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>coordinates</strong> – give geographical coordinates of the points to plot</li>
+<li><strong>values</strong> – can be a 1D vector of values (and a colormap is build accordingly) or it can be a 2D vector Nx3 corresponding to some colormap to be used for each datapoint</li>
+<li><strong>fillconts</strong> – color to fill continents</li>
+<li><strong>fillsea</strong> – color to fill seas</li>
+<li><strong>labplot</strong> – the label for the data series, to use for legend and other handles</li>
+<li><strong>min_va</strong> – min values to clip lower values (should be min of the series)</li>
+<li><strong>max_va</strong> – max values to clip lower values (should be max of the series)</li>
+<li><strong>plottype</strong> – (BETA) use different plotting tools (scatter or plot so far)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">axes handles of the caropy map.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition-todo admonition" id="index-5">
+<p class="first admonition-title">Todo</p>
+<p class="last">fix colors for plot as in scatter, but color lines rather than pointsself.</p>
+</div>
+<div class="admonition-todo admonition" id="index-6">
+<p class="first admonition-title">Todo</p>
+<p class="last">add support for <em>custom</em> background image (e.g. sea surface temperature, wind magnitude, etc.) (use something.contourf() to interpolate linearly within a grid of values at known coordinates?)</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The longitude lon_0 is at 6-o’clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Latitude is in °N, longitude in is °E</p>
+</div>
+</dd></dl>
+
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">pyantarctica</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">pyantarctica.dataset</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">pyantarctica.visualizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="baselines_scripts.html">pyantarctica.baselines_scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modeling.html">pyantarctica.modeling</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="dataset.html" title="previous chapter">pyantarctica.dataset</a></li>
+      <li>Next: <a href="baselines_scripts.html" title="next chapter">pyantarctica.baselines_scripts</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Swiss Data Science Center.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+      |
+      <a href="_sources/visualizing.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

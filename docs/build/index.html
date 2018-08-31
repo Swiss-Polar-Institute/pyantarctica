@@ -1,0 +1,197 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Antarctic Circumnavigation Experiment – Delivering Added-value To Antarctica ACE-DATA &#8212; The pyantarctica package</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="pyantarctica.dataset" href="dataset.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="antarctic-circumnavigation-experiment-delivering-added-value-to-antarctica-ace-data">
+<h1>Antarctic Circumnavigation Experiment – Delivering Added-value To Antarctica ACE-DATA<a class="headerlink" href="#antarctic-circumnavigation-experiment-delivering-added-value-to-antarctica-ace-data" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="antarctic-sea-atmosphere-interaction-data-science-asaid-project-repository">
+<h2>Antarctic Sea Atmosphere Interaction Data Science (ASAID) project repository<a class="headerlink" href="#antarctic-sea-atmosphere-interaction-data-science-asaid-project-repository" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pyantarctica</span>
+<span class="kn">import</span> <span class="nn">pyantarctica.dataset</span> <span class="kn">as</span> <span class="nn">data</span>
+<span class="kn">import</span> <span class="nn">pyantarctica.modeling</span> <span class="kn">as</span> <span class="nn">mod</span>
+<span class="kn">import</span> <span class="nn">pyantarctica.visualizing</span> <span class="kn">as</span> <span class="nn">viz</span>
+</pre></div>
+</div>
+<p>Every notebook in the ACE-DATA data science project repository provides relatively simple (hopefully) and straightforward examples and scripts to run steps in the ASAID project analysis pipeline.</p>
+<p>See e.g. data preparation scrips <code class="docutils literal notranslate"><span class="pre">PROJ_XX_DataPreparation.ipynb</span></code> where XX is the subproject number.</p>
+</div>
+<div class="section" id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Permalink to this headline">¶</a></h2>
+<p>If you are using conda, first set up a conda environment:</p>
+<p>(or pipenv works nicely as well)</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> conda create --name ace-data <span class="nv">python</span><span class="o">=</span><span class="m">3</span>
+<span class="gp">$</span> conda activate ace-data
+</pre></div>
+</div>
+<p>To install the pyanctarctica package, run (base 0.1.0 is on PyPI)</p>
+<p>From source:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> <span class="nb">cd</span> YOUR_PROJECT_FOLDER
+<span class="gp">$</span> mkdir src <span class="o">&amp;&amp;</span> <span class="nb">cd</span> src
+<span class="gp">$</span> git clone ./src
+<span class="gp">$</span> pip install src
+</pre></div>
+</div>
+<p>From the gitlab repo  <a class="reference external" href="gitlab.datascience.ch/ACE-ASAID/pyanctarctica.git">gitlab.datascience.ch/ACE-ASAID/pyanctarctica.git</a>:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pip install -e gitlab.datascience.ch/ACE-ASAID/pyanctarctica.git
+</pre></div>
+</div>
+<p>From the PyPI repos:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$</span> pip install pyantarctica
+</pre></div>
+</div>
+</div>
+<div class="section" id="release-process">
+<h2>Release process<a class="headerlink" href="#release-process" title="Permalink to this headline">¶</a></h2>
+<ol class="arabic simple">
+<li>Update version in <cite>setup.py</cite>, commit and tag.</li>
+<li>Run <cite>rm -rf dist &amp;&amp; python setup.py sdist bdist_wheel &amp;&amp; twine upload dist/*</cite></li>
+<li>Change the bump of the version to development (<cite>X.Y.Z+1.devYYYYMMDD</cite>)</li>
+</ol>
+</div>
+<div class="section" id="compatibility">
+<h2>Compatibility<a class="headerlink" href="#compatibility" title="Permalink to this headline">¶</a></h2>
+<p>Python 3 preferred, but not required.</p>
+</div>
+<div class="section" id="license">
+<h2>License<a class="headerlink" href="#license" title="Permalink to this headline">¶</a></h2>
+<p>Copyright 2017-2018 - Swiss Data Science Center (SDSC)</p>
+<p>A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and Eidgenössische Technische Hochschule Zürich (ETHZ).</p>
+<p>Licensed under the Apache License, Version 2.0 (the “License”); you may not use this file except in compliance with the License. You may obtain a copy of the License at:</p>
+<p><a class="reference external" href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a></p>
+<p>Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an “AS IS” BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.</p>
+</div>
+<div class="section" id="authors">
+<h2>Authors<a class="headerlink" href="#authors" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Michele Volpi, SDSC, <a class="reference external" href="mailto:michele&#46;volpi&#37;&#52;&#48;sdsc&#46;ethz&#46;ch">michele<span>&#46;</span>volpi<span>&#64;</span>sdsc<span>&#46;</span>ethz<span>&#46;</span>ch</a></li>
+<li>Sebastian Landwehr, PSI, <a class="reference external" href="mailto:sebastian&#46;landwehr&#37;&#52;&#48;psi&#46;ch">sebastian<span>&#46;</span>landwehr<span>&#64;</span>psi<span>&#46;</span>ch</a></li>
+</ul>
+</div>
+<div class="section" id="requirements">
+<h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
+<p>(Does not include sub-package dependencies)</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">pyantarctica</span>
+<span class="go">Cartopy==0.16.0</span>
+<span class="go">GPy==1.9.2</span>
+<span class="go">matplotlib==2.2.2</span>
+<span class="go">numpy==1.14.5</span>
+<span class="go">pandas==0.23.0</span>
+<span class="go">papermill==0.12.6</span>
+<span class="go">pickleshare==0.7.4</span>
+<span class="go">scikit-learn==0.19.1</span>
+<span class="go">scipy==1.1.0</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="description-of-modules-and-functions-contained">
+<h2>Description of modules and functions contained<a class="headerlink" href="#description-of-modules-and-functions-contained" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">pyantarctica.dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualizing.html">pyantarctica.visualizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="baselines_scripts.html">pyantarctica.baselines_scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modeling.html">pyantarctica.modeling</a></li>
+</ul>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">pyantarctica</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="dataset.html">pyantarctica.dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="visualizing.html">pyantarctica.visualizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="baselines_scripts.html">pyantarctica.baselines_scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modeling.html">pyantarctica.modeling</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="dataset.html" title="next chapter">pyantarctica.dataset</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Swiss Data Science Center.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

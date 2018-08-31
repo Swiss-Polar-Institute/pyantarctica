@@ -1,0 +1,211 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>pyantarctica.modeling &#8212; The pyantarctica package</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for pyantarctica.modeling</h1><div class="highlight"><pre>
+<span></span><span class="c1">#</span>
+<span class="c1"># Copyright 2017-2018 - Swiss Data Science Center (SDSC)</span>
+<span class="c1"># A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and</span>
+<span class="c1"># Eidgenössische Technische Hochschule Zürich (ETHZ).</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="c1">##############################################################################################################</span>
+<div class="viewcode-block" id="retrieve_model_av_std"><a class="viewcode-back" href="../../modeling.html#pyantarctica.modeling.retrieve_model_av_std">[docs]</a><span class="k">def</span> <span class="nf">retrieve_model_av_std</span><span class="p">(</span><span class="n">summary</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This function takes as argument the dicitonary given by functions in baselines_scripts and returns model averages and standard deviations of accuracies and weightsself.</span>
+
+<span class="sd">        :param summary: dictionary of model outputs</span>
+<span class="sd">        :reuturns: dictionary of summary of summary statistics</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">exps_</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">summary</span><span class="o">.</span><span class="n">keys</span><span class="p">())]</span>
+    <span class="n">exps</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">exps_</span><span class="p">)</span>
+    <span class="n">NUM_REP</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">exps_</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">exps</span><span class="p">))</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">name_</span> <span class="ow">in</span> <span class="n">exps</span><span class="p">:</span>
+    <span class="c1">#     print(name_)</span>
+        <span class="n">results</span><span class="p">[</span><span class="n">name_</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">init_</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">for</span> <span class="n">nre</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NUM_REP</span><span class="p">,</span><span class="mi">1</span><span class="p">):</span>
+            <span class="n">sub_res</span> <span class="o">=</span> <span class="n">summary</span><span class="p">[</span><span class="n">name_</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">nre</span><span class="p">)]</span>
+            <span class="k">if</span> <span class="n">init_</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">sub_</span><span class="p">,</span> <span class="n">val_</span> <span class="ow">in</span> <span class="n">sub_res</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">exec</span><span class="p">(</span><span class="n">sub_</span> <span class="o">+</span> <span class="s1">&#39;= []&#39;</span> <span class="p">)</span>
+                        <span class="n">init_</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="k">for</span> <span class="n">sub_</span><span class="p">,</span> <span class="n">val_</span> <span class="ow">in</span> <span class="n">sub_res</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="c1">#             print(&#39;-&gt; &#39;, sub_,val_)</span>
+                <span class="n">exec</span><span class="p">(</span><span class="n">sub_</span><span class="o">+</span><span class="s1">&#39;.append(val_)&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">sub_</span> <span class="ow">in</span> <span class="n">sub_res</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;_hat&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sub_</span><span class="p">:</span>
+                <span class="n">exec</span><span class="p">(</span><span class="n">sub_</span> <span class="o">+</span> <span class="s1">&#39;= np.array(&#39;</span> <span class="o">+</span> <span class="n">sub_</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">)</span>
+    <span class="c1">#         print(eval(sub_))</span>
+
+        <span class="k">for</span> <span class="n">sub_</span> <span class="ow">in</span> <span class="n">sub_res</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;_hat&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sub_</span><span class="p">:</span>
+                <span class="n">exec</span><span class="p">(</span><span class="s1">&#39;results[name_][sub_] = np.append(np.mean([&#39;</span> <span class="o">+</span> <span class="n">sub_</span> <span class="o">+</span> <span class="s1">&#39;], axis=1), np.std([&#39;</span> <span class="o">+</span> <span class="n">sub_</span> <span class="o">+</span> <span class="s1">&#39;], axis=1),axis=0)&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">exec</span><span class="p">(</span><span class="s1">&#39;results[name_][sub_] =&#39;</span> <span class="o">+</span> <span class="n">sub_</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">results</span></div>
+
+<span class="c1">##############################################################################################################</span>
+<div class="viewcode-block" id="sample_trn_test_index"><a class="viewcode-back" href="../../modeling.html#pyantarctica.modeling.sample_trn_test_index">[docs]</a><span class="k">def</span> <span class="nf">sample_trn_test_index</span><span class="p">(</span><span class="n">index</span><span class="p">,</span><span class="n">split</span><span class="o">=</span><span class="mf">2.0</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span><span class="n">group</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;final&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Given a dataframe index, sample indexes for different training and test splits. It is possible to create different test subgroups to test temporal consistency of models.</span>
+
+<span class="sd">        :param index: dataframe index from which sample training and test locations from (required to return a dataframe as well, without losing the original indexing)</span>
+<span class="sd">        :param split: float, training to test datapoints ratios.</span>
+<span class="sd">        :param group: int or &#39;all&#39;, providing the number of samples in each test subgroup, if needed, and for other things.</span>
+<span class="sd">        :param mode: string</span>
+<span class="sd">            |    - final : first split% used for training, rest for testing</span>
+<span class="sd">            |    - middle : samples equal groups for training and groups for testing, with size specified by group, independent training are all indexed by 1 and the tests are independent groups with label l in {2,...}, uniformly distributed</span>
+<span class="sd">            |    - initial : recursively uses &#39;final&#39; but on inverted indexes</span>
+<span class="sd">            |    - training_shifted : indexes training points in temporally shifted lags, with group specifying how many points _before_ the training set is sampled.</span>
+
+<span class="sd">        :returns: a dataframe with an index column, with integres i denoting wether a datapoint is training (i=1) or test (i=2,...)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">s0</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">ind_set</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">s0</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">s1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">s0</span><span class="o">*</span><span class="n">split</span><span class="p">))</span>
+    <span class="n">s2</span> <span class="o">=</span> <span class="n">s0</span><span class="o">-</span><span class="n">s1</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;final&#39;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">group</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+            <span class="n">ind_set</span><span class="p">[(</span><span class="n">s1</span><span class="o">+</span><span class="mi">1</span><span class="p">):]</span> <span class="o">=</span> <span class="mi">2</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">bl</span><span class="p">,</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">s2</span><span class="p">,</span><span class="n">group</span><span class="p">)):</span>
+                <span class="n">ind_set</span><span class="p">[(</span><span class="n">s1</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">ii</span><span class="p">):(</span><span class="n">s1</span><span class="o">+</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">group</span><span class="p">)]</span> <span class="o">=</span> <span class="n">bl</span><span class="o">+</span><span class="mi">2</span>
+
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;middle&#39;</span><span class="p">:</span>
+        <span class="n">lab</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">for</span> <span class="n">bl</span><span class="p">,</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">s1</span><span class="o">+</span><span class="n">s2</span><span class="p">,</span><span class="n">group</span><span class="p">)):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="nb">int</span><span class="p">((</span><span class="n">bl</span><span class="o">%</span><span class="p">(</span><span class="n">split</span><span class="p">))</span><span class="o">*</span><span class="mi">100</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">int</span><span class="p">((</span><span class="n">bl</span><span class="o">%</span><span class="p">(</span><span class="n">split</span><span class="p">)))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">ind_set</span><span class="p">[(</span><span class="mi">1</span><span class="o">+</span><span class="n">ii</span><span class="p">):(</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">group</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ind_set</span><span class="p">[(</span><span class="mi">1</span><span class="o">+</span><span class="n">ii</span><span class="p">):(</span><span class="n">ii</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="n">group</span><span class="p">)]</span> <span class="o">=</span> <span class="n">lab</span>
+                <span class="n">lab</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">elif</span> <span class="n">mode</span><span class="o">==</span><span class="s1">&#39;initial&#39;</span><span class="p">:</span>
+        <span class="n">ind_set</span> <span class="o">=</span> <span class="n">sample_trn_test_index</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">index</span><span class="p">),</span><span class="mi">1</span><span class="p">)),</span><span class="n">split</span><span class="o">=</span><span class="mf">2.0</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span><span class="n">N_tst</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;final&#39;</span><span class="p">)</span>
+        <span class="n">ind_set</span> <span class="o">=</span> <span class="n">ind_set</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="k">elif</span> <span class="n">mode</span><span class="o">==</span><span class="s1">&#39;training_shifted&#39;</span><span class="p">:</span>
+
+        <span class="n">ind_set</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="n">group</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">ind_set</span><span class="p">[(</span><span class="n">group</span><span class="o">+</span><span class="n">s1</span><span class="p">):]</span> <span class="o">=</span> <span class="mi">3</span>
+
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">ind_set</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;ind&#39;</span><span class="p">])</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">pyantarctica</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../dataset.html">pyantarctica.dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../visualizing.html">pyantarctica.visualizing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../baselines_scripts.html">pyantarctica.baselines_scripts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modeling.html">pyantarctica.modeling</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2018, Swiss Data Science Center.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.8</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
