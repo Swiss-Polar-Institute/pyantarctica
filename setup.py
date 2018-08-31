@@ -42,9 +42,8 @@ setup(
     author_email="michele.volpi@datascience.ch",
 
     description="Umbrella package for ACE-DATA ASAID (sub-)project(s).",
-    long_description=open('README.md').read(),
-    long_description_content_type='text/markdown',
-
+    long_description=open('README.rst').read(),
+    
     packages=find_packages(),
     zip_safe=True,
 

@@ -109,9 +109,12 @@ def add_legs_index(df, **kwargs):
 
         :param df: datetime indexed dataframe to which add the leg index
         :param kwargs: contains options to override defaults:
+
         |   leg_dates : array indicating beginning and end (columns) of time period belonging to a leg / subleg (number of rows equals number of legs / sublegs)
         |   codes : list indicating what code to use to denote legs. Defaults to integers in range [1,2,3,...] with 0 indicating out-of-leg datapoints
+
         :returns: dataframe with a new column "leg" indicating to which leg the datapoint belongs to
+
     """
 
     if 'leg_dates' not in kwargs:
@@ -205,7 +208,9 @@ def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
     def ret_neigh(i,j, window = 3):
         """
             helper with different hardcoded scanning windows. returns a list of indexes based on the centerpoint of the window.
+
             .. todo:: automatize the window creation. This was a quick and dirt thing to see if it was working
+
         """
 
         if window == 1:
@@ -297,19 +302,23 @@ def generate_particle_data(data_folder='../data/', mode='all', data_output='./da
     '''
         Utility to get aggregated aerosol data and store it in a df where columns are the different accregation. This function recomputes directly from locally stored filtered particle size data the aggregations. This function assumes that the folder structures are fixed.
 
-        .. todo:: remove data folder structure assumption. Or actually rethink the whole function.
-        .. todo:: actually maybe better to deprecate the whole function and prepare a notebook preparing the data directly, maybe easier for renku inclusion. Even better, a big script preparing the different datsets.
 
         :param data_folder: pointer to data top directory
         :param data_output: where to save aggregated dataframe
         :param mode: what to read and how:
+
         | 'all' : all particle data in columns (small particles single bins and >400, >700 nm)
         | 'single_bins' : only single bin data (without accumulated >400 and > 700nm)
         | 'aggregated': all particle data aggregated in superbins (with >400,>700 nm)
         | 'aggregated_no_noise' : as 'aggregated' but without noisy bins
+
         :param filtering_parameter: used to define which filtered data to read (see filter_particle_size   threshold): 3, 5, 10 : the larger, the more permissive
         :param savedata: boolean, store locally (in ./data/intermediate/) a copy of the assembled file
         :returns: datetime-indexed dataframe with particle sizes as columns
+
+        .. todo:: remove data folder structure assumption. Or actually rethink the whole function.
+        .. todo:: actually maybe better to deprecate the whole function and prepare a notebook preparing the data directly, maybe easier for renku inclusion. Even better, a big script preparing the different datsets.
+
     '''
 
     particles = pd.read_csv(data_folder + 'intermediate/7_aerosols/03_filtered_particle_size_distribution_T' + str(filtering_parameter) + '.csv')
@@ -387,10 +396,10 @@ def generate_particle_data(data_folder='../data/', mode='all', data_output='./da
 ##############################################################################################################
 def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_legs=True):
     '''
-        Helper function to read a "*_postprocessed.csv" file, and automatically crop out leg 1 - leg 3, and set as datetime index a specific column (or defaults to the standard)
+        Helper function to read a ``*_postprocessed.csv`` file, and automatically crop out leg 1 - leg 3, and set as datetime index a specific column (or defaults to the standard)
 
-        :param data_folder: from where to read the *_postprocessed.csv datafile
-        :param datetime_index_name: specify non-default datetime index column (= 'timest_')
+        :param data_folder: from where to read the ``*_postprocessed.csv`` datafile
+        :param datetime_index_name: specify non-default datetime index column (= ``timest_``)
         :param crop_legs: boolean to specify whether to remove data outside leg 1 to leg 3
         :returns: dataframe containing the original data, leg-cropped (if option active)
     '''

@@ -255,19 +255,19 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 
 ##############################################################################################################
 def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True,ylim=[None, None]):
-        """
-            Plot weights associated to a linear regression modelself for every bin in a particle size distribution file.
+    """
+        Plot weights associated to a linear regression modelself for every bin in a particle size distribution file.
 
-            .. todo:: probably needs a big update this function?
+        .. todo:: probably needs a big update this function?
 
-            :param stats: dictionary containing weights, as provided by the regression functions from the baseline_scripts module
-            :param sets: particle bin aggregations
-            :param options: same option dictionary provided to run_baselines functions (see help there)
-            :param colors: array of RGBA values
-            :param SAVE: boolean indicating wether to save or not the image, in the folder spefified in options.
-            :param ylim: speficy limits on y-axis. If both upper and lower limits are None, defaults to matplotlib standards
-            :returns: None
-        """
+        :param stats: dictionary containing weights, as provided by the regression functions from the baseline_scripts module
+        :param sets: particle bin aggregations
+        :param options: same option dictionary provided to run_baselines functions (see help there)
+        :param colors: array of RGBA values
+        :param SAVE: boolean indicating wether to save or not the image, in the folder spefified in options.
+        :param ylim: speficy limits on y-axis. If both upper and lower limits are None, defaults to matplotlib standards
+        :returns: None
+    """
 
     try:
         len_plot = len([options['LEG_P']])
@@ -430,7 +430,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         :param labplot: the label for the data series, to use for legend and other handles
         :param min_va: min values to clip lower values (should be min of the series)
         :param max_va: max values to clip lower values (should be max of the series)
-        :param plottype : (BETA) use different plotting tools (scatter or plot so far)
+        :param plottype: (BETA) use different plotting tools (scatter or plot so far)
         :returns: axes handles of the caropy map.
 
         .. todo:: fix colors for plot as in scatter, but color lines rather than pointsself.
