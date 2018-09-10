@@ -487,7 +487,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
 def scatterplot_matrix(df, color=None):
 
     """
-        Shorthand to plot a matrix of scatterplotself.
+        Shorthand to plot a matrix of scatterplot.
 
         :param df: dataframe contanining the data to be plotted, all columns versus all the others.
         :returns: handles to figure and axes
@@ -526,15 +526,17 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
         Plot binned parameters speficied in a dataframe (mean of bins) versus a corresponding mean value of aerosol concentration.
 
         :param df: dataframe contanining the parameter data to be plotted
-        :param aerosol: datafram of matching aerosol data observations
+        :type df: dataframe of floats
+        :param aerosol: dataframe of matching aerosol data observations
+        :type aerosol:
         :param subset_columns_parameters: subset of the columns from the df used to plot the binned data
         :param nbins: integer number of bins to use when splitting data
         :param range_par: (2,)-sized floats in [0,1] specific the lower and upper percentiles of the parameters data, used as limits on the x-axis before binning.
         :returns: handles to figure and axes
     """
 
-    f, ax = plt.subplots(2,len(subset_columns_parameters),figsize=(20,6), sharex=False,
-    gridspec_kw = {'height_ratios':[2, 1]})
+    f, ax = plt.subplots(2,len(subset_columns_parameters),figsize=(20,6), sharex='col',
+                sharey='row', gridspec_kw = {'height_ratios':[2, 1]}  )
 
     for vvnum, vv in enumerate(subset_columns_parameters):
 
@@ -545,29 +547,42 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
 
         bins_h = pd.cut(df[vv].loc[joind], bins, labels=[str(x) for x in range(nbins)], retbins=False)
 
-
         ax[0,vvnum].errorbar(np.arange(nbins),
                         aerosol.loc[joind].groupby(bins_h).agg(np.nanmean),
                         yerr=0.5*aerosol.loc[joind].groupby(bins_h).agg(np.nanstd),
                         ls='none', color='black')
         ax[0,vvnum].plot(np.arange(nbins), aerosol.loc[joind].groupby(bins_h).mean(), ls='-', color='red', linewidth=2)
 
-        ax[0,vvnum].set_ylim(0,2*np.max(aerosol.loc[joind].groupby(bins_h).mean()))
         ax[1,vvnum].bar(np.arange(nbins),aerosol.loc[joind].groupby(bins_h).count())
-        ax[1,vvnum].set_xlabel(vv)
-
-        if vvnum != 0:
-            ax[0,vvnum].set_yticklabels([])
-            ax[1,vvnum].set_yticklabels([])
-        elif vvnum == 0:
-            ax[0,vvnum].set_ylabel('Aerosol value \n (mean per bin)')
-            ax[1,vvnum].set_ylabel('Datapoint count')
 
         labels_ = ['{:.2f}'.format(xx) for xx in bins]
 
-        ax[1,vvnum].set_xticks(np.arange(0,nbins+1,10))
-        ax[1,vvnum].set_xticklabels(labels_[::10],fontsize=6)#wave_aero[vv].loc[joind].groupby(bins_h).mean())
+        if vvnum == 0:
+            ax[0,vvnum].set_ylim(0,1.2*np.max(aerosol.loc[joind].groupby(bins_h).agg(np.nanmean)))
+
+        ax[0,vvnum].set_ylabel('Aerosol value \n (mean per bin)')
         ax[0,vvnum].set_xticks(np.arange(0,nbins+1,10))
-        ax[0,vvnum].set_xticklabels(labels_[::10], fontsize=6)
+        ax[0,vvnum].set_xticklabels(labels_[::10])
+        ax[0,vvnum].tick_params(labelbottom=True, labelleft=True)
+
+        ax[1,vvnum].set_xlabel(vv)
+        ax[1,vvnum].set_ylabel('Datapoint count')
+        ax[1,vvnum].set_xticks(np.arange(0,nbins+1,10))
+        ax[1,vvnum].set_xticklabels(labels_[::10])
+        ax[1,vvnum].tick_params(labelbottom=True, labelleft=True)
+
+
+        print
+
+
+
+
+
+
+
+
+
+
+
 
     return f, ax
