@@ -42,7 +42,7 @@ From source:
     $ git clone ./src
     $ pip install src
 
-From the gitlab repo  `gitlab.datascience.ch/ACE-ASAID/pyanctarctica.git <https://gitlab.datascience.ch/ACE-ASAID/pyanctarctica.git>`_:
+From the gitlab repo  `gitlab.datascience.ch/ACE-ASAID/pyanctarctica.git <https://gitlab.datascience.ch/ACE-ASAID/pyantarctica>`_:
 
 .. code-block:: console
 
