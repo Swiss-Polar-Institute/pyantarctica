@@ -38,12 +38,42 @@ from sklearn.utils import shuffle
 
 from . import dataset, modeling
 
-
+## FUNCTIONS
+##############################################################################################################
 def save_obj(obj, fname):
+    """
+        Save obj dict as pickle binary
+
+        :param obj: dict, object to be saved
+        :param fname: string, folder address and name of the archive to be saved
+        :returns: nothing
+    """
     with open(fname + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
+##############################################################################################################
 def run_baselines_particle_size(data, **kwargs):
+    """
+        Run regression model(s) on single replica of data (no random resampling, but uses indexes). Good for testing training and testing on manually specified splits
+
+        :param data: input dataset, training and test mixed, [x,y] labels last column
+        :param kwargs: Dictionary containing options.  Fields are:
+
+        |    SEP_METHOD : ['interpolation','prediction'] -> Mode of learning / testing
+        |    SEA : ['total','wind'] -> To subset wave parameters
+        |    NUM_REP : N -> N random resampling of training and test sets (ONLY 'interpolation')
+        |    LEG_P : [1, 2, 3] -> On which leg to predict. Treated separately by the models
+        |    VARSET : STRING -> explicit subset of variable to use from the pandas dataframe (e.g. 'waves')
+        |    METHODS : [ridgereg', 'pls', 'lasso', 'rbfgpr', 'rbfgprard', 'rf'] -> Regression method
+        |    NORMALIZE_Y : BOOL -> whether to normalize outputs y
+        |    NORMALIZE_X : BOOL -> whether to normalize inputs x
+        |    SAVEFOLDER : STRING -> folder address to store results
+        |    MODELNAME : STRING -> name of the model file and scores
+        |    SPLIT_SIZE : FLOAT [0,1] -> percentage of training to test datapoints
+        |    TRN_TEST_INDEX : DF -> list of integers containing wheter the point belongs to training (=1) or to the test set (=2). Has to be same size of data.shape[0]
+
+        :returns: A dictionary containing weights, accuracy scores for training and test sets
+    """
 
     SEP_METHOD = kwargs['SEP_METHOD']
     SEA = kwargs['SEA']
@@ -283,11 +313,15 @@ def run_baselines_particle_size(data, **kwargs):
 
 ##############################################################################################################
 def run_regression_indexed_data(data, inds, regression_model, NORM_X=True, NORM_Y=True):
-    """ RUN REGRESSION MODEL ON SINGLE REPLICA OF DATA
-        data : input dataset, training and test mixed
-        inds : index vector (df!) of training (ind = 1) and test (ind = 2,...,S) for S test SPLITS
-        regr : regression method. Options are hard coded here, but can be extracted in a dict in the future
-        var : som matrix to be filled. Ugly way to do it but well... easy to keep track of updates from loops wrapping `run_regression_indexed_data`
+    """
+        Run regression model(s) on single replica of data (no random resampling). Good for testing training and testing on manually specified splits
+
+        :param data: df, input dataset, training and test mixed, [x,y] labels last column
+        :param inds: df or series, index vector of training (ind = 1) and test (ind = 2,...,S) for S test SPLITS
+        :param regression_model: list of stings, regression method. Options are hard coded here, but can be extracted in a dict in the future
+        :param NORM_X: bool, wheter to normalize input data
+        :param NORM_Y: bool, wheter to normalize output data
+        :returns: dict containing weights, accuracy scores for training and tests, and the time difference between first and last training points
     """
 
     tr_ = data.loc[inds.loc[inds['ind'] == 1].index,:].copy()
@@ -426,14 +460,18 @@ def run_regression_indexed_data(data, inds, regression_model, NORM_X=True, NORM_
     return {'weights': weights, 'gap_time_delta': gap_time_delta, 'tr_r2': tr_r2,
                 'ts_r2': ts_r2, 'tr_mse': tr_mse, 'ts_mse': ts_mse}
 
-
 ##############################################################################################################
 def run_regression_simple_data(data_tr, data_ts, regression_model, NORM_X=True, NORM_Y=True):
-    """ RUN REGRESSION MODEL ON SINGLE REPLICA OF DATA
-        data_tr : input dataset, training [X Y]
-        data_ts : input dataset, testing [X Y]
-        regr : regression method. Options are hard coded here, but can be extracted in a dict in the future
-        var : som matrix to be filled. Ugly way to do it but well... easy to keep track of updates from loops wrapping `run_regression_indexed_data`
+    """
+        Run regression model(s) on single replica of data
+
+        :param data_tr: df, input training dataset, [x,y] labels last column
+        :param data_ts: df, input test dataset, [x,y] labels last column
+        :param regression_model: list of stings, regression method. Options are hard coded here, but can be extracted in a dict in the future
+        :param NORM_X: bool, wheter to normalize input data
+        :param NORM_Y: bool, wheter to normalize output data
+        :returns: dict containing weights, accuracy scores for training and tests, and the time difference between first and last training points
+
     """
 
     tr_ = data_tr.copy()

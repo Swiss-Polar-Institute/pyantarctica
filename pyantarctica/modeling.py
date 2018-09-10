@@ -19,12 +19,18 @@ import numpy as np
 import pandas as pd
 
 
+##############################################################################################################
 def retrieve_model_av_std(summary):
+    """
+        This function takes as argument the dicitonary given by functions in baselines_scripts and returns model averages and standard deviations of accuracies and weightsself.
+
+        :param summary: dictionary of model outputs
+        :reuturns: dictionary of summary of summary statistics
+    """
+
     exps_ = [s[:-2] for s in list(summary.keys())]
     exps = set(exps_)
     NUM_REP = int(len(exps_) / len(exps))
-#    print(NUM_REP)
-#    print(set(exps))
     results = {}
     for name_ in exps:
     #     print(name_)
@@ -55,18 +61,21 @@ def retrieve_model_av_std(summary):
 
     return results
 
-
+##############################################################################################################
 def sample_trn_test_index(index,split=2.0/3,group=20,mode='final'):
     """
-    SAMPLE TRN / TST INDEXES IN SOME PARTICULAR ORDER:
-         index : pd.index -- dataframe index of the dataset from which sample from (required to return a dataframe as well, without losing the original indexing)
-         split: float -- training to test datapoints ratioself.
-         group: int or 'all' --- number of samples in each test subgroup, if needed, and for other things.
-         mode: string --
-                - final : first split% used for training, rest for testing
-                - middle : samples equal groups for training and groups for testing, with size specified by group, independent training are all indexed by 1 and the tests are independent groups with label l in {2,...}, uniformly distributed
-                - initial : recursively uses 'final' but on inverted indexes
-                - training_shifted : indexes training points in temporally shifted lags, with group specifying how many points _before_ the training set is sampled.
+        Given a dataframe index, sample indexes for different training and test splits. It is possible to create different test subgroups to test temporal consistency of models.
+
+        :param index: dataframe index from which sample training and test locations from (required to return a dataframe as well, without losing the original indexing)
+        :param split: float, training to test datapoints ratios.
+        :param group: int or 'all', providing the number of samples in each test subgroup, if needed, and for other things.
+        :param mode: string
+            |    - final : first split% used for training, rest for testing
+            |    - middle : samples equal groups for training and groups for testing, with size specified by group, independent training are all indexed by 1 and the tests are independent groups with label l in {2,...}, uniformly distributed
+            |    - initial : recursively uses 'final' but on inverted indexes
+            |    - training_shifted : indexes training points in temporally shifted lags, with group specifying how many points _before_ the training set is sampled.
+
+        :returns: a dataframe with an index column, with integres i denoting wether a datapoint is training (i=1) or test (i=2,...)
     """
 
     s0 = len(index)
