@@ -30,6 +30,7 @@ def retrieve_model_av_std(summary):
 
     exps_ = [s[:-2] for s in list(summary.keys())]
     exps = set(exps_)
+
     NUM_REP = int(len(exps_) / len(exps))
     results = {}
     for name_ in exps:

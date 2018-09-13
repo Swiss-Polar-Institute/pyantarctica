@@ -329,8 +329,8 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True,ylim
                     plt.show(block=False)#
 
                     if SAVE:
-                        plt.savefig(options['SAVEFOLDER'] + 'weights_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + \
-                                        sep_method + '_' +  varset + '.png', bbox_inches='tight')
+                        filename = 'weights_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + sep_method + '_' +  varset
+                        plt.savefig((options['SAVEFOLDER'] / filename).with_suffix('.png'), bbox_inches='tight')
 
 ##############################################################################################################
 def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
@@ -415,8 +415,8 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                         plt.show(block=False)#
 
                         if SAVE:
-                            plt.savefig(options['SAVEFOLDER'] + errmeasure + '_' + meth + '_' + sea + '_leg_' + str(leg) + '_' + \
-                                sep_method + '_' +  varset + '.png', bbox_inches='tight')
+                            filename = errmeasure + meth + '_' + sea + '_leg_' + str(leg) + '_' + sep_method + '_' +  varset
+                            plt.savefig((options['SAVEFOLDER'] / filename).with_suffix('.png'), bbox_inches='tight')
 
 ##############################################################################################################
 def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):

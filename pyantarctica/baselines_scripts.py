@@ -17,14 +17,16 @@
 
 import os
 import pickle
-from datetime import datetime
-from math import ceil
-
 import GPy
 import numpy as np
 import pandas as pd
 import sklearn as sk
+
+from datetime import datetime
+from math import ceil
 from sklearn import preprocessing
+from pathlib import Path
+
 
 import pyantarctica.dataset as dataset
 
@@ -48,11 +50,13 @@ def save_obj(obj, fname):
         :param fname: string, folder address and name of the archive to be saved
         :returns: nothing
     """
-    with open(fname + '.pkl', 'wb') as f:
+    fname = fname.with_suffix('.pkl')
+
+    with open(fname, 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 ##############################################################################################################
-def run_baselines_particle_size(data, **kwargs):
+def run_baselines_particle_size(data, options):
     """
         Run regression model(s) on single replica of data (no random resampling, but uses indexes). Good for testing training and testing on manually specified splits
 
@@ -75,25 +79,24 @@ def run_baselines_particle_size(data, **kwargs):
         :returns: A dictionary containing weights, accuracy scores for training and test sets
     """
 
-    SEP_METHOD = kwargs['SEP_METHOD']
-    SEA = kwargs['SEA']
-    NUM_REP = kwargs['NUM_REP']
-    LEG_P = kwargs['LEG_P']
-    VARSET = kwargs['VARSET']
-    METHODS = kwargs['METHODS']
-    NORMALIZE_Y = kwargs['NORMALIZE_Y']
-    NORMALIZE_X = kwargs['NORMALIZE_X']
-    SAVEFOLDER = kwargs['SAVEFOLDER']
-    MODELNAME = kwargs['MODELNAME']
-    SPLIT_SIZE = kwargs['SPLIT_SIZE']
-    TRN_TEST_INDEX = kwargs['TRN_TEST_INDEX']
+    SEP_METHOD = options['SEP_METHOD']
+    SEA = options['SEA']
+    NUM_REP = options['NUM_REP']
+    LEG_P = options['LEG_P']
+    VARSET = options['VARSET']
+    METHODS = options['METHODS']
+    NORMALIZE_Y = options['NORMALIZE_Y']
+    NORMALIZE_X = options['NORMALIZE_X']
+    SAVEFOLDER = options['SAVEFOLDER']
+    MODELNAME = options['MODELNAME']
+    SPLIT_SIZE = options['SPLIT_SIZE']
+    TRN_TEST_INDEX = options['TRN_TEST_INDEX']
 
     #SAVE_TEXT_DUMP = kwargs['SAVE_TEXT_DUMP']
-
     if not os.path.isdir(SAVEFOLDER):
         os.mkdir(SAVEFOLDER)
 
-    if os.path.exists(SAVEFOLDER + MODELNAME):
+    if os.path.exists(SAVEFOLDER / MODELNAME):
         print("file exists, overwriting")
 
     summ = {}
@@ -128,7 +131,6 @@ def run_baselines_particle_size(data, **kwargs):
 
                             leg_whole_ = leg_whole_.dropna()
                             s1, s2 = leg_whole_.shape
-                            # print(s1,s2)
 
                             if s1 < 10:
                                 continue
@@ -154,9 +156,7 @@ def run_baselines_particle_size(data, **kwargs):
                                 trn = leg_whole_.loc[TRN_TEST_INDEX.values  == 1,:].copy()
                                 tst = leg_whole_.loc[TRN_TEST_INDEX.values == 2,:].copy()
 
-                            # Standardize data to 0 mean unit variance based on training statistics (stationarity)
-
-                            # ----------
+                            # Standardize data to 0 mean unit variance based on training statistics (assuming stationarity)
                             inds_trn = trn.index
 
                             # SCALE TRAINING DATA X, y
@@ -305,9 +305,7 @@ def run_baselines_particle_size(data, **kwargs):
 
                             del leg_whole_, regModel, y_tr_gt, y_ts_gt, y_tr_h, y_ts_h
 
-
-
-    save_obj(summ, SAVEFOLDER + MODELNAME)
+    save_obj(summ, SAVEFOLDER / MODELNAME)
     #results.to_csv(path_or_buf=SAVEFOLDER + MODELNAME + '.csv', sep='\t')
     return summ
 
