@@ -37,7 +37,8 @@ def plot_predicted_timeseries(trn_, tst_, y_tr_h, y_ts_h, SEP_METHOD):
         :param tst_: dataframe of test data true labels
         :param y_tr_h: dataframe of training predicted labels
         :param y_ts_h: dataframe of test predicted labels
-        :returns: None
+        :returns fig: handle of the figure
+        :returns ax: handle of the axis
     """
 
     if SEP_METHOD is 'time':
@@ -71,6 +72,7 @@ def plot_predicted_timeseries(trn_, tst_, y_tr_h, y_ts_h, SEP_METHOD):
 
     del trn_, tst_, leg_
 
+    return fig, ax
 ##############################################################################################################
 def aggregated_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True):
     """
@@ -431,7 +433,9 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         :param min_va: min values to clip lower values (should be min of the series)
         :param max_va: max values to clip lower values (should be max of the series)
         :param plottype: (BETA) use different plotting tools (scatter or plot so far)
-        :returns: axes handles of the caropy map.
+        :returns ax: figure handle.
+        :returns ax: axes handles of the caropy map.
+        :returns cbar: handle to the colorbar
 
         .. todo:: fix colors for plot as in scatter, but color lines rather than pointsself.
         .. todo:: add support for *custom* background image (e.g. sea surface temperature, wind magnitude, etc.) (use something.contourf() to interpolate linearly within a grid of values at known coordinates?)
@@ -481,7 +485,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     cax, _ = clb.make_axes(ax)
     cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
 
-    return ax
+    return fig, ax, cbar
 
 ##############################################################################################################
 def scatterplot_matrix(df, color=None):
