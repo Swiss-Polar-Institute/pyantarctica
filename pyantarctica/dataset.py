@@ -193,13 +193,15 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position=
     return df.shift(time_shift, 's')
 
 ##############################################################################################################
-def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
+def filter_particle_sizes(pSize, threshold=3, hard_limit=0, window=3, mode='mean', save=''):
     """
         Function to filter particle size distribution dataframes, where rows are datetime index entries and columns are subsequent, as given by the instrument, particle size bins.
 
         :param pSize: datetime indexed dataframe of all particles. I think should be in dN/dlogD
         :param threshold: check for a multiplicative increase, given by expected_value * threshold
         :param window: size of the square moving windows to retrieve statistics, see ret_neigh()
+        :param hard_limit: hard threhold, discards valies larger than hard_limit
+        :type hard_limit: float, int
         :param mode: string specifying how to compute value to threholds: 'mean': the expected value is the mean of the values in the window. 'std' returns the standard deviation and 'any' all the values (to implement original filtering method)
         :param save: if string is presented, save csv at this pointer
         :returns: filtered particle dataframe, with same datetime index as pSize
@@ -281,7 +283,9 @@ def filter_particle_sizes(pSize, threshold=3, window=3, mode='mean', save=''):
 
         global_t[i] = (line_above & line_below)
         # global_t[i] = global_t[i] | (np.sum(np.isnan(part_size[i,:])) > part_size.shape[1]*0.50)
-        global_t[i] = global_t[i] | np.any(part_size[i,:] > 500)
+        # This threhold below is pretty much arbitrary, but gives credible time series
+        if hard_limit:
+            global_t[i] = global_t[i] | np.any(part_size[i,:] > hard_limit)
 
     part_size[np.where(global_t)[0],:] = np.nan
 
