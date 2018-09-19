@@ -309,7 +309,11 @@ def single_bins_regression_plot_weights(stats,sets,options,colors,SAVE=True,ylim
                             index = index + bar_w
 
                             if leg == 1:
-                                ax[ind_w,legind].set_ylabel(parname)
+                                if ~ind_w%2 | (ind_w==0):
+                                    ax[ind_w,legind].yaxis.set_label_position("left")
+                                else:
+                                    ax[ind_w,legind].yaxis.set_label_position("right")
+                                ax[ind_w,legind].set_ylabel(parname,fontsize=6)
 
                             index = np.arange(0,len(sets),1)
                             ax[ind_w,legind].set_xticks(index)
