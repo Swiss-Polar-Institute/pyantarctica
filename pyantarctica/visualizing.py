@@ -150,7 +150,7 @@ def aggregated_bins_regression_plot_weights(stats,sets,colnames,options,colors,S
 
         if SAVE:
             plt.savefig(options['SAVEFOLDER'] / ('weights_' + 'agg_bins' + '_leg_' + str(leg) + '_' + \
-                 sep_method + '.png'), bbox_inches='tight')
+                 sep_method + '_' + meth + '.png'), bbox_inches='tight')
 
 ##############################################################################################################
 def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
@@ -167,7 +167,7 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
         :returns: None
     """
     try:
-        len_plot = len([options['LEG_P']])
+        len_plot = len(options['LEG_P'])
     except TypeError:
         len_plot = 1
         options['LEG_P'] = [options['LEG_P']]
@@ -178,11 +178,11 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
             fig, ax = plt.subplots(2, len_plot, sharey=False,
                                    tight_layout=False, figsize=(5*len_plot,7), squeeze=False)
 
-            for legind, leg in enumerate([options['LEG_P']]):
+            for legind, leg in enumerate(options['LEG_P']):
                 index = np.arange(1)
                 for indbi, bin_ in enumerate(sets):
                     for ind, meth in enumerate(options['METHODS']):
-                        string_plots =  'leg_' + str(leg[0]) + '_' + sep_method + '_' + meth
+                        string_plots =  'leg_' + str(leg) + '_' + sep_method + '_' + meth
                         if string_plots in stats[bin_]:
                             if errmeasure.lower() == 'rmse':
                                 e_tr = stats[bin_][string_plots]['tr_RMSE'][0]
@@ -314,7 +314,7 @@ def single_bins_regression_plot_weights(stats,sets,colnames,options,colors,SAVE=
                 plt.show(block=False)#
 
             if SAVE:
-                filename = 'weights_' + meth + '_leg_' + str(leg) + '_' + sep_method
+                filename = 'weights_' + meth + '_leg_' + str(leg) + '_' + sep_method + '_' + meth
                 plt.savefig((options['SAVEFOLDER'] / filename).with_suffix('.png'), bbox_inches='tight')
 
 ##############################################################################################################
@@ -400,7 +400,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                     plt.show(block=False)#
 
                 if SAVE:
-                    filename = errmeasure + meth + '_leg_' + str(leg) + '_' + sep_method
+                    filename = errmeasure + '_' + meth + '_leg_' + str(leg) + '_' + sep_method
                     plt.savefig((options['SAVEFOLDER'] / filename).with_suffix('.png'), bbox_inches='tight')
 
 ##############################################################################################################
