@@ -5,6 +5,17 @@
 # van Karman constant used in Boundary layer theory most accepted value = 0.4 (dimensionless)
 vanKarman = 0.4
 
+#Cp: specific heat capacity of (dry) air at constant pressure 
+# at 300K "Tables of Thermal Properties of Gases", NBS Circular 564,1955.
+# https://www.ohio.edu/mechanical/thermo/property_tables/air/air_cp_cv.html
+#Cp = constants.Cp
+Cp = 1005 # J/kg/K
+
+# 
+Levap = 2.5e+6 # J/kg
+
+rho_air = 1 # kg/m3
+
 # gravity [m/s^2]
 g = 9.81
 #def Gravity():

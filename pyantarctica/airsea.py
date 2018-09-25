@@ -4,7 +4,38 @@
 
 import pyantarctica.constants as constants
 
+def LMoninObukov_bulk(U10,SSHF,SLHF,STair):
+    # Monin Obukov Length scale as function of
+    # U10 = 10 meter neutral wind speed
+    # SSHF = surface sensible heat flux [W/m2]
+    # SLHF = surface latent heat flux [W/m2]
+    # STair = surface air temperature [C]
+    
+    import airsea # airsea toolbox of Filipe Fernandes [don't mix up with this one!]
+    import numpy as np
 
+    if type(U10) != np.ndarray:
+        U10 = np.array([U10])
+    if type(SSHF) != np.ndarray:
+        SSHF = np.array([SSHF])
+    if type(SLHF) != np.ndarray:
+        SLHF = np.array([SLHF])
+    if type(STair) != np.ndarray:
+        STair = np.array([STair])
+        
+    Cp = airsea.constants.cp # 1004.7 or 1005 # J/kg/K
+    Levap = airsea.atmosphere.vapor(STair) # ~2.5e+6 J/kg
+    rho_air = airsea.atmosphere.air_dens(Ta=STair, rh=(STair*0))
+    vKarman = airsea.constants.kappa; # van Karman constant
+    grav = airsea.constants.g; # const of gravitation
+    
+    wt = SSHF/rho_air/Cp
+    wq = SLHF/rho_air/Levap
+    
+    B0 = grav*(wt/(STair+airsea.constants.CtoK) + 0.61*wq) # surface buoyancy flux
+    ustar = coare_u2ustar (U10, input_string='u2ustar', coare_version='coare3.5', TairC=STair, z=10, zeta=0)
+    LMO = -(ustar*ustar*ustar)/vKarman/B0 # Monin Obukove Length scale
+    return np.squeeze(LMO)
 
 def PSIu(zeta, option='default'):
     #stability correction function for modifying the logarithmic wind speed profiles based on atmospheric stability
@@ -19,8 +50,8 @@ def PSIu(zeta, option='default'):
     # zeta=z/L or is it -z/L ???
     # with L = -u*^3/vkarman/(g<wT>/T+0.61g<wq>)
     #x=np.sqrt(np.sqrt(1-15*zeta)); #sqrt(sqrt) instead of ^.25
-    if type(zeta) != np.ndarray:
-        zeta = np.array([zeta])
+    
+    zeta = np.asarray([zeta])
         
     if option == 'default': # or Dyer_Hicks_1970
         # Dyer and Hicks 1970       
@@ -35,10 +66,10 @@ def PSIu(zeta, option='default'):
         print('unexpected option: please use "default"')
         psi = []
             
-    return psi
+    return np.squeeze(psi)
 
 
-def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20, z=10, zeta=0): 
+def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20.0, z=10.0, zeta=0.0): 
     # function coare_u2ustar (u,coare_direction,coare_version) 
     # uses wind speed dependend drag coefficient to iteratively convert between u* and uz
     #
@@ -57,8 +88,15 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
     z0 = 1e-4 # default roughness length (could calculate this using first guess charnock and ustar)
     
     if type(u) != np.ndarray:
-        u = np.array([u])
-    
+        u = np.asarray([u])
+    if type(TairC) != np.ndarray:
+        TairC = np.asarray([TairC])
+    if type(z) != np.ndarray:
+        z = np.asarray([z])
+    if type(zeta) != np.ndarray:
+        zeta = np.asarray([zeta])
+
+
     import numpy as np
     if input_string == 'ustar2u':
         ustar = u;
@@ -113,7 +151,7 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
         u=ustar # return ustar in this case
         # in the other case (ustar2u) u is already what we want to return
         
-    return u
+    return np.squeeze(u)
 
 def coare_u10_ustar (u, input_string='u10', coare_version='coare3.5', TairC=20):
     #TO BE REMOVED
