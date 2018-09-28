@@ -18,7 +18,6 @@
 import numpy as np
 import pandas as pd
 
-
 ##############################################################################################################
 def retrieve_model_av_std(summary):
     """
@@ -63,7 +62,9 @@ def retrieve_model_av_std(summary):
     return results
 
 ##############################################################################################################
-def sample_trn_test_index(index,split=2.0/3,group=20,mode='final'):
+def sample_trn_test_index(index,split=2.0/3,mode='final',group=20,
+    options={'submode': 'interpolation', 'samples_per_interval': 1, 'temporal_inteval': '1H'}):
+
     """
         Given a dataframe index, sample indexes for different training and test splits. It is possible to create different test subgroups to test temporal consistency of models.
 
@@ -71,27 +72,85 @@ def sample_trn_test_index(index,split=2.0/3,group=20,mode='final'):
         :param split: float, training to test datapoints ratios.
         :param group: int or 'all', providing the number of samples in each test subgroup, if needed, and for other things.
         :param mode: string
-            |    - final : first split% used for training, rest for testing
-            |    - middle : samples equal groups for training and groups for testing, with size specified by group, independent training are all indexed by 1 and the tests are independent groups with label l in {2,...}, uniformly distributed
-            |    - initial : recursively uses 'final' but on inverted indexes
-            |    - training_shifted : indexes training points in temporally shifted lags, with group specifying how many points _before_ the training set is sampled.
+            |    - 'prediction' : first split used for training, rest for testing
+            |    - 'interpolation': pure random sampling
+
+            |    - 'middle' : samples equal groups for training and groups for testing, with size specified by group, independent training are all indexed by 1 and the tests are independent groups with label l in {2,...}, uniformly distributed
+            |    - 'initial' : recursively uses 'final' but on inverted indexes
+            |    - 'training_shifted' : indexes training points in temporally shifted lags, with group specifying how many points _before_ the training set is sampled.
+            |       e.g. 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 where the first 6 "2"s are def in group
+        :param options: additional options, for now only for temporal subsampling.
 
         :returns: a dataframe with an index column, with integres i denoting wether a datapoint is training (i=1) or test (i=2,...)
     """
 
+    # data size
     s0 = len(index)
+
+#    mode = mode[0]
+    # initial indexing  
     ind_set = np.ones((s0,1))
 
+    # how many training (s1) and test (s2)
     s1 = int(np.floor(s0*split))
     s2 = s0-s1
 
-    if mode == 'final':
+    if mode == 'prediction':
         if group == 'all':
             ind_set[(s1+1):] = 2
-            return
         else:
             for bl, ii in enumerate(range(0,s2,group)):
                 ind_set[(s1+1+ii):(s1+ii+1+group)] = bl+2
+
+    elif mode=='interpolation':
+        ind_set[s1+1:] = 2
+        np.random.shuffle(ind_set)
+
+    elif mode=='temporal_subsampling':
+
+        sub_mode = options['submode'] # interpolation or prediction
+        per_temp = options['samples_per_interval'] # how many samples to take per unit of temporal int
+        time_int = options['temporal_interval']
+
+        ind_set = np.zeros((s0,1)) # override initial indexing...
+        ind_set = pd.DataFrame(ind_set, index=index)
+
+        init = ind_set.index[0].round(time_int[-1])
+        endit = ind_set.index[-1].round(time_int[-1])
+
+        samp_ints = pd.date_range(start=init, end=endit, freq=time_int)
+
+        tr_ts_splits = np.ones((len(samp_ints),1))
+        tr_ts_splits[int(np.floor(len(samp_ints)*split))+1:] = 2
+
+        if sub_mode == 'interpolation':
+            np.random.shuffle(tr_ts_splits)
+        elif sub_mode == 'prediction':
+            _ = None #do nothing
+
+        # sample per_temp examples every time_int. time_ints are split randomly for training and testing
+        b = []
+
+        for t_i, t_ in enumerate(samp_ints[0:]):
+            to_time = t_+pd.to_timedelta(time_int)-pd.to_timedelta('1S')
+            # print(t_,to_time)
+            sub_s = ind_set.loc[t_:to_time,:]
+
+            if per_temp > 1:
+                samp_frac = per_temp
+
+            elif (per_temp>0)&(per_temp<=1):
+                samp_frac = int(np.floor(per_temp*sub_s.shape[0]))
+
+            # print(per_temp, samp_frac)
+
+            if sub_s.shape[0] > samp_frac:
+                inds_to_sam = sub_s.sample(n=samp_frac).sort_index().index
+                # print(inds_to_sam)
+                ind_set.loc[inds_to_sam] = tr_ts_splits[t_i][0]
+                # print(ind_set.loc[inds_to_sam])
+
+        ind_set = ind_set.values
 
     elif mode == 'middle':
         lab = 2
@@ -108,7 +167,6 @@ def sample_trn_test_index(index,split=2.0/3,group=20,mode='final'):
         ind_set = ind_set[-1::-1]
 
     elif mode=='training_shifted':
-
         ind_set[0:group] = 2
         ind_set[(group+s1):] = 3
 
