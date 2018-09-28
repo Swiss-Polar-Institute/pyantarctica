@@ -205,14 +205,18 @@ def run_baselines_wave_particle_size(data, options):
                                 regModel.coef_ = regModel.feature_importances_
 
                             elif meth.lower() == 'rbfgpr':
-                                kernel = 1.0 * kern.RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
-                                1.0 * kern.WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4)) + \
-                                1.0 * kern.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-05, 100000.0)) + \
-                                1.0 * kern.DotProduct(sigma_0=1.0, sigma_0_bounds=(1e-05, 100000.0))
+                                kernel = 1.0 * kernels.RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
+                                1.0 * kernels.WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4)) + \
+                                1.0 * kernels.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-05, 100000.0)) + \
+                                1.0 * kernels.DotProduct(sigma_0=1.0, sigma_0_bounds=(1e-05, 100000.0))
 
                                 regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b',
                                                                     alpha=0,
                                                                     n_restarts_optimizer=5).fit(X,y)
+
+
+                                print(regModel.kernel_)
+
                             elif meth.lower() == 'rbfgprard':
 
                                 #x = trn.iloc[:,:-1].values
@@ -354,7 +358,7 @@ def run_baselines_particle_size(data, options):
     #    results = pd.DataFrame(index=[],columns=['tst_r2','tst_rmse','trn_r2','trn_rmse','n_tr','n_ts'])
 
     for sep_method in SEP_METHOD:
-        #print(sep_method)
+        # print(sep_method)
         for leg in LEG_P:
             # print(leg)
             for meth in METHODS:
@@ -380,19 +384,26 @@ def run_baselines_particle_size(data, options):
 
                     if not TRN_TEST_INDEX.values.any():
 
-                        separation = SPLIT_SIZE
-                        trn_size = ceil(s1*separation) #;
+                        # mode = 'interpolation', 'prediction', 'temporal_subset'
+                        inds = modeling.sample_trn_test_index(leg_whole_.index, split=SPLIT_SIZE,   mode=sep_method, group='all', options=options['SUB_OPTIONS'])
 
-                        if sep_method.lower() == 'prediction':
-                        #     print('training data until ' + str(separation) + ', then test.')
-                            trn = leg_whole_.iloc[:trn_size,:].copy()
-                            tst = leg_whole_.iloc[trn_size:,:].copy()
+                        trn = leg_whole_.loc[(inds.iloc[:,0]==1),:].copy()
+                        tst = leg_whole_.loc[(inds.iloc[:,0]==2),:].copy()
 
-                        elif sep_method.lower() == 'interpolation':
-                        #     print('training data random %f pc subset, rest test'%(separation*100))
-                            leg_whole_ = shuffle(leg_whole_)
-                            trn = leg_whole_.iloc[:trn_size,:].copy()
-                            tst = leg_whole_.iloc[trn_size:,:].copy()
+                        ###### INSERT SPLIT FUNCTION HERE:
+                        # separation = SPLIT_SIZE
+                        # trn_size = ceil(s1*separation) #;
+                        #
+                        # if sep_method.lower() == 'prediction':
+                        # #     print('training data until ' + str(separation) + ', then test.')
+                        #     trn = leg_whole_.iloc[:trn_size,:].copy()
+                        #     tst = leg_whole_.iloc[trn_size:,:].copy()
+                        #
+                        # elif sep_method.lower() == 'interpolation':
+                        # #     print('training data random %f pc subset, rest test'%(separation*100))
+                        #     leg_whole_ = shuffle(leg_whole_)
+                        #     trn = leg_whole_.iloc[:trn_size,:].copy()
+                        #     tst = leg_whole_.iloc[trn_size:,:].copy()
 
                     elif TRN_TEST_INDEX.values.any():
 
@@ -453,14 +464,17 @@ def run_baselines_particle_size(data, options):
                         regModel.coef_ = regModel.feature_importances_
 
                     elif meth.lower() == 'rbfgpr':
-                        kernel = 1.0 * kern.RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
-                        1.0 * kern.WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4)) + \
-                        1.0 * kern.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-05, 100000.0)) + \
-                        1.0 * kern.DotProduct(sigma_0=1.0, sigma_0_bounds=(1e-05, 100000.0))
+                        kernel = 1.0 * kernels.RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
+                        1.0 * kernels.WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4)) + \
+                        1.0 * kernels.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-05, 100000.0)) + \
+                        1.0 * kernels.DotProduct(sigma_0=1.0, sigma_0_bounds=(1e-05, 100000.0))
 
                         regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b',
-                                                            alpha=0,
+                                                            alpha=0.01,
                                                             n_restarts_optimizer=5).fit(X,y)
+
+                        # print(regModel.kernel_)
+
                     elif meth.lower() == 'rbfgprard':
 
                         #x = trn.iloc[:,:-1].values
@@ -526,7 +540,9 @@ def run_baselines_particle_size(data, options):
                                             'tr_RMSE': t_mse,
                                             'tr_R2': t_r2,
                                             'ts_RMSE': mse,
-                                            'ts_R2': r2}#,
+                                            'ts_R2': r2,
+                                            'tr_size': trn.shape[0],
+                                            'ts_size': tst.shape[0]}#,
                                             # 'y_tr_hat': y_tr_h,
                                             # 'y_ts_hat': y_ts_h}
 
@@ -535,14 +551,18 @@ def run_baselines_particle_size(data, options):
                                             'tr_RMSE': t_mse,
                                             'tr_R2': t_r2,
                                             'ts_RMSE': mse,
-                                            'ts_R2': r2}#,
+                                            'ts_R2': r2,
+                                            'tr_size': trn.shape[0],
+                                            'ts_size': tst.shape[0]}#,
                                             # 'y_tr_hat': y_tr_h,
                                             # 'y_ts_hat': y_ts_h}
                     else:
                         summ[string_exp] = {'tr_RMSE': t_mse,
                                             'tr_R2': t_r2,
                                             'ts_RMSE': mse,
-                                            'ts_R2': r2}#,
+                                            'ts_R2': r2,
+                                            'tr_size': trn.shape[0],
+                                            'ts_size': tst.shape[0]}#,
                                             # 'y_tr_hat': y_tr_h,
                                             # 'y_ts_hat': y_ts_h}
 
@@ -551,7 +571,7 @@ def run_baselines_particle_size(data, options):
                         # results = pd.DataFrame(index=[],columns=['n_ts', 'tst_r2','tst_rmse',' n_tr', 'trn_r2','trn_rmse'])
                     #    results.loc[nre-1] = [len(y_ts_h), r2, mse, len(y_tr_h), t_r2, t_mse]
 
-                    del leg_whole_, regModel, y_tr_gt, y_ts_gt, y_tr_h, y_ts_h
+                    del leg_whole_, regModel, y_tr_gt, y_ts_gt, y_tr_h, y_ts_h#, trn, tst
 
     save_obj(summ, SAVEFOLDER / MODELNAME)
     #results.to_csv(path_or_buf=SAVEFOLDER + MODELNAME + '.csv', sep='\t')
@@ -617,10 +637,10 @@ def run_regression_indexed_data(data, inds, regression_model, NORM_X=True, NORM_
                 max_depth=10, min_samples_split=2, min_samples_leaf=1).fit(trn.iloc[:,:-1], trn.iloc[:,-1])
 
     elif regression_model.lower() == 'rbfgpr':
-        kernel = 1.0 * kern.RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
-        1.0 * kern.WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4)) + \
-        1.0 * kern.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-05, 100000.0)) + \
-        1.0 * kern.DotProduct(sigma_0=1.0, sigma_0_bounds=(1e-05, 100000.0))
+        kernel = 1.0 * kernels.RBF(length_scale=1.0, length_scale_bounds=(1e-3, 1e3)) + \
+        1.0 * kernels.WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-1, 1e+4)) + \
+        1.0 * kernels.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-05, 100000.0)) + \
+        1.0 * kernels.DotProduct(sigma_0=1.0, sigma_0_bounds=(1e-05, 100000.0))
 
         regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b',
                         alpha=0, n_restarts_optimizer=5).fit(trn.iloc[:,:-1], trn.iloc[:,-1])

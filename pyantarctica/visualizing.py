@@ -149,8 +149,15 @@ def aggregated_bins_regression_plot_weights(stats,sets,colnames,options,colors,S
         plt.show(block=False)#
 
         if SAVE:
-            plt.savefig(options['SAVEFOLDER'] / ('weights_' + 'agg_bins' + '_leg_' + str(leg) + '_' + \
-                 sep_method + '_' + meth + '.png'), bbox_inches='tight')
+            if sep_method == 'temporal_subsampling':
+                add_string = '_' + options['SUB_OPTIONS']['submode']
+            else:
+                add_string = ''
+
+        plt.savefig(options['SAVEFOLDER'] / ('weights_' + 'agg_bins' + '_leg_' + str(leg) + '_' + \
+                 sep_method + '_' + meth + add_string + '.png'), bbox_inches='tight')
+
+    return fig, ax
 
 ##############################################################################################################
 def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
@@ -242,9 +249,17 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
             plt.suptitle(sep_method + ' mode')
             plt.show(block=False)#
 
+
             if SAVE:
-                plt.savefig(options['SAVEFOLDER'] / (errmeasure + '_leg_' + str(leg) + '_' + \
-                            sep_method + '.png'), bbox_inches='tight')
+                if sep_method == 'temporal_subsampling':
+                    add_string = '_' + options['SUB_OPTIONS']['submode']
+                else:
+                    add_string = ''
+
+
+            plt.savefig(options['SAVEFOLDER'] / (errmeasure + '_leg_' + str(leg) + '_' + \
+                            sep_method + add_string + '.png'), bbox_inches='tight')
+    return fig, ax
 
 ##############################################################################################################
 def single_bins_regression_plot_weights(stats,sets,colnames,options,colors,SAVE=True,ylim=[None, None]):
@@ -314,8 +329,15 @@ def single_bins_regression_plot_weights(stats,sets,colnames,options,colors,SAVE=
                 plt.show(block=False)#
 
             if SAVE:
-                filename = 'weights_' + meth + '_leg_' + str(leg) + '_' + sep_method + '_' + meth
-                plt.savefig((options['SAVEFOLDER'] / filename).with_suffix('.png'), bbox_inches='tight')
+                if sep_method == 'temporal_subsampling':
+                    add_string = '_' + options['SUB_OPTIONS']['submode']
+                else:
+                    add_string = ''
+
+            filename = 'weights_' + meth + '_leg_' + str(leg) + '_' + sep_method + '_' + meth + add_string
+            plt.savefig((options['SAVEFOLDER'] / filename).with_suffix('.png'), bbox_inches='tight')
+
+    return fig, ax
 
 ##############################################################################################################
 def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
@@ -400,8 +422,15 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                     plt.show(block=False)#
 
                 if SAVE:
-                    filename = errmeasure + '_' + meth + '_leg_' + str(leg) + '_' + sep_method
+                    if sep_method == 'temporal_subsampling':
+                        add_string = '_' + options['SUB_OPTIONS']['submode']
+                    else:
+                        add_string = ''
+
+                    filename = errmeasure + '_' + meth + '_leg_' + str(leg) + '_' + sep_method + add_string
                     plt.savefig((options['SAVEFOLDER'] / filename).with_suffix('.png'), bbox_inches='tight')
+
+    return fig, ax
 
 ##############################################################################################################
 def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
