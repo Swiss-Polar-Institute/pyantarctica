@@ -516,14 +516,19 @@ def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=
 
         bar_w = 0.16
         f,ax = plt.subplots(figsize=(7,4))
-        ra = np.arange(4)
+        ra = np.arange(4) # 3 legs + total
         n = np.arange(len(particles.columns.tolist())-1)
 
         legend = ['leg 1', 'leg 2', 'leg 3', 'whole series']
         in_ = 0
         for group in ra:
-            end_ = in_ + len(ra) +1
+            end_ = in_ + len(n)
+
             vals = list(corrs.values())[in_:end_]
+            # print(corrs)
+            # print(vals)
+
+            # print(len(vals), n, group, bar_w)
             ax.bar(n+group*bar_w, vals, bar_w, label=legend[group])
             in_ = end_
 
