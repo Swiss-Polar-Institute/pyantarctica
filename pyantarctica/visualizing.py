@@ -449,7 +449,8 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
 
         .. todo:: fix colors for plot as in scatter, but color lines rather than pointsself.
         .. todo:: add support for *custom* background image (e.g. sea surface temperature, wind magnitude, etc.) (use something.contourf() to interpolate linearly within a grid of values at known coordinates?)
-
+        .. todo: add support for geo-unreferenced basemaps
+        
         .. note:: The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
         .. note:: Latitude is in °N, longitude in is °E
     '''
