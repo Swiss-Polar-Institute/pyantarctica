@@ -450,7 +450,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         .. todo:: fix colors for plot as in scatter, but color lines rather than pointsself.
         .. todo:: add support for *custom* background image (e.g. sea surface temperature, wind magnitude, etc.) (use something.contourf() to interpolate linearly within a grid of values at known coordinates?)
         .. todo: add support for geo-unreferenced basemaps
-        
+
         .. note:: The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
         .. note:: Latitude is in °N, longitude in is °E
     '''
@@ -587,7 +587,7 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
         :returns: handles to figure and axes
     """
 
-    f, ax = plt.subplots(2,len(subset_columns_parameters),figsize=(20,6), sharex='col',
+    f, ax = plt.subplots(2,len(subset_columns_parameters), squeeze=False, figsize=(10,3), sharex='col',
                 sharey='row', gridspec_kw = {'height_ratios':[2, 1]}  )
 
     for vvnum, vv in enumerate(subset_columns_parameters):
@@ -599,9 +599,12 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
 
         bins_h = pd.cut(df[vv].loc[joind], bins, labels=[str(x) for x in range(nbins)], retbins=False)
 
+        xi = aerosol.loc[joind].groupby(bins_h).agg(np.nanmean)
+        st = aerosol.loc[joind].groupby(bins_h).agg(np.nanstd)
+
         ax[0,vvnum].errorbar(np.arange(nbins),
-                        aerosol.loc[joind].groupby(bins_h).agg(np.nanmean),
-                        yerr=0.5*aerosol.loc[joind].groupby(bins_h).agg(np.nanstd),
+                        xi,
+                        yerr=st,
                         ls='none', color='black')
         ax[0,vvnum].plot(np.arange(nbins), aerosol.loc[joind].groupby(bins_h).mean(), ls='-', color='red', linewidth=2)
 

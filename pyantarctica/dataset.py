@@ -32,15 +32,6 @@ def parsetime(x):
         :returns: nicely formatted timestamp string
     """
 
-    def zeropad_date(x):
-        """
-            Helper to left-pad with 0s the timestamp
-
-            :params x: timestamp string to be zeropadded, if len(x)<2
-            :returns: left - 0 padded string of length 2
-        """
-        return '0' + str(x) if len(x) < 2 else str(x)
-
     if len(x.split(' ')) > 1:
         x, b = x.split(' ')
         toadd = ' ' + b
@@ -62,6 +53,14 @@ def parsetime(x):
 
     return t_str
 
+def zeropad_date(x):
+    """
+        Helper to left-pad with 0s the timestamp
+
+        :params x: timestamp string to be zeropadded, if len(x)<2
+        :returns: left - 0 padded string of length 2
+    """
+    return '0' + str(x) if len(x) < 2 else str(x)
 ##############################################################################################################
 def add_datetime_index_from_column(df, old_column_name, string_format='%d.%m.%Y %H:%M:%S', index_name='timest_'):
 
