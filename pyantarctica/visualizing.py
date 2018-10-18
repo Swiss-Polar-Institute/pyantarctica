@@ -489,14 +489,14 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         # im = m.plot(lon,lat,color=colors,linewidth=markersize,label=labplot)
     else:
         print('unrecognized plot')
-        return
+        return -1
 
     # ax.set_title(labplot,fontsize=35)
 
     cax, _ = clb.make_axes(ax)
     cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
 
-    return ax
+    return fig, ax, cbar
 
 ##############################################################################################################
 def scatterplot_matrix(df, color=None, size=2):

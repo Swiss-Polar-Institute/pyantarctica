@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import sys
-
+from pathlib import Path
 import pyantarctica.dataset as dataset
 
 class Varlut:
@@ -12,27 +12,29 @@ class Varlut:
         # print(self.table['key'])
         self.table.set_index(self.table['key'], inplace=True)
         self.table.drop('key', axis=1, inplace=True)
+        # self.table.astype(str)
+        # print(self.table.dtypes)
         self.root_folder = root_folder
 
         if sys.platform == 'darwin':
             # print('deleting .DS_store')
             os.system("find . -name '.DS_Store' -delete")
-            self.sep = '/'
-        elif sys.platform == 'win32':
-            self.sep = "\\"
-
+        #elif sys.platform == 'win32'
 
     def getv_vname(self, vname):
         row = np.where(vname == self.table['variable'])[0]
+        # print(row, vname, type(vname))
+
         if len(row) > 1:
             print('found more than one match, returning the first')
-            row = row[0]
+            row = [row[0]]
 
-        key = self.table.iloc[row,:].name
-        print(key)
+        key = self.table.iloc[row,:].index.tolist()[0]
+
+        # print(key)
         fname = self.table.loc[key, 'filepath'] + self.table.loc[key, 'filename']
 
-        t_ = dataset.read_standard_dataframe(self.root_folder + self.sep + fname)
+        t_ = dataset.read_standard_dataframe(Path(self.root_folder) / fname)
         t_ = t_[vname]
         return t_
 
@@ -43,11 +45,11 @@ class Varlut:
 
         # The correct file can only be given by the intersection of the rows
         row = np.intersect1d(row_f, row_v)
-        key = self.table.iloc[row[0],:].name
+        key = self.table.iloc[row,:].index.tolist()[0]
 
-        print(key)
+        # print(key)
         fname = self.table.loc[key, 'filepath'] + self.table.loc[key, 'filename']
 
-        t_ = dataset.read_standard_dataframe(self.root_folder + self.sep + fname)
+        t_ = dataset.read_standard_dataframe(Path(self.root_folder) / fname)
         t_ = t_[vname]
         return t_
