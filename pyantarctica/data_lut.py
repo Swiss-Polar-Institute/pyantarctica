@@ -22,11 +22,14 @@ class Varlut:
         #elif sys.platform == 'win32'
 
     def getv_vname(self, vname):
+
         row = np.where(vname == self.table['variable'])[0]
         # print(row, vname, type(vname))
 
         if len(row) > 1:
-            print('found more than one match, returning the first')
+            print('found more than one match: ')
+            print(self.table.iloc[row,:].index.tolist())
+            print('returning the first %s')
             row = [row[0]]
 
         key = self.table.iloc[row,:].index.tolist()[0]
