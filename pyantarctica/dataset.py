@@ -17,11 +17,26 @@
 
 import numpy as np
 import pandas as pd
+import pickle
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from datetime import datetime, timedelta
+
+##############################################################################################################
+def save_obj(obj, fname):
+    """
+        Save obj dict as pickle binary
+
+        :param obj: dict, object to be saved
+        :param fname: string, folder address and name of the archive to be saved
+        :returns: nothing
+    """
+    fname = fname.with_suffix('.pkl')
+
+    with open(fname, 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 ##############################################################################################################
 def parsetime(x):

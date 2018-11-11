@@ -251,8 +251,9 @@ def compute_approximate_HSIC(X,Y, ncom=100, gamma=[None, None], ntrials=100, ran
         return KX
 
     if gamma[0] is None:
-        if X.shape[0] > 2000:
-            yy = np.random.choice(len(X),2000)
+
+        if X.shape[0] > 1000:
+            yy = np.random.choice(len(X),1000)
             x_ = X[yy]
             del yy
         else:
@@ -265,8 +266,8 @@ def compute_approximate_HSIC(X,Y, ncom=100, gamma=[None, None], ntrials=100, ran
         del GX, KX, mdist
 
     if gamma[1] is None:
-        if Y.shape[0] > 2000:
-            yy = np.random.choice(len(Y),2000)
+        if Y.shape[0] > 1000:
+            yy = np.random.choice(len(Y),1000)
             y_ = Y[yy]
             del yy
         else:
@@ -281,7 +282,10 @@ def compute_approximate_HSIC(X,Y, ncom=100, gamma=[None, None], ntrials=100, ran
     hs_a = 0
     rbf_feature_x = RBFSampler(gamma=gamma[0], random_state=random_state, n_components=ncom)
     rbf_feature_y = RBFSampler(gamma=gamma[1], random_state=random_state, n_components=ncom)
+
     for trial in range(ntrials):
+        if (X.shape[0] < 1)|(Y.shape[0] < 1):
+            continue
 
         X_f = rbf_feature_x.fit_transform(X)
         X_f -= np.mean(X_f,axis=0)
@@ -291,36 +295,49 @@ def compute_approximate_HSIC(X,Y, ncom=100, gamma=[None, None], ntrials=100, ran
         A = X_f.T.dot(Y_f)
         B = Y_f.T.dot(X_f)
         C = A.dot(B)
-
         hs_a += 1/X_f.shape[0]**2 * np.trace(C)
+
     return hs_a / ntrials
 
 ##############################################################################################################
 def dependency_measures_per_dataset(series_1, series_2):
+    from tqdm import tqdm
     file_string = 'part_waves'
 
     COR = np.zeros((series_1.shape[1],series_2.shape[1]))
     MI = np.zeros((series_1.shape[1],series_2.shape[1]))
-    NMI = np.zeros((series_1.shape[1],series_2.shape[1]))
     HSIC = np.zeros((series_1.shape[1],series_2.shape[1]))
+    NSAMP = np.zeros((series_1.shape[1],series_2.shape[1]))
 
     for i1, pa1 in enumerate(series_1.columns.tolist()):
-        print(pa1, end=' ')
+        print(i1, end=' ')
         for i2, pa2 in enumerate(series_2.columns.tolist()):
     #         print('.',end='')
+            if set(series_1.columns.tolist())==set(series_2.columns.tolist()): # True:
+                if i2 >= i1:
+                    # print(pa1, pa2, end=' ')
+                    # 1: pair data and drop nans
+                    V = pd.concat([series_1.iloc[:,i1],series_2.iloc[:,i2]], axis=1).dropna()
+                    v1, v2 = (V.iloc[:,0], V.iloc[:,1]) # could add +1 to both to avoid 0 counts.
 
-            if i2 >= i1: # True:
-                # 1: pair data and drop nans
+                    rho = np.corrcoef(V.transpose())#.iloc[:,0], V.iloc[:,1])
+                    COR[i1,i2] = rho[0,1]
+                    MI[i1,i2] = compute_mutual_information(v1,v2,nbins=128,sigma_smooth=2)
+                    HSIC[i1,i2] = compute_approximate_HSIC(v1.values.reshape(-1,1),v2.values.reshape(-1,1), ncom=100, gamma=[None, None], ntrials=100, random_state=1, sigma_prior=1)
+            else:
                 V = pd.concat([series_1.iloc[:,i1],series_2.iloc[:,i2]], axis=1).dropna()
                 v1, v2 = (V.iloc[:,0], V.iloc[:,1]) # could add +1 to both to avoid 0 counts.
 
                 rho = np.corrcoef(V.transpose())#.iloc[:,0], V.iloc[:,1])
                 COR[i1,i2] = rho[0,1]
                 MI[i1,i2] = compute_mutual_information(v1,v2,nbins=128,sigma_smooth=2)
-                HSIC[i1,i2] = compute_approximate_HSIC(v1.values.reshape(1,-1),v2.values.reshape(1,-1), ncom=100, gamma=[None, None], ntrials=100, random_state=1, sigma_prior = 1)
+                HSIC[i1,i2] = compute_approximate_HSIC(v1.values.reshape(-1,1),v2.values.reshape(-1,1), ncom=100, gamma=[None, None], ntrials=5, random_state=1, sigma_prior = 1)
+                NSAMP[i1,i2] = V.shape[0]
 
-    COR = (COR + COR.T) - np.diag(np.diag(COR))
-    MI = (MI + MI.T) - np.diag(np.diag(MI))
-    HSIC = (HSIC + HSIC.T) - np.diag(np.diag(HSIC))
+    if set(series_1.columns.tolist())==set(series_2.columns.tolist()): # True:
+        COR = (COR + COR.T) - np.diag(np.diag(COR))
+        MI = (MI + MI.T) - np.diag(np.diag(MI))
+        HSIC = (HSIC + HSIC.T) - np.diag(np.diag(HSIC))
+        NSAMP = (NSAMP + NSAMP.T) - np.diag(np.diag(NSAMP))
 
-    return COR, MI, HSIC
+    return COR, MI, HSIC, NSAMP
