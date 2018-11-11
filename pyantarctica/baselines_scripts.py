@@ -39,21 +39,7 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.utils import shuffle
 
 from . import dataset, modeling
-
 ## FUNCTIONS
-##############################################################################################################
-def save_obj(obj, fname):
-    """
-        Save obj dict as pickle binary
-
-        :param obj: dict, object to be saved
-        :param fname: string, folder address and name of the archive to be saved
-        :returns: nothing
-    """
-    fname = fname.with_suffix('.pkl')
-
-    with open(fname, 'wb') as f:
-        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 ##############################################################################################################
 def run_baselines_wave_particle_size(data, options):
@@ -309,7 +295,7 @@ def run_baselines_wave_particle_size(data, options):
 
                             del leg_whole_, regModel, y_tr_gt, y_ts_gt, y_tr_h, y_ts_h
 
-    save_obj(summ, SAVEFOLDER / MODELNAME)
+    # save_obj(summ, SAVEFOLDER / MODELNAME)
     #results.to_csv(path_or_buf=SAVEFOLDER + MODELNAME + '.csv', sep='\t')
     return summ
 
@@ -426,9 +412,6 @@ def run_baselines_particle_size(data, options):
                     else:
                         y = trn.iloc[:,-1]
 
-                    del trn
-                    # 
-
                     ######### 1 : Ridge Regression
                     if meth.lower() == 'ridgereg':
                         MSE_error = make_scorer(mean_squared_error, greater_is_better=False)
@@ -503,7 +486,6 @@ def run_baselines_particle_size(data, options):
                         x = tst.iloc[:,:-1]
 
                     y_ts_gt = tst.iloc[:,-1]
-                    del tst
 
                     if meth.lower() == 'rbfgprard':
                         # x_ = tst_.values
@@ -571,9 +553,9 @@ def run_baselines_particle_size(data, options):
                         # results = pd.DataFrame(index=[],columns=['n_ts', 'tst_r2','tst_rmse',' n_tr', 'trn_r2','trn_rmse'])
                     #    results.loc[nre-1] = [len(y_ts_h), r2, mse, len(y_tr_h), t_r2, t_mse]
 
-                    del leg_whole_, regModel, y_tr_gt, y_ts_gt, y_tr_h, y_ts_h#, trn, tst
+                    del leg_whole_, regModel, y_tr_gt, y_ts_gt, y_tr_h, y_ts_h, trn, tst
 
-    save_obj(summ, SAVEFOLDER / MODELNAME)
+    # save_obj(summ, SAVEFOLDER / MODELNAME)
     #results.to_csv(path_or_buf=SAVEFOLDER + MODELNAME + '.csv', sep='\t')
     return summ
 

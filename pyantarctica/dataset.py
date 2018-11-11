@@ -17,11 +17,26 @@
 
 import numpy as np
 import pandas as pd
+import pickle
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 from datetime import datetime, timedelta
+
+##############################################################################################################
+def save_obj(obj, fname):
+    """
+        Save obj dict as pickle binary
+
+        :param obj: dict, object to be saved
+        :param fname: string, folder address and name of the archive to be saved
+        :returns: nothing
+    """
+    fname = fname.with_suffix('.pkl')
+
+    with open(fname, 'wb') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 ##############################################################################################################
 def parsetime(x):
@@ -31,15 +46,6 @@ def parsetime(x):
         :param x: string containing badly formatted timestams
         :returns: nicely formatted timestamp string
     """
-
-    def zeropad_date(x):
-        """
-            Helper to left-pad with 0s the timestamp
-
-            :params x: timestamp string to be zeropadded, if len(x)<2
-            :returns: left - 0 padded string of length 2
-        """
-        return '0' + str(x) if len(x) < 2 else str(x)
 
     if len(x.split(' ')) > 1:
         x, b = x.split(' ')
@@ -62,6 +68,14 @@ def parsetime(x):
 
     return t_str
 
+def zeropad_date(x):
+    """
+        Helper to left-pad with 0s the timestamp
+
+        :params x: timestamp string to be zeropadded, if len(x)<2
+        :returns: left - 0 padded string of length 2
+    """
+    return '0' + str(x) if len(x) < 2 else str(x)
 ##############################################################################################################
 def add_datetime_index_from_column(df, old_column_name, string_format='%d.%m.%Y %H:%M:%S', index_name='timest_'):
 
@@ -170,8 +184,12 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position=
             df_res = dataset.ts_aggregate_timebins(df1, 15, operations, index_position='initial')
             print(df_res.head())
     """
-    res_ = str(time_bin) + 'T'
-
+    if type(time_bin) == int:
+        res_ = str(time_bin) + 'T'
+    elif type(time_bin) == str:
+        res_ = time_bin + 'T'
+    else:
+        error('time bin in wrong type!')
     df = pd.DataFrame()
 
     for cols in df1.columns.tolist()[0:]:
@@ -516,14 +534,19 @@ def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=
 
         bar_w = 0.16
         f,ax = plt.subplots(figsize=(7,4))
-        ra = np.arange(4)
+        ra = np.arange(4) # 3 legs + total
         n = np.arange(len(particles.columns.tolist())-1)
 
         legend = ['leg 1', 'leg 2', 'leg 3', 'whole series']
         in_ = 0
         for group in ra:
-            end_ = in_ + len(ra) +1
+            end_ = in_ + len(n)
+
             vals = list(corrs.values())[in_:end_]
+            # print(corrs)
+            # print(vals)
+
+            # print(len(vals), n, group, bar_w)
             ax.bar(n+group*bar_w, vals, bar_w, label=legend[group])
             in_ = end_
 

@@ -288,13 +288,15 @@ def single_bins_regression_plot_weights(stats,sets,colnames,options,colors,SAVE=
     for sep_method in options['SEP_METHOD']:
         tickname = colnames#options['COLNAMES']
         for ind, meth in enumerate(options['REGR_WITH_WEIGTHS']):
-            index = np.arange(len(options['COLNAMES']))
             fig, ax = plt.subplots(len(tickname), len_plot, sharey='row',
                             tight_layout=False,
                             figsize=(15,10), squeeze=False)
 
             for legind, leg in enumerate(options['LEG_P']):
+
                 for ind_w, parname in enumerate(tickname):
+                    index = np.arange(len(options['COLNAMES']))
+
                     string_plots = 'leg_' + str(leg) + '_' + sep_method + '_' + meth
                     w = []; s = []
                     for bin_ in sets:
@@ -306,7 +308,7 @@ def single_bins_regression_plot_weights(stats,sets,colnames,options,colors,SAVE=
 
                     ax[ind_w,legind].bar(index, w, bar_w,
                                          color=tuple(colors[ind,:]), yerr=s)#olors[ind]'
-                    index = index + bar_w
+                    # index = index + bar_w
 
                     # if leg == 1:
                     if ~ind_w%2 | (ind_w==0):
@@ -320,14 +322,13 @@ def single_bins_regression_plot_weights(stats,sets,colnames,options,colors,SAVE=
                         ax[ind_w,legind].axvline(c)
 
                 index = np.arange(0,len(sets),1)
-                ax[-1,legind].set_xticks(index)
-                ax[-1,legind].set_xticklabels('')
-                ax[-1,legind].grid(color='black', which='both', axis='y', linestyle=':')
+                ax[-1,legind].set_xticks(index[::5])
+                ax[-1,legind].set_xticklabels(options['COLNAMES'][::5],fontsize=10,rotation='vertical')
+                ax[ind_w,legind].grid(color='black', which='both', axis='y', linestyle=':')
                 ax[-1,legind].set_ylim(ylim)
 
                 plt.suptitle(meth + '_leg_' + str(leg) + '_' + sep_method)
                 ax[-1,legind].set_xlabel('LEG ' + str(leg), fontsize=16)
-                ax[-1,legind].set_xticklabels(options['COLNAMES'],fontsize=5,rotation='vertical')
                 plt.show(block=False)#
 
             if SAVE:
@@ -408,8 +409,8 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                         ax[legind].set_ylabel(errmeasure)
                         ax[legind].legend()
 
-                    ax[legind].set_xticks(index)
-                    ax[legind].set_xticklabels('')
+                    ax[legind].set_xticks(index[::5])
+                    ax[legind].set_xticklabels(options['COLNAMES'][::5],fontsize=10,rotation='vertical')
 
                     if errmeasure.lower() == 'r2':
                         ax[legind].set_ylim([-0.5,1])
@@ -419,9 +420,9 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                         ax[legind].axvline(c)
 
                     plt.suptitle(errmeasure + '_' + meth + '_leg_' + str(leg) + '_' + sep_method)
-                    ax[legind].set_xlabel('LEG ' + str(leg), fontsize=16)
-                    ax[legind].set_xticklabels(options['COLNAMES'],fontsize=5,rotation='vertical')
+                    fig.subplots_adjust(bottom=0.2) # or whatever
                     plt.show(block=False)#
+
 
                 if SAVE:
                     if sep_method == 'temporal_subsampling':
@@ -453,6 +454,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
 
         .. todo:: fix colors for plot as in scatter, but color lines rather than pointsself.
         .. todo:: add support for *custom* background image (e.g. sea surface temperature, wind magnitude, etc.) (use something.contourf() to interpolate linearly within a grid of values at known coordinates?)
+        .. todo: add support for geo-unreferenced basemaps
 
         .. note:: The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
         .. note:: Latitude is in °N, longitude in is °E
@@ -492,7 +494,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         # im = m.plot(lon,lat,color=colors,linewidth=markersize,label=labplot)
     else:
         print('unrecognized plot')
-        return
+        return -1
 
     # ax.set_title(labplot,fontsize=35)
 
@@ -516,7 +518,7 @@ def scatterplot_matrix(df, color=None, size=2):
     df.columns = [str(cc) for cc in df.columns]
 
     nrows, ncols = df.shape[1], df.shape[1]
-    fig, ax = plt.subplots(nrows, ncols, sharex=False, sharey=False, tight_layout=True, figsize=(10,10))
+    fig, ax = plt.subplots(nrows, ncols, sharex=False, sharey=False, tight_layout=True, figsize=(15,15))
 
     row = 0; col = 0;
     for row, r_name in enumerate(df.columns):
@@ -524,7 +526,7 @@ def scatterplot_matrix(df, color=None, size=2):
             if col == row:
                 ax[row,col].hist(df.iloc[:,row],bins=100, histtype='step')
             elif col != row:
-                ax[row,col].scatter(df.iloc[:,col],df.iloc[:,row],c=color, s=size)
+                ax[row,col].scatter(df.iloc[:,col],df.iloc[:,row],c=color, s=size, alpha=0.2)
 
             if col == 0:
                 ax[row,col].set_ylabel(r_name)
@@ -590,7 +592,7 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
         :returns: handles to figure and axes
     """
 
-    f, ax = plt.subplots(2,len(subset_columns_parameters),figsize=(20,6), sharex='col',
+    f, ax = plt.subplots(2,len(subset_columns_parameters), squeeze=False, figsize=(10,3), sharex='col',
                 sharey='row', gridspec_kw = {'height_ratios':[2, 1]}  )
 
     for vvnum, vv in enumerate(subset_columns_parameters):
@@ -602,9 +604,12 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
 
         bins_h = pd.cut(df[vv].loc[joind], bins, labels=[str(x) for x in range(nbins)], retbins=False)
 
+        xi = aerosol.loc[joind].groupby(bins_h).agg(np.nanmean)
+        st = aerosol.loc[joind].groupby(bins_h).agg(np.nanstd)
+
         ax[0,vvnum].errorbar(np.arange(nbins),
-                        aerosol.loc[joind].groupby(bins_h).agg(np.nanmean),
-                        yerr=0.5*aerosol.loc[joind].groupby(bins_h).agg(np.nanstd),
+                        xi,
+                        yerr=st,
                         ls='none', color='black')
         ax[0,vvnum].plot(np.arange(nbins), aerosol.loc[joind].groupby(bins_h).mean(), ls='-', color='red', linewidth=2)
 
