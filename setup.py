@@ -34,8 +34,8 @@ extras_require = {}
 
 setup(
     name="pyantarctica",
-    version="0.1.2.dev20180712",
-    license='Apache License 2.0',
+    version="0.1.2.dev20181115",
+    license='Apache License 2.0', 
     url="",
 
     author="Michele Volpi, Swiss Data Science Center (SDSC)",
