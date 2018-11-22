@@ -136,9 +136,9 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
 
         # with updated charnock (and ustar) re-calcualte z0 and the Drag Coefficient
         z0 = gamma*(visa/ustar)+charnock*ustar*ustar/grav;
-        sqrt_C_D = (vkarman/np.log(z/z0));
-        sqrt_C_D = (vkarman/(np.log(z/z0)-PSIu(zeta))); # when adding stability use this equation ...
-        sqrt_C_D_10 = (vkarman/np.log(10/z0)); # 10m neutral drag coefficient
+        sqrt_C_D = (vKarman/np.log(z/z0));
+        sqrt_C_D = (vKarman/(np.log(z/z0)-PSIu(zeta))); # when adding stability use this equation ...
+        sqrt_C_D_10 = (vKarman/np.log(10/z0)); # 10m neutral drag coefficient
 
         if input_string == 'ustar2u':
             #ustar stays const (input)
