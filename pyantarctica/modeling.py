@@ -341,3 +341,84 @@ def dependency_measures_per_dataset(series_1, series_2):
         NSAMP = (NSAMP + NSAMP.T) - np.diag(np.diag(NSAMP))
 
     return COR, MI, HSIC, NSAMP
+
+##############################################################################################################
+def smooth_weight_ridge_regression(data, labels, opts, ITERS=100, THRESH=1e-6):
+    """
+        Define a multitask regression problem in which tasks are locally smooth (e.g. bin size prediction), and introduce a penalty in which weights of regressors of related tasks are encouraged to be similar.
+    """
+    def retrieve_mt_norm(W,ind_w):
+        if ind_w == 0:
+            W_subs = W[:,ind_w+1]#:ind_w+1]
+        #         elif ind_w == T-2:
+        #             W_subs = W[:,ind_w-2:T]
+        #         elif ind_w == 1:
+        #             W_subs = W[:,ind_w-1]
+        elif ind_w == T-1:
+            W_subs = W[:,ind_w-1]
+        else:
+            W_subs = 0.5*(W[:,ind_w-1] + W[:,ind_w+1])
+
+        return W_subs
+
+    D = data.shape[1]
+    T = labels.shape[1]
+
+    print(opts)
+
+    par1 = opts['par1']
+    par2 = opts['par2']
+    tr_ts_split = opts['tr_ts_split']
+
+    W_old = np.ones((D,T))
+    W = np.random.rand(D,T)
+
+    # init stuff
+    k = 0
+    epsi = 1000
+    loss = []
+    data_mean = data.mean(axis=0)
+    data_std = data.std(axis=0)
+    label_mean = labels.mean(axis=0)
+    label_std = labels.std(axis=0)
+
+    fi_loop = True
+    inds = np.zeros((data.shape[0], T))
+
+    while (epsi > opts['THRESH'])&(k < opts['ITERS']):
+        schedule = np.random.permutation(range(T))
+        W_old = W.copy()
+        for ind_w in schedule:
+            X_Y = data.assign(y=labels.iloc[:,ind_w])
+
+            if fi_loop:
+                n_na = np.where(~X_Y.isnull().any(axis=1))[0]
+                n_na = np.random.permutation(n_na)
+                tr = n_na[:int(np.floor(tr_ts_split*len(n_na)))]
+                ts = n_na[int(np.floor(tr_ts_split*len(n_na))):]
+                inds[tr,ind_w] = 1
+                inds[ts,ind_w] = 2
+
+            train_X = X_Y.iloc[inds[:,ind_w] == 1, :-1]
+            train_Y = X_Y.iloc[inds[:,ind_w] == 1, -1]
+
+            N = train_X.shape[0]
+
+            W_mt_n = retrieve_mt_norm(W,ind_w)
+            A = 1/N * np.dot(train_X.T,train_X) + par1*np.eye(D) + par2*np.eye(D)
+            A = np.linalg.inv(A)
+
+            B = 1/N * np.dot(train_X.T,train_Y) + par2*W_mt_n
+
+            W[:,ind_w] = np.matmul(A,B)
+
+        if fi_loop:
+            fi_loop = False
+
+        epsi = np.abs(np.sum(np.sum(W-W_old)))
+        loss.append(epsi)
+        print(k, end=' ')
+        k += 1
+
+    print(k, epsi)
+    return W, loss, inds
