@@ -421,7 +421,7 @@ def run_baselines_particle_size(data, options):
                         regModel.coef_ = regModel.coef_[0]
 
                     elif meth.lower() == 'bayesianreg':
-                        regModel = sk.linear_model.BayesianRidge(n_iter=300, tol=1.e-6, alpha_1=1.e-6, alpha_2=1.e-6, lambda_1=1.e-6, lambda_2=1.e-6, compute_score=True, fit_intercept=True, normalize=False).fit(X,y.ravel())
+                        regModel = sk.linear_model.BayesianRidge(n_iter=300, tol=1.e-6, alpha_1=1.e-6, alpha_2=1.e-6, lambda_1=1.e-6, lambda_2=1.e-6, compute_score=True, fit_intercept=False, normalize=True).fit(X,y.ravel())
 
 
                     elif meth.lower() == 'pls':

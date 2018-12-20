@@ -343,28 +343,48 @@ def dependency_measures_per_dataset(series_1, series_2):
     return COR, MI, HSIC, NSAMP
 
 ##############################################################################################################
-def smooth_weight_ridge_regression(data, labels, opts, ITERS=100, THRESH=1e-6):
+def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRESH=1e-6):
     """
         Define a multitask regression problem in which tasks are locally smooth (e.g. bin size prediction), and introduce a penalty in which weights of regressors of related tasks are encouraged to be similar.
     """
-    def retrieve_mt_norm(W,ind_w):
-        if ind_w == 0:
-            W_subs = W[:,ind_w+1]#:ind_w+1]
-        #         elif ind_w == T-2:
-        #             W_subs = W[:,ind_w-2:T]
-        #         elif ind_w == 1:
-        #             W_subs = W[:,ind_w-1]
-        elif ind_w == T-1:
-            W_subs = W[:,ind_w-1]
-        else:
-            W_subs = 0.5*(W[:,ind_w-1] + W[:,ind_w+1])
 
-        return W_subs
+    from sklearn.metrics import mean_squared_error, r2_score
+    # from sklearn.model_selection import KFold
+
+    def retrieve_neigh_norm(W,ind_w,ss):
+        L = W.shape[1]
+        hs = int(np.floor(ss/2))
+        if ind_w < hs:
+            W_subs = W[:,0:(ind_w + hs + 1)]
+            # W_subs = W[:,np.setdiff1d(range(0,(ind_w+hs+1),1),ind_w)]
+
+        elif ind_w > (L-hs-1):
+            W_subs = W[:,(ind_w-hs):L]
+            # W_subs = W[:,np.setdiff1d(range((ind_w-hs),L,1),ind_w)]
+
+        else:
+            W_subs = W[:,(ind_w-hs):(ind_w+hs+1)]
+            # W_subs = W[:,np.setdiff1d(range((ind_w-hs),(ind_w+hs+1),1),ind_w)]
+
+        return 1/(len(W_subs)) * np.sum(W_subs, axis=1)
+
+        # if ind_w == 0:
+        #     W_subs = W[:,ind_w+1]#:ind_w+1]
+        # #         elif ind_w == T-2:
+        # #             W_subs = W[:,ind_w-2:T]
+        # #         elif ind_w == 1:
+        # #             W_subs = W[:,ind_w-1]
+        # elif ind_w == T-1:
+        #     W_subs = W[:,ind_w-1]
+        # else:
+        #     W_subs = 0.5*(W[:,ind_w-1] + W[:,ind_w+1])
+        #
+        # return W_subs
 
     D = data.shape[1]
     T = labels.shape[1]
 
-    print(opts)
+    # print(opts)
 
     par1 = opts['par1']
     par2 = opts['par2']
@@ -373,52 +393,242 @@ def smooth_weight_ridge_regression(data, labels, opts, ITERS=100, THRESH=1e-6):
     W_old = np.ones((D,T))
     W = np.random.rand(D,T)
 
+    # Not so easy to use defaults... see if something can be done to use CV
+    # k_fold = KFold(n_splits=opts['KFOLD'])
+    # for train_indices, test_indices in k_fold.split(X):
+
     # init stuff
     k = 0
     epsi = 1000
     loss = []
-    data_mean = data.mean(axis=0)
-    data_std = data.std(axis=0)
-    label_mean = labels.mean(axis=0)
-    label_std = labels.std(axis=0)
-
-    fi_loop = True
-    inds = np.zeros((data.shape[0], T))
-
     while (epsi > opts['THRESH'])&(k < opts['ITERS']):
-        schedule = np.random.permutation(range(T))
+        # schedule = np.random.permutation(range(T))
+        schedule = range(T)
         W_old = W.copy()
         for ind_w in schedule:
-            X_Y = data.assign(y=labels.iloc[:,ind_w])
-
-            if fi_loop:
-                n_na = np.where(~X_Y.isnull().any(axis=1))[0]
-                n_na = np.random.permutation(n_na)
-                tr = n_na[:int(np.floor(tr_ts_split*len(n_na)))]
-                ts = n_na[int(np.floor(tr_ts_split*len(n_na))):]
-                inds[tr,ind_w] = 1
-                inds[ts,ind_w] = 2
-
+            X_Y = data.assign(y=labels.iloc[:,ind_w]).copy()
             train_X = X_Y.iloc[inds[:,ind_w] == 1, :-1]
             train_Y = X_Y.iloc[inds[:,ind_w] == 1, -1]
-
             N = train_X.shape[0]
 
-            W_mt_n = retrieve_mt_norm(W,ind_w)
-            A = 1/N * np.dot(train_X.T,train_X) + par1*np.eye(D) + par2*np.eye(D)
+            W_mt_n = retrieve_neigh_norm(W,ind_w, opts['WIN_SIZE'])
+
+            # W_mt_n = 1/T * np.sum(W[:,~ind_w],axis=1)
+            # A = 1/N * np.dot(train_X.T,train_X) + 1/N * par1*np.eye(D) + 1/T * par2*np.eye(D)
+            A = np.dot(train_X.T,train_X) + par1*np.eye(D) + par2*np.eye(D)
             A = np.linalg.inv(A)
 
-            B = 1/N * np.dot(train_X.T,train_Y) + par2*W_mt_n
+            # B = 1/N * np.dot(train_X.T,train_Y) + 1/T * par2*W_mt_n
+            B = np.dot(train_X.T,train_Y) + par2*W_mt_n
 
-            W[:,ind_w] = np.matmul(A,B)
+            W[:,ind_w] = np.dot(A,B)
 
-        if fi_loop:
-            fi_loop = False
+        epsi = np.abs(np.sum(np.sum(W-W_old)))
+        # print(f'iter {k}, size W {W.shape}, loss {epsi}')
+
+        loss.append(epsi)
+        k += 1
+    print(f'iter {k}, size W {W.shape}, loss {epsi}')
+
+    y_hat = np.zeros((opts['DATA_SIZE'][0],T))
+    stats = {}
+    stats['tr_RMSE'] = []#np.inf*np.ones((T))
+    stats['tr_R2'] = []#np.inf*np.ones((T))
+    stats['va_RMSE'] = []#np.inf*np.ones((T))
+    stats['va_R2'] = []#np.inf*np.ones((T))
+
+    # if opts['VAL_MODE']:
+    for ind_w in range(T):
+        X_Y = data.assign(y=labels.iloc[:,ind_w]).copy()
+        trn_X = X_Y.iloc[inds[:,ind_w] == 1, :-1]
+        trn_Y = X_Y.iloc[inds[:,ind_w] == 1, -1]
+        pred_tr_Y = np.dot(trn_X,W[:,ind_w])
+
+        stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
+        stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
+
+        y_hat[inds[:,ind_w] == 1, ind_w] = pred_tr_Y
+
+        if np.any(inds[:,ind_w] == 2):
+
+            val_X = X_Y.iloc[inds[:,ind_w] == 2, :-1]
+            val_Y = X_Y.iloc[inds[:,ind_w] == 2, -1]
+            pred_va_Y = np.dot(val_X,W[:,ind_w])
+
+            stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
+            stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
+
+            y_hat[inds[:,ind_w] == 2, ind_w] = pred_va_Y
+
+    return W, loss, inds, stats, y_hat
+
+##############################################################################################################
+def CV_smooth_weight_ridge_regression(data, labels, inds, opts):
+    """
+        Cross-validate smooth ridge regression
+        CV_MEASURE: val_R2, trn_R2, minLoss
+    """
+
+    if not opts['CV_MEASURE']:
+        opts['CV_MEASURE'] = 'val_R2'
+        if not opts['VAL_MODE']:
+            print("opts['VAL_MODE'] must be set to True")
+            return
+
+    par1_cv = opts['par1_cv']
+    par2_cv = opts['par2_cv']
+
+    trerr = np.zeros((len(par1_cv)*len(par2_cv), opts['TASKS']))
+    vaerr = np.zeros((len(par1_cv)*len(par2_cv), opts['TASKS']))
+
+    minlo = np.zeros((len(par1_cv)*len(par2_cv), 1))
+    pars = np.zeros((len(par1_cv)*len(par2_cv), 2))
+
+    count = 0
+    for p1 in par1_cv:
+        for p2 in par2_cv:
+
+            opts['par1'] = p1
+            opts['par2'] = p2
+
+            W_mtl, loss, inds, stats, y_hat = smooth_weight_ridge_regression(data, labels, inds, opts)#, ITERS=100, THRESH=1e-6):
+
+            trerr[count, :] = stats['tr_R2']
+            vaerr[count, :] = stats['va_R2']
+            minlo[count, 0] = loss[-1]
+            pars[count, :] = [p1,p2]
+
+            # print(f"c {count}, p1 {p1}, p2 {p2}, loss {loss[-1]}, trerr {0.01 * np.sum(stats['tr_R2'])}, valerr {0.01 * np.sum(stats['va_R2'])}")
+
+            count += 1
+
+
+    if opts['CV_MEASURE'] == 'trn_R2':
+        p1,p2 = pars[np.argmax(np.sum(vaerr,axis=1)),:]
+
+    elif opts['CV_MEASURE'] == 'val_R2':
+        p1,p2 = pars[np.argmax(np.sum(trerr,axis=1)),:]
+
+    elif opts['CV_MEASURE'] == 'minLoss':
+        p1,p2 = pars[np.argmin(minlo),:]
+
+    print(f'p1 {p1}, p2 {p2}')
+    return p1, p2
+
+##############################################################################################################
+def bayesian_smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRESH=1e-6):
+    """
+        Define a Bayesian multitask regression problem in which tasks are locally smooth (e.g. bin size prediction), and introduce a penalty in which weights of regressors of related tasks are encouraged to be similar.
+        See https://icml.cc/Conferences/2005/proceedings/papers/128_GaussianProcesses_YuEtAl.pdf
+    """
+    import scipy.stats as stats
+    from sklearn.metrics import mean_squared_error, r2_score
+    # from sklearn.model_selection import KFold
+
+    D = data.shape[1]
+    T = labels.shape[1]
+
+    # par1 = opts['par1']
+    # par2 = opts['par2']
+    # tr_ts_split = opts['tr_ts_split']
+
+    W_old = np.ones((D,T))
+    W = np.random.rand(D,T)
+
+    # Not so easy to use defaults... see if something can be done to use CV
+    # k_fold = KFold(n_splits=opts['KFOLD'])
+    # for train_indices, test_indices in k_fold.split(X):
+    tau = opts['par1']
+    pi = opts['par2']
+
+    # C_ = data.dropna().sample(n=100)
+    # C_ = 1/(100-1)*C_.T.dot(C_)
+
+    # sample priors from hyperprior (NIW)
+    C_w = stats.invwishart.rvs(tau, np.eye(D))
+    # print(np.linalg.eig(C_w))
+    mu_w = np.random.multivariate_normal(np.zeros((D)), 1/pi * C_w) # np.ones((D,1))
+    # print(mu_w)
+    sigma = 1
+
+    k = 0
+    epsi = 1000
+    loss = []
+
+    while (epsi > opts['THRESH'])&(k < opts['ITERS']):
+        # schedule = np.random.permutation(range(T))
+
+        # E-step:
+        schedule = range(T)
+        W_old = W.copy()
+        C_w_temp = 0
+        w_l_ce_temp = 0
+        sigma_l = 0
+        n_l = 0
+        for ind_w in schedule:
+            # print(ind_w)
+            X_Y = data.assign(y=labels.iloc[:,ind_w]).copy()
+            train_X = X_Y.iloc[inds[:,ind_w] == 1, :-1]
+            train_Y = X_Y.iloc[inds[:,ind_w] == 1, -1]
+            N = train_X.shape[0]
+            A = 1/sigma * np.dot(train_X.T,train_X) + np.linalg.inv(C_w)
+            A = np.linalg.inv(A)
+            # print(A)
+            C_w_temp += A
+
+            # print(np.dot(train_X.T,train_Y).T, np.matmul(np.linalg.inv(C_w), mu_w))
+            B = 1/sigma * np.dot(train_X.T,train_Y).T + np.matmul(mu_w.T, np.linalg.inv(C_w))
+            W[:,ind_w] = np.dot(A,np.squeeze(B))
+
+            w_ = W[:,ind_w] - mu_w
+            w_l_ce_temp += np.dot(w_,w_.T)
+
+            n_l += N
+            sigma_l += np.sum((train_Y - train_X.dot(W[:,ind_w]))**2) + np.trace(train_X.dot(C_w.dot(train_X.T)))
+            # print(mu_w)
+            #
+
+        # M-step
+        mu_w = 1/(pi + T) * np.sum(W,axis=1)
+        C_w =  1/(tau + T) * (pi*np.dot(mu_w,mu_w.T) + tau*np.eye(D) + w_l_ce_temp) # + tau*np.eye(D)
+        sigma = 1/n_l * sigma_l
+
 
         epsi = np.abs(np.sum(np.sum(W-W_old)))
         loss.append(epsi)
-        print(k, end=' ')
+        # print(f'iter {k}, size W {W.shape}, loss {epsi}')
         k += 1
+    # print(f'iter {k}, cost {epsi})
+    print(f'iter {k}, size W {W.shape}, loss {epsi}')
 
-    print(k, epsi)
-    return W, loss, inds
+    y_hat = np.zeros((opts['DATA_SIZE'][0],T))
+    stats = {}
+    stats['tr_RMSE'] = []#np.inf*np.ones((T))
+    stats['tr_R2'] = []#np.inf*np.ones((T))
+    stats['va_RMSE'] = []#np.inf*np.ones((T))
+    stats['va_R2'] = []#np.inf*np.ones((T))
+
+    # if opts['VAL_MODE']:
+    for ind_w in range(T):
+        X_Y = data.assign(y=labels.iloc[:,ind_w]).copy()
+        trn_X = X_Y.iloc[inds[:,ind_w] == 1, :-1]
+        trn_Y = X_Y.iloc[inds[:,ind_w] == 1, -1]
+        pred_tr_Y = np.dot(trn_X,W[:,ind_w])
+
+        stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
+        stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
+
+        y_hat[inds[:,ind_w] == 1, ind_w] = pred_tr_Y
+
+        if np.any(inds[:,ind_w] == 2):
+
+            val_X = X_Y.iloc[inds[:,ind_w] == 2, :-1]
+            val_Y = X_Y.iloc[inds[:,ind_w] == 2, -1]
+            pred_va_Y = np.dot(val_X,W[:,ind_w])
+
+            stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
+            stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
+
+            y_hat[inds[:,ind_w] == 2, ind_w] = pred_va_Y
+
+    return W, loss, inds, stats, y_hat
