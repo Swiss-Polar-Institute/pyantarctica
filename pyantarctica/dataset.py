@@ -189,7 +189,9 @@ def ts_aggregate_timebins(df1, time_bin, operations, mode='new', index_position=
     elif type(time_bin) == str:
         res_ = time_bin + 'T'
     else:
-        error('time bin in wrong type!')
+        print('time bin in wrong type!')
+        return None
+
     df = pd.DataFrame()
 
     for cols in df1.columns.tolist()[0:]:

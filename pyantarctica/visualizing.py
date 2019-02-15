@@ -235,16 +235,14 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                         ax[0,legind].set_yticks(np.arange(-0.5,1,0.1))
                     ax[0,legind].set_xticks(loc)#np.arange(len(sets))/len(sets)+bar_w/2)
                     ax[0,legind].set_xticklabels('')
-                    ax[0,legind].grid(axis='y')
-                    ax[0,legind].grid(color='black', which='both', axis='y', linestyle=':')
+                    ax[0,legind].grid(color='black', which='both', axis='both', linestyle=':')
 
                     if errmeasure.lower() == 'r2':
                         ax[1,legind].set_ylim([-0.5,1])
                         ax[1,legind].set_yticks(np.arange(-0.5,1,0.1))
                     ax[1,legind].set_xticks(loc)#np.arange(len(sets))/len(sets)+bar_w/2)
                     ax[1,legind].set_xticklabels(sets, rotation=90)
-                    ax[1,legind].grid(axis='y')
-                    ax[1,legind].grid(color='black', which='both', axis='y', linestyle=':')
+                    ax[1,legind].grid(color='black', which='both', axis='both', linestyle=':')
 
 
             plt.legend(options['METHODS'])
@@ -384,6 +382,9 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                     s_tr = []; s_ts = []
 
                     for bin_ in sets:
+                        if string_plots not in stats[bin_].keys():
+                            continue
+
                         if errmeasure.lower() == 'rmse':
                             e_tr.append(stats[bin_][string_plots]['tr_RMSE'][0])
                             e_ts.append(stats[bin_][string_plots]['ts_RMSE'][0])
@@ -409,12 +410,12 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                         ax[legind].set_ylabel(errmeasure)
                         ax[legind].legend()
 
-                    ax[legind].set_xticks(index[::5])
-                    ax[legind].set_xticklabels(options['COLNAMES'][::5],fontsize=10,rotation='vertical')
+                    ax[legind].set_xticks(index)#[::5])
+                    ax[legind].set_xticklabels(options['COLNAMES'], rotation='vertical') #[::5],fontsize=10,rotation='vertical')
 
                     if errmeasure.lower() == 'r2':
                         ax[legind].set_ylim([-0.5,1])
-                    ax[legind].grid(color='black', which='both', axis='y', linestyle=':')
+                    ax[legind].grid(color='black', which='both', axis='both', linestyle=':')
 
                     for c in options['AGGREGATES']:
                         ax[legind].axvline(c)
@@ -460,11 +461,33 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         .. note:: Latitude is in °N, longitude in is °E
     '''
 
-    if coordinates.shape[0] != values.shape[0]:
-        print('size of gps coordinates and variable to be plotted does not match')
-        return
+    gps = coordinates.copy()
+    # print(values.describe())
+
+    tr1 = np.median(np.diff(coordinates.index.tolist()))
+    tr2 = np.median(np.diff(values.index.tolist()))
+    min_tres = max(tr1,tr2)
+    min_tres = int(min_tres.total_seconds() / 60)
+
+    # print(u"matching resolution @ %i minutes"%min_tres)
+    values = pd.DataFrame(data=values.values, index=values.index, columns=['value'])
+    values.index.name = 'timest_'
+
+    coordinates = dataset.ts_aggregate_timebins(coordinates, time_bin=min_tres, operations={'': np.nanmedian}, index_position='middle')
+    values = dataset.ts_aggregate_timebins(values, time_bin=min_tres, operations={'': np.nanmean}, index_position='middle')
+
+    toplot = pd.concat((coordinates,values), axis=1)
+    toplot = toplot.dropna()
+
+    #
+    # if coordinates.shape[0] != values.shape[0]:
+    #     print('size of gps coordinates and variable to be plotted does not match, matching for you')
+
+    # track = toplot.iloc[:,:2].copy()
+    # toplot = toplot.dropna()
 
     fig = plt.gcf()
+
     # prepare basemap
     ax = fig.add_subplot(111, projection=ccrs.SouthPolarStereo())
 
@@ -478,15 +501,15 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     # prepare colors
     cmap = plt.cm.get_cmap('viridis')
     normalize = mpl.colors.Normalize(vmin=min_va, vmax=max_va)
-    colors = [cmap(normalize(value)) for value in values]
+    colors = [cmap(normalize(value)) for value in toplot.iloc[:,-1]]
 
     # geo coord to plot coord
     # lon, lat = m(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values)
     # map boat samples with values
+
     if plottype == 'scatter':
-        ax.scatter(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values,
-            transform=ccrs.PlateCarree(),
-            color=colors,s=markersize, linewidth=0, label=labplot)
+        ax.plot(gps.iloc[:,1], gps.iloc[:,0], transform=ccrs.Geodetic(), linewidth=1, color='black', zorder=1)
+        ax.scatter(toplot.iloc[:,1].values,toplot.iloc[:,0].values, transform=ccrs.Geodetic(), c=np.squeeze(toplot.iloc[:,2].values),s=markersize, alpha=0.65, linewidth=0, label=labplot, zorder=2)
     elif plottype == 'plot':
         ax.plot(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values,
             transform=ccrs.PlateCarree(),
