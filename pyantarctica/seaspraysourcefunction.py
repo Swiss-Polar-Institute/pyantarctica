@@ -32,6 +32,7 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
         #Gong03
         #Monahan et al. (1986):
         Theta=30 # tunig parameter introduced by Gong03 to fit submicron particles suggesting Theta=30
+        # range: r80=0.07-20um
         B=(0.433-np.log10(r80))/0.433;
         A=4.7*np.power(1+Theta*r80, -0.017*np.power(r80,-1.44) )
         dFdr80 = 1.373*np.power(U10,3.41)*np.power(r80,-A)*(1+0.057*np.power(r80,3.45))*np.power(10,(1.607*np.exp(-np.power(B,2)) ))
@@ -40,18 +41,19 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
     if sssf_str == 'MM86':
         #MM86
         #Monahan et al. (1986):
+        # Wcap method + lab experiments: range: r80=0.8-8um
         B=(0.380-np.log10(r80))/0.650; 
         #W=3.84*1E-6*np.power(U10,3.41); # WhitCap fraction from Monahan and O'Muirchaetaigh 1980
         # from Gyrte2017?? dFdr80 = W*3.6*1E5*np.power(r80,-3)*(1+0.057*np.power(r80,1.05))*np.power(10,(1.19*np.exp(-np.power(B,2)) ))
-        # from Gong03
+        # from Gong03:
         dFdr80 = 1.373*np.power(U10,3.41)*np.power(r80,-3)*(1+0.057*np.power(r80,1.05))*np.power(10,(1.19*np.exp(-np.power(B,2)) ))
         dFdlogr80 = dFdr80*r80
 
     # below not veryfied!
     elif sssf_str == 'LS04':
-        #dFdr80 = 500*np.power(U10,2.5)*np.power(r80,-1.65) #version from Gyrte2017 appears to be wrong
-        #dFdlogr80 = dFdr80*r80
-        dFdlogr80 = 50*np.power(U10,2.5)*np.exp( -0.5*np.power( np.log(r80/0.3)/np.log(4) ,2) ) # from de Leeuw 2011
+        # from de Leeuw 2011 [171]: claimed to be Lewis and Schwarz based on multiple methods
+        # range: r80=0.1-25um; U10=5-20m/s
+        dFdlogr80 = 50*np.power(U10,2.5)*np.exp( -0.5*np.power( np.log(r80/0.3)/np.log(4) ,2) ) 
         dFdr80 = dFdlogr80/r80
         
     elif sssf_str == 'A07':
