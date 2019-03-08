@@ -1,8 +1,14 @@
 # some functions needed in the sea spray source function project
 import numpy as np
 import pandas as pd
-from collections import defaultdict
 
+def dFdlogD_to_dFdD(dFdlogr80,r80):
+    dFdr80 = dFdlogr80/r80*np.log10(np.exp(1))
+    return dFdr80
+
+def dFdD_to_dFdlogD(dFdr80,r80):
+    dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
+    return dFdlogr80
 
 def sssf(sssf_str, r80, U10, SST=[], Re=[]):
     # sssf(sssf_str, r80, U10, SST, Re):
@@ -20,11 +26,12 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
     # dFdr80, FN:
     # dF/dr80 [#/m^2/s/um ] production flux per size bin as numpy.array (m,n) or (n,) if m=1
     # FN [#/m^2/s] production flux integrated over range of the r80 provided (r80[0] to r80[-1]) as numpy.array (m,)
-    #
-    # to convert form dF/dr80 to dF/d(log(r80)) using d(log(x))/dx = 1/x
-    # dF/r80 = dF/d(log(r80))*d(log(r80))/dr80 = dF/d(log(r80)) * (1/x)
-    #
     # 
+    # to convert form dF/dr80 to dF/d(log(r80)) using d(ln(x))/dx = 1/x and d(log10(x))/dx = log10(e)*1/x
+    # -> dF/r80 = dF/d(log10(r80))*d(log10(r80))/dr80 = dF/d(log10(r80)) * log10(e)* (1/x)
+    #
+    # if we speek of dF/dlog(r80) below we mean dF/dlog10(r80) otherwise we write dF/dln(r80)
+    # note in python np.log = ln!
     
     U10 = U10.reshape(len(U10),1)
     
@@ -36,7 +43,7 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
         B=(0.433-np.log10(r80))/0.433;
         A=4.7*np.power(1+Theta*r80, -0.017*np.power(r80,-1.44) )
         dFdr80 = 1.373*np.power(U10,3.41)*np.power(r80,-A)*(1+0.057*np.power(r80,3.45))*np.power(10,(1.607*np.exp(-np.power(B,2)) ))
-        dFdlogr80 = dFdr80*r80
+        dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
     
     if sssf_str == 'MM86':
         #MM86
@@ -47,37 +54,47 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
         # from Gyrte2017?? dFdr80 = W*3.6*1E5*np.power(r80,-3)*(1+0.057*np.power(r80,1.05))*np.power(10,(1.19*np.exp(-np.power(B,2)) ))
         # from Gong03:
         dFdr80 = 1.373*np.power(U10,3.41)*np.power(r80,-3)*(1+0.057*np.power(r80,1.05))*np.power(10,(1.19*np.exp(-np.power(B,2)) ))
-        dFdlogr80 = dFdr80*r80
-
-    # below not veryfied!
+        dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
+        
     elif sssf_str == 'LS04':
-        # from de Leeuw 2011 [171]: claimed to be Lewis and Schwarz based on multiple methods
+        # Either de Leeuw plots it wrong or he is missing a np.log10(np.exp(1))?
+        # cause it does not match with the  'LS04wet' on the plot
+        # from de Leeuw 2011 [171]: claimed to be Lewis and Schwarz based on multiple methods (can't find it in L&S!)
         # range: r80=0.1-25um; U10=5-20m/s
         dFdlogr80 = 50*np.power(U10,2.5)*np.exp( -0.5*np.power( np.log(r80/0.3)/np.log(4) ,2) ) 
-        dFdr80 = dFdlogr80/r80
+        dFdr80 = dFdlogr80/r80*np.log10(np.exp(1)) # added np.log10(np.exp(1)) as the origial is dFdlog10/dr80
+    
+    elif sssf_str == 'LS04wet':
+        # from de Leeuw 2011 [171]: claimed to be Lewis and Schwarz based on multiple methods
+        # range: r80=0.1-25um; U10=5-20m/s
         
-    elif sssf_str == 'A07':
-        #A07
-        #Andreas (2007), a revised PP06:
-        #using r80=r80
-        r80[r80<.25]=np.nan
-        dFdr80 = 0.4*np.exp((0.52*U10+0.64)*r80)
-        dFdlogr80 = dFdr80*r80
+        dFdlogr80 = 1E4*np.ones_like(r80)*np.ones_like(U10)
+        dFdr80 = dFdlogr80/r80*np.log10(np.exp(1)) # added np.log10(np.exp(1)) as the origial is dFdlog10/dr80
+        # below not veryfied! / finished
+    elif sssf_str == 'Ma03':
+        # Martenson 2003 from de Leeuw 2011 [163] and table A1:
+        # 
+        1+1
+    elif sssf_str == 'Ov14':
+        Re = Re.reshape(len(Re),1)
+        
+        sigma_i = [1.37, 1.5, 1.42, 1.53, 1.85]
+        CMD_i = [0.018, 0.041, 0.09, 0.23, 0.83]
+        A_FiRe = [104.5, 0.0442, 149.6, 2.96, 0.51]
+        C_FiRe = np.array([-1, -1, -1, -1, -2])*1E-5
+        B_FiRe = [0.556, 1.08, 0.545, 0.79, 0.87]
 
-    elif sssf_str == 'A90':
-        #A90 
-        #the source function given in Andreas (1990), as presented in Andreas et al. (1995) and L&S2004:
-        # note this is F interface ! according to L&S need to fold with Fairall and Larsen 1984
-        # supposedly applicable for 0.8um<r80<15um; U10<20m/s
-        L = np.log10(r80) # L=log10(r80/um)
-        dFdr80 = np.power(U10,2.22)*np.power(10, (2.4447-1.6784*L -2.4581*L*L+7.7635*L*L*L-3.9667*L*L*L*L) )
-        dFdlogr80 = dFdr80*r80
-        # equation from L&S and Grythe 2017
+        df_FiRe = pd.DataFrame({'sigma_i': sigma_i, 'CMD_i': CMD_i, 'A_FiRe': A_FiRe, 'B_FiRe': B_FiRe, 'C_FiRe': C_FiRe})
 
-    elif sssf_str == 'PP06':
-        #PP06 is from Petelski and Piskozub (2006) (applied as presented as in de Leeuw et al., 2011):
-        dFdlogr80 = 70*np.exp(0.21*U10)*np.power(r80,3)*np.exp(-0.58*r80) / (1-np.exp(-0.11*r80*r80/U10) )        
-        dFdr80 = dFdlogr80*r80
+        dFdlogr80 = np.zeros([len(Re),len(r80)])
+        for j in df_FiRe.index:
+            FiRe = df_FiRe['A_FiRe'][j]*np.power((Re + df_FiRe['C_FiRe'][j]),df_FiRe['B_FiRe'][j])
+            # below Eq. 2 which calcualtes dFdlnD_i
+            dFdlnD_i = FiRe/np.sqrt(2*np.pi)/np.log(df_FiRe['sigma_i'][j])*np.exp(-0.5 * np.power(np.log(r80/df_FiRe['CMD_i'][j])/np.log(df_FiRe['sigma_i'][j]),2) )
+            # I added the 1/np.log10(np.exp(1)) here cause I assume that (2) gives dF/dln(D):
+            dFdlogr80 = dFdlogr80+dFdlnD_i/np.log10(np.exp(1))
+
+        dFdr80 = dFdlogr80/r80*np.log10(np.exp(1)) # 
 
     # for calculating mass fluxes
     #rho_ss = 2.2*np.power(10.,-3*(6-2)) # g/cm^3 -> g/um^3
@@ -95,16 +112,29 @@ def aps_DlowDhigh_to_range(Dca_l,Dca_h,RESOLUTION=1/32):
     Dca_l = np.power(10,np.log10(Dca_l)-RESOLUTION/2) # 1/2 logarithmic step down
     Dca_h = np.power(10,np.log10(Dca_h)+RESOLUTION/2) # 1/2 logarithmic step up
     return np.array([Dca_l, Dca_h])
-    
-def aps_D_to_r80(Dca):
+
+def aps_D_to_Dphys(Dca, rhop=2.017, chic=1.08):
+    # converts APS aerodynamic diamter into physical diameter
+    # assume continous flow regime => cunningham slip factors ~1
+    # ρ0 = 1g/cm^3 
+    # ρp = 2.017 g/cm3 = sea salt density (Ziegler 2017)
+    # χ_c = 1.08 (shape factor for cubic shape)
+    # Dve volume equivalent diameter of the dried sea salt particle (assume this equals the physical diameter)
+    # Dve = Dca √(χ_c  ρ0/ρp)
+    Dve = Dca*np.sqrt(chic*1.0/rhop)
+    return Dve
+
+
+def aps_D_to_r80(Dca, rhop=2.017, chic=1.08, gf=2):
     # assume continous flow regime => cunningham slip factors ~1
     # ρ0 = 1g/cm^3
-    # ρp = 2.2g/cm^3 (sea salt)
+    # ρp = 2.2g/cm^3 (sea salt) -> changed to 2.017 g/cm3 (Ziegler 2017)
     # χ_c = 1.08 (cubic shape)
+    # gf = hygroscopic growth factor
     # Dve volume equivalent diameter of the dried sea salt particle (assume this equals r80)
     # Dve = Dca √(χ_c  ρ0/ρp)
-    Dve = Dca*np.sqrt(1.08*1.0/2.2)
-    r80=Dve
+    Dve = Dca*np.sqrt(chic*1.0/rhop)
+    r80=Dve*gf/2
     return r80
     
 def aps_aggregate(APS,AGG_WINDOWS):

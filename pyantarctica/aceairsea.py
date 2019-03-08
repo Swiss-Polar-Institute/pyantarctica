@@ -159,3 +159,52 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
         # in the other case (ustar2u) u is already what we want to return
         
     return np.squeeze(u)
+
+# some sea water properties
+def roh_sea(SST,SSS):
+    # SST in C!
+    # SSS in g/kg
+    # https://www.tandfonline.com/doi/abs/10.5004/dwt.2010.1079
+    # sea water density at atm pressure
+    t=SST
+    S=SSS/1000
+    a1 = 9.999*1E2
+    a2 = 2.034*1E-2
+    a3 = -6.162*1E-3
+    a4 = 2.261*1E-5
+    a5 = -4.657*1E-8
+    b1 = 8.020*1E2
+    b2 = -2.001
+    b3 = 1.677*1E-2
+    b4 = -3.060*1E-5
+    b5 = -1.613*1E-5
+    rho_sea = a1 + t*(a2 + t*(a3 + t*(a4 + a5*t))) + b1*S + b2*S*t + b3*S*t*t + b4*S*t*t*t + b5*S*S*t*t #(8)
+    #Validity: ρsw in (kg/m3); 0 < t < 180 oC; 0 < S < 0.16 kg/kg
+    #Accuracy: ±0.1 %
+    return rho_sea # kg/m3
+
+def dynamic_viscosity_sea(SST,SSS):
+    t=SST
+    S=SSS/1000 # g/kg -> kg/kg
+    #@ 5C @ 35PSU
+
+    # https://www.tandfonline.com/doi/abs/10.5004/dwt.2010.1079
+    # dynamic viscosity 
+    # μw is based on the IAPWS 2008 [73] data and given by
+    muw = 4.2844*1E-5 + 1/(0.157*(t+64.993)*(t+64.993)-91.296) # eq. (23)
+
+    A = 1.541 + 1.998*1E-2*t - 9.52*1E-5*t*t
+    B = 7.974 - 7.561*1E-2*t+ 4.724*1E-4*t*t
+
+    musw = muw*(1 + S*(A + B*S) ) # (22)
+
+    #Validity: μsw and μw in (kg/m.s); 0 < t < 180 oC; 0 < S < 0.15 kg/kg
+    #Accuracy: ±1.5 %
+
+    return musw # [kg/m/s]
+
+def kinematic_viscosity_sea(SST,SSS):
+    roh_sw = roh_sea(SST,SSS)
+    musw = dynamic_viscosity_sea(SST,SSS)
+    nusw = musw/roh_sw
+    return nusw # kinematic viscosity in [m2/s]
