@@ -220,7 +220,7 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 #                             print('tst:' + str(e_ts))
 #                             print('trn:' + str(e_tr))
 
-                    if leg == 1:
+                    if len(leg) == 1 or leg == 1:
                         ax[0,0].set_ylabel('training ' + errmeasure.upper())
                         ax[1,0].set_ylabel('testing ' + errmeasure.upper())
 
@@ -246,7 +246,7 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 
 
             plt.legend(options['METHODS'])
-            plt.suptitle(sep_method + ' mode')
+            #plt.suptitle(sep_method + ' mode')
             plt.show(block=False)#
 
 
@@ -374,10 +374,10 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 
                 index = np.arange(len(sets))
                 fig, [ax] = plt.subplots(1, len_plot, sharey=False, tight_layout=False,
-                figsize=(15,5), squeeze=False)
+                figsize=(len_plot*7,7), squeeze=False)
 
                 print(len_plot)
-                
+
                 for legind,leg in enumerate(options['LEG_P']):
                     string_plots = 'leg_' + str(leg) + '_' + sep_method + '_' + meth
                     e_tr = []; e_ts = []
@@ -408,21 +408,26 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 #                         l1 = ax[leg-1].bar(index, e_ts, bar_w, color=tuple(colors[0,:]), yerr=s_ts)
 #                         l2 = ax[leg-1].bar(index+bar_w, e_ts, bar_w, color=tuple(colors[1,:]), yerr=s_ts)
 
-                    if leg == 1:
-                        ax[legind].set_ylabel(errmeasure)
-                        ax[legind].legend()
+                    #if leg == 1:
+                    ax[legind].set_ylabel(errmeasure, fontsize=20)
+                    tic = [-0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
+                    ax[legind].set_yticks(tic)    #[::5])
+                    ax[legind].set_yticklabels([str(i) for i in tic],fontsize=15)
+                    ax[legind].set_ylim([-0.21,1])
+
+                    ax[legind].legend()
 
                     ax[legind].set_xticks(index)#[::5])
-                    ax[legind].set_xticklabels(options['COLNAMES'], rotation='vertical') #[::5],fontsize=10,rotation='vertical')
+                    ax[legind].set_xticklabels(options['COLNAMES'], rotation='vertical', fontsize=15) #[::5],fontsize=10,rotation='vertical')
 
                     if errmeasure.lower() == 'r2':
-                        ax[legind].set_ylim([-0.5,1])
-                    ax[legind].grid(color='black', which='both', axis='both', linestyle=':')
+                        ax[legind].grid(color='black', which='both', axis='both', linestyle=':')
+                        # ax[legind].set_ylim([-0.5,1])
 
                     for c in options['AGGREGATES']:
                         ax[legind].axvline(c)
 
-                    plt.suptitle(errmeasure + '_' + meth + '_leg_' + str(leg) + '_' + sep_method)
+                    # plt.suptitle(errmeasure + '_' + meth + '_leg_' + str(leg) + '_' + sep_method)
                     fig.subplots_adjust(bottom=0.2) # or whatever
                     plt.show(block=False)#
 
