@@ -444,7 +444,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
     return fig, ax
 
 ##############################################################################################################
-def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
+def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='white', labplot='', plottype='scatter', make_caxes=True, cmap=plt.cm.viridis, set_in_ax=None):
     '''
         Visualize data on a polar stereographic projection map using cartopy on matplotlib.
 
@@ -493,10 +493,15 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     # track = toplot.iloc[:,:2].copy()
     # toplot = toplot.dropna()
 
-    fig = plt.gcf()
-
     # prepare basemap
-    ax = fig.add_subplot(111, projection=ccrs.SouthPolarStereo())
+    if set_in_ax is None:
+        # fig = plt.gcf()
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection=ccrs.SouthPolarStereo())
+    else:
+        fig = set_in_ax[0]
+        shax = set_in_ax[1]
+        ax = fig.add_subplot(shax.shape[0],shax.shape[1],np.where(np.ravel(shax))[0][0]+1, projection=ccrs.SouthPolarStereo())
 
     # ax.set_proj
     ax.set_extent([-180, 180, -90, -35], ccrs.PlateCarree())
@@ -506,7 +511,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     ax.gridlines(color='black', linestyle='--', alpha=0.5)
     #m.shadedrelief()
     # prepare colors
-    cmap = plt.cm.get_cmap('viridis')
+    # cmap = plt.cm.get_cmap('viridis')
     normalize = mpl.colors.Normalize(vmin=min_va, vmax=max_va)
     colors = [cmap(normalize(value)) for value in toplot.iloc[:,-1]]
 
@@ -516,7 +521,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
 
     if plottype == 'scatter':
         ax.plot(gps.iloc[:,1], gps.iloc[:,0], transform=ccrs.Geodetic(), linewidth=1, color='black', zorder=1)
-        ax.scatter(toplot.iloc[:,1].values,toplot.iloc[:,0].values, transform=ccrs.Geodetic(), c=np.squeeze(toplot.iloc[:,2].values),s=markersize, alpha=0.65, linewidth=0, label=labplot, zorder=2)
+        ax.scatter(toplot.iloc[:,1].values,toplot.iloc[:,0].values, transform=ccrs.Geodetic(), c=np.squeeze(toplot.iloc[:,2].values),s=markersize, alpha=0.65, linewidth=0, label=labplot, cmap = cmap, zorder=2)
     elif plottype == 'plot':
         ax.plot(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values,
             transform=ccrs.PlateCarree(),
@@ -527,14 +532,15 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         return -1
 
     # ax.set_title(labplot,fontsize=35)
-
-    cax, _ = clb.make_axes(ax)
-    cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
-
-    return fig, ax, cbar
+    if make_caxes:
+        cax, _ = clb.make_axes(ax)
+        cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
+        return fig, ax, cbar
+    else:
+        return fig, ax
 
 ##############################################################################################################
-def scatterplot_matrix(df, color=None, size=2):
+def scatterplot_matrix(df, color=None, size=2, nbins=100, alpha=0.5):
 
     """
         Shorthand to plot a matrix of scatterplot.
@@ -548,15 +554,22 @@ def scatterplot_matrix(df, color=None, size=2):
     df.columns = [str(cc) for cc in df.columns]
 
     nrows, ncols = df.shape[1], df.shape[1]
-    fig, ax = plt.subplots(nrows, ncols, sharex=False, sharey=False, tight_layout=True, figsize=(15,15))
+    fig, ax = plt.subplots(nrows, ncols, sharex=False, sharey=False, tight_layout=True, figsize=(10,10))
+    if len(color) > 1:
+        if np.min(color) == 1:
+            color -= 1
+        labs = np.unique(color)
+        s_color = plt.cm.Set1(labs)
+        plot_color = plt.cm.Set1(color)
 
     row = 0; col = 0;
     for row, r_name in enumerate(df.columns):
         for col, c_name in enumerate(df.columns):
             if col == row:
-                ax[row,col].hist(df.iloc[:,row],bins=100, histtype='step')
+                for ll in labs:
+                    ax[row,col].hist(df.loc[color==ll,r_name],bins=nbins, color=s_color[ll,:], histtype='step')
             elif col != row:
-                ax[row,col].scatter(df.iloc[:,col],df.iloc[:,row],c=color, s=size, alpha=0.2)
+                ax[row,col].scatter(df.iloc[:,col],df.iloc[:,row],c=plot_color, s=size, alpha=alpha)
 
             if col == 0:
                 ax[row,col].set_ylabel(r_name)
