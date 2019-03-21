@@ -35,6 +35,18 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
     
     U10 = U10.reshape(len(U10),1)
     
+    if sssf_str in ['Jaeg11', 'Jaegele 2011', 'Jaegele et al., 2011']:
+        SST = SST.reshape(len(U10),1) # this way allows inputting SST as single value
+        SST[SST<0]=0 # otherwise the results get negative
+        #'Jaegele et al., 2011' eq. 4 (SST-model) based on Gong03
+        Theta=30 # tunig parameter introduced by Gong03 to fit submicron particles suggesting Theta=30
+        # range: r80=0.07-20um
+        B=(0.433-np.log10(r80))/0.433;
+        A=4.7*np.power(1+Theta*r80, -0.017*np.power(r80,-1.44) )
+        fT=(0.3+0.1*SST - 0.0076*SST*SST + 0.00021*SST*SST*SST)
+        dFdr80 = fT*1.373*np.power(U10,3.41)*np.power(r80,-A)*(1+0.057*np.power(r80,3.45))*np.power(10,(1.607*np.exp(-np.power(B,2)) ))
+        dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
+    
     if sssf_str == 'Gong03':
         #Gong03
         #Monahan et al. (1986):
@@ -75,7 +87,7 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
         # Martenson 2003 from de Leeuw 2011 [163] and table A1:
         # 
         1+1
-    elif sssf_str == 'Ov14':
+    elif sssf_str in ['Ov14', 'Ovadnevaite 2014', 'Ovadnevaite et al., 2014']:
         Re = Re.reshape(len(Re),1)
         
         sigma_i = [1.37, 1.5, 1.42, 1.53, 1.85]
@@ -157,6 +169,8 @@ def aps_aggregate(APS,AGG_WINDOWS):
     # 0.542,  0.583,  0.626,  0.673,  0.723,  0.777,  0.835,  0.898, 0.965,  1.037,  1.114,  1.197,  1.286,  1.382,  1.486,  1.596, 1.715,  1.843,  1.981,  2.129,  2.288,  2.458,  2.642,  2.839, 3.051,  3.278,  3.523,  3.786,  4.068,  4.371,  4.698,  5.048, 5.425,  5.829,  6.264,  6.732,  7.234,  7.774,  8.354,  8.977, 9.647, 10.37 , 11.14 , 11.97 , 12.86 , 13.82 , 14.86 , 15.96 , 17.15 , 18.43 , 19.81
     # data from column j is from cloumn_header(j-1) till j
 
+    from collections import defaultdict
+    
     APS[(APS == 0).sum(axis=1)==len(APS.columns.values)]=np.nan # some rows are all zero -> set them to nan
     part_legend= np.array(list(map(float, APS.columns.values)))
 
