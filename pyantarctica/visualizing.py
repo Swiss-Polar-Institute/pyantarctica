@@ -101,10 +101,9 @@ def aggregated_bins_regression_plot_weights(stats,sets,colnames,options,colors,S
     for sep_method in options['SEP_METHOD']:
 
         fig, ax = plt.subplots(len(sets), len_plot, sharey=False, tight_layout=False,
-                               figsize=(5*len_plot,7), squeeze=False)
+                               figsize=(7*len_plot,7), squeeze=False)
 
         for indbi, bin_ in enumerate(sets):
-            index = np.arange(len(tickname))
             for ind, meth in enumerate(options['REGR_WITH_WEIGTHS']):
                 for legind,leg in enumerate(options['LEG_P']):
                     string_plots = 'leg_' + str(leg) + '_' + sep_method + '_' + meth
@@ -122,13 +121,16 @@ def aggregated_bins_regression_plot_weights(stats,sets,colnames,options,colors,S
                     else:
                         continue
 
+                    index = np.arange(len(w))
+
+                    # print(indbi,legind,len(index),len(w),bar_w)
                     ax[indbi,legind].bar(index, w, bar_w, color=tuple(colors[ind,:]))
 
-                    ax[-1,legind].set_xticks(index)
-                    if indbi == len(sets)-1:
-                        ax[indbi,legind].set_xticklabels(tickname, rotation=90)
-                    else:
-                        ax[indbi,legind].set_xticklabels([])
+                    ax[indbi,legind].set_xticks(index)
+                    # if indbi == len(sets)-1:
+                    ax[indbi,legind].set_xticklabels(tickname, rotation=90)
+                    # else:
+                        # ax[indbi,legind].set_xticklabels([])
 
                     ax[-1,legind].set_xlabel('LEG ' + str(leg), fontsize=16)
 
