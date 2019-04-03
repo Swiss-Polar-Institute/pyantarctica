@@ -412,18 +412,20 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 
                     #if leg == 1:
                     ax[legind].set_ylabel(errmeasure, fontsize=20)
-                    tic = [-0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
-                    ax[legind].set_yticks(tic)    #[::5])
-                    ax[legind].set_yticklabels([str(i) for i in tic],fontsize=15)
-                    ax[legind].set_ylim([-0.21,1])
+                    # tic = [-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
+                    if errmeasure.lower() == 'r2':
+                        tic = [-0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
+                        ax[legind].set_yticks(tic)    #[::5])
+                        ax[legind].set_yticklabels([str(i) for i in tic],fontsize=15)
+                        ax[legind].set_ylim([-0.21,1])
 
                     ax[legind].legend()
 
                     ax[legind].set_xticks(index)#[::5])
                     ax[legind].set_xticklabels(options['COLNAMES'], rotation='vertical', fontsize=15) #[::5],fontsize=10,rotation='vertical')
 
-                    if errmeasure.lower() == 'r2':
-                        ax[legind].grid(color='black', which='both', axis='both', linestyle=':')
+                    # if errmeasure.lower() == 'r2':
+                    ax[legind].grid(color='black', which='both', axis='both', linestyle=':')
                         # ax[legind].set_ylim([-0.5,1])
 
                     for c in options['AGGREGATES']:

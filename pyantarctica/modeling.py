@@ -21,7 +21,7 @@ import pandas as pd
 ##############################################################################################################
 def retrieve_model_av_std(summary):
     """
-        This function takes as argument the dicitonary given by functions in baselines_scripts and returns model averages and standard deviations of accuracies and weightsself.
+        This function takes as argument the dicitonary given by functions in baselines_scripts and returns model averages and standard deviations of accuracies and weights.
 
         :param summary: dictionary of model outputs
         :reuturns: dictionary of summary of summary statistics
@@ -48,13 +48,13 @@ def retrieve_model_av_std(summary):
     #             print('-> ', sub_,val_)
                 exec(sub_+'.append(val_)')
 
-        for sub_ in sub_res:
-            if '_hat' not in sub_:
-                exec(sub_ + '= np.array(' + sub_ + ')')
-    #         print(eval(sub_))
+        # for sub_ in sub_res:
+        #     if ('_gt' not in sub_) and ('_hat' not in sub_) :
+        #         exec(sub_ + '= np.array(' + sub_ + ')')
 
         for sub_ in sub_res:
-            if '_hat' not in sub_:
+            if ('_gt' not in sub_) and ('_hat' not in sub_) and ('_std' not in sub_):
+                exec(sub_ + '= np.array(' + sub_ + ')')
                 exec('results[name_][sub_] = np.append(np.mean([' + sub_ + '], axis=1), np.std([' + sub_ + '], axis=1),axis=0)')
             else:
                 exec('results[name_][sub_] =' + sub_)

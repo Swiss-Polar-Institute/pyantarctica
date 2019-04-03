@@ -59,7 +59,9 @@ def run_baselines_particle_size(data, options):
         |    SAVEFOLDER : STRING -> folder address to store results
         |    MODELNAME : STRING -> name of the model file and scores
         |    SPLIT_SIZE : FLOAT [0,1] -> percentage of training to test datapoints
-        |    TRN_TEST_INDEX : DF -> list of integers containing wheter the point belongs to training (=1) or to the test set (=2). Has to be same size of data.shape[0]
+        |    TRN_TEST_INDEX : DF -> list of integers containing wheter the point belongs to training (=1) or
+        |    SAVE_PRED : BOOL -> strore predicted values for trn and test (denormalized if needed)
+         to the test set (=2). Has to be same size of data.shape[0]
 
         :returns: A dictionary containing weights, accuracy scores for training and test sets
     """
@@ -75,7 +77,7 @@ def run_baselines_particle_size(data, options):
     SPLIT_SIZE = options['SPLIT_SIZE']
     TRN_TEST_INDEX = options['TRN_TEST_INDEX']
     LOG_Y = options['LOG_Y']
-
+    SAVE_PRED = options['SAVE_PRED']
     #SAVE_TEXT_DUMP = kwargs['SAVE_TEXT_DUMP']
     if not os.path.isdir(SAVEFOLDER):
         os.mkdir(SAVEFOLDER)
@@ -112,7 +114,7 @@ def run_baselines_particle_size(data, options):
                     data_f.drop('leg', axis=1, inplace=True)
 
                     leg_whole_ = data_f.dropna().copy()
-                    if 1: #LOG_Y:
+                    if LOG_Y:
                         leg_whole_.loc[:,'parbin'] = leg_whole_.parbin.apply(lambda x: np.log(x + 1e-10))
 
                     s1, s2 = leg_whole_.shape
@@ -144,13 +146,13 @@ def run_baselines_particle_size(data, options):
                         #     tst = leg_whole_.iloc[trn_size:,:].copy()
 
                     elif TRN_TEST_INDEX.values.any():
-
-                        trn = leg_whole_.loc[TRN_TEST_INDEX.values  == 1,:].copy()
+                        trn = leg_whole_.loc[TRN_TEST_INDEX.values == 1,:].copy()
                         tst = leg_whole_.loc[TRN_TEST_INDEX.values == 2,:].copy()
 
-                    # Standardize data to 0 mean unit variance based on training statistics (assuming stationarity)
                     inds_trn = trn.index
+                    inds_tst = tst.index
 
+                    # Standardize data to 0 mean unit variance based on training statistics (assuming stationarity)
                     # SCALE TRAINING DATA X, y
                     if NORMALIZE_X:
                         scalerX = preprocessing.StandardScaler().fit(trn.iloc[:,:-1])
@@ -232,8 +234,6 @@ def run_baselines_particle_size(data, options):
                         print('method not implemented yet. Or check the spelling')
                         break
 
-                    inds_tst = tst.index
-
                     if NORMALIZE_X:
                         x = scalerX.transform(tst.iloc[:,:-1])#, columns=tst.iloc[:,:-1].columns, index=tst.index)
                     else:
@@ -245,23 +245,26 @@ def run_baselines_particle_size(data, options):
                         # x_ = tst_.values
                         # x  = trn.iloc[:,:-1].values
                         y_ts_h = regModel.predict(x)[0].reshape(-1,)
-                        y_ts_h = pd.Series(y_ts_h,index=inds_tst)
                         y_tr_h = regModel.predict(X)[0].reshape(-1,)
-                        y_tr_h = pd.Series(y_tr_h,index=inds_trn)
+
+                    elif meth.lower() == 'bayesianreg':
+                        [y_ts_h, y_ts_std] = regModel.predict(x,return_std=SAVE_PRED)
+                        y_ts_h, y_ts_std = y_ts_h.reshape(-1,), y_ts_std.reshape(-1,)
+                        [y_tr_h, y_tr_std] = regModel.predict(X,return_std=SAVE_PRED)
+                        y_tr_h, y_tr_std = y_tr_h.reshape(-1,), y_tr_std.reshape(-1,)
+
                     else:
                         y_ts_h = regModel.predict(x).reshape(-1,)
-                        y_ts_h = pd.Series(y_ts_h,index=inds_tst)
                         y_tr_h = regModel.predict(X).reshape(-1,)
-                        y_tr_h = pd.Series(y_tr_h,index=inds_trn)
-
 
                     if NORMALIZE_Y:
                         y_tr_h = scalerY.inverse_transform(y_tr_h)
                         y_ts_h = scalerY.inverse_transform(y_ts_h)
                         y_tr_gt = scalerY.inverse_transform(y)#trn.iloc[:,-1]
+
+                        # print(trn.iloc[:,-1].values[0:10],y_tr_gt[0:10], y[0:10])
                     else:
                         y_tr_gt = y#trn.iloc[:,-1]
-
 
                     # Compute scores
                     if LOG_Y:
@@ -270,10 +273,16 @@ def run_baselines_particle_size(data, options):
                         y_tr_gt = np.exp(y_tr_gt)
                         y_tr_h = np.exp(y_tr_h)
 
+                    # print(np.min(y_tr_gt),np.max(y_tr_gt), ' -- ', np.min(y_tr_h),np.max(y_tr_h))
+                    # print(np.min(y_ts_gt),np.max(y_ts_gt), ' -- ', np.min(y_ts_h),np.max(y_ts_h))
+
+
                     mse = np.sqrt(mean_squared_error(y_ts_gt, y_ts_h))
                     r2 = r2_score(y_ts_gt, y_ts_h)
                     t_mse = np.sqrt(mean_squared_error(y_tr_gt, y_tr_h))
                     t_r2 = r2_score(y_tr_gt, y_tr_h)
+
+
 
                     if hasattr(regModel, 'alpha_') & hasattr(regModel, 'coef_'):
                         summ[string_exp] = {'regularizer': regModel.alpha_,
@@ -306,6 +315,28 @@ def run_baselines_particle_size(data, options):
                                             'ts_size': tst.shape[0]}#,
                                             # 'y_tr_hat': y_tr_h,
                                             # 'y_ts_hat': y_ts_h}
+
+                    if SAVE_PRED:
+                        # Convert to pandas series
+                        y_tr_h = pd.Series(y_tr_h,index=inds_trn)
+                        y_ts_h = pd.Series(y_ts_h,index=inds_tst)
+                        y_tr_gt = pd.Series(np.reshape(y_tr_gt,(-1,)),index=inds_trn)
+                        y_ts_gt = pd.Series(np.reshape(y_ts_gt,(-1,)),index=inds_tst)
+                        if 'y_ts_std' in locals():
+                            y_ts_std = pd.Series(y_ts_std,index=inds_tst)
+                            y_tr_std = pd.Series(y_tr_std,index=inds_trn)
+
+                        # Add to dictionary
+                        summ[string_exp].update({'y_tr_hat': y_tr_h,
+                                                 'y_ts_hat': y_ts_h,
+                                                 'y_tr_gt': y_tr_gt,
+                                                 'y_ts_gt': y_ts_gt})
+                        # print(summ[string_exp]['y_tr_gt'].head(), summ[string_exp]['y_ts_gt'].head())
+
+                        if 'y_ts_std' in locals():
+                            summ[string_exp].update({'y_tr_std': y_tr_std,
+                                                     'y_ts_std': y_ts_std})
+
 
 
                     #if SAVE_TEXT_DUMP:
