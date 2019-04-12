@@ -378,7 +378,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                 fig, [ax] = plt.subplots(1, len_plot, sharey=False, tight_layout=False,
                 figsize=(len_plot*7,7), squeeze=False)
 
-                print(len_plot)
+                # print(len_plot)
 
                 for legind,leg in enumerate(options['LEG_P']):
                     string_plots = 'leg_' + str(leg) + '_' + sep_method + '_' + meth

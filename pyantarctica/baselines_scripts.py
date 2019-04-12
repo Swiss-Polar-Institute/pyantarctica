@@ -103,15 +103,17 @@ def run_baselines_particle_size(data, options):
                     nre += 1
 
                     data_f = data.copy()
-
-
                         # leg_whole_.loc[:,'parbin'] = np.log(leg_whole_.loc[:,'parbin'])
+                    if leg != 0:
 
-                    if 'leg' not in data.columns.tolist():
-                        data_f = dataset.add_legs_index(data_f)
+                        if 'leg' not in data.columns.tolist():
+                            data_f = dataset.add_legs_index(data_f)
 
-                    data_f = data_f.loc[data_f['leg'] == leg]
-                    data_f.drop('leg', axis=1, inplace=True)
+                        data_f = data_f.loc[data_f['leg'] == leg]
+                        data_f.drop('leg', axis=1, inplace=True)
+                    else:
+                        if 'leg' in data.columns.tolist():
+                            data_f.drop('leg', axis=1, inplace=True)
 
                     leg_whole_ = data_f.dropna().copy()
                     if LOG_Y:
@@ -175,7 +177,7 @@ def run_baselines_particle_size(data, options):
                         regModel.coef_ = regModel.coef_[0]
 
                     elif meth.lower() == 'bayesianreg':
-                        regModel = sk.linear_model.BayesianRidge(n_iter=300, tol=1.e-6, alpha_1=1.e-6, alpha_2=1.e-6, lambda_1=1.e-6, lambda_2=1.e-6, compute_score=True, fit_intercept=False, normalize=True).fit(X,y.ravel())
+                        regModel = sk.linear_model.BayesianRidge(n_iter=500, tol=1.e-6, alpha_1=1.e-6, alpha_2=1.e-6, lambda_1=1.e-6, lambda_2=1.e-6, compute_score=False, fit_intercept=False, normalize=False).fit(X,y.ravel())
 
 
                     elif meth.lower() == 'pls':
@@ -192,7 +194,8 @@ def run_baselines_particle_size(data, options):
                              1.0 * kernels.WhiteKernel(noise_level=1e-3, noise_level_bounds=(1e-3, 1e+3))
                         regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b',
                                                             alpha=0, n_restarts_optimizer=5).fit(X,y)
-                        print(kernel)
+                        str_kernel = str(kernel)
+                        # print(str_kernel)
 
                     elif meth.lower() == 'rf':
                         import sklearn.ensemble
@@ -202,19 +205,19 @@ def run_baselines_particle_size(data, options):
                                 min_samples_leaf=1).fit(X,np.ravel(y))
                         regModel.coef_ = regModel.feature_importances_
 
-                    elif meth.lower() == 'rbfgpr':
-                        kernel = 1.0 * kernels.RBF(length_scale=1.0, length_scale_bounds=(1e-2, 1e2)) + \
-                        1.0 * kernels.WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-2, 1e2)) + \
-                        1.0 * kernels.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-02, 100.0)) + \
+                    elif meth.lower() == 'gpr':
+                        kernel = 1.0 * kernels.RBF(length_scale=1.0, length_scale_bounds=(1e0, 1e2)) + \
+                        1.0 * kernels.WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-2, 1e2)) * kernels.ExpSineSquared(length_scale=1, periodicity=1) + \
                         1.0 * kernels.DotProduct(sigma_0=1.0, sigma_0_bounds=(1e-02, 1e2))
-
+#*  kernels.ExpSineSquared(length_scale=1, periodicity=1) + \ 1.0 * kernels.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-02, 100.0)) + \
                         regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b',
-                                                            alpha=0.001,
+                                                            alpha=0.01,
                                                             n_restarts_optimizer=5).fit(X,y)
 
-                        # print(regModel.kernel_)
 
-                    elif meth.lower() == 'rbfgprard':
+                        print(regModel.kernel_)
+
+                    elif meth.lower() == 'gprard':
 
                         #x = trn.iloc[:,:-1].values
                         #y = trn.iloc[:,-1].values.reshape(-1,1)
@@ -241,13 +244,13 @@ def run_baselines_particle_size(data, options):
 
                     y_ts_gt = tst.iloc[:,-1]
 
-                    if meth.lower() == 'rbfgprard':
+                    if meth.lower() == 'gprard':
                         # x_ = tst_.values
                         # x  = trn.iloc[:,:-1].values
                         y_ts_h = regModel.predict(x)[0].reshape(-1,)
                         y_tr_h = regModel.predict(X)[0].reshape(-1,)
 
-                    elif meth.lower() == 'bayesianreg':
+                    elif (meth.lower() == 'bayesianreg') or (meth.lower() == 'gpr'):
                         [y_ts_h, y_ts_std] = regModel.predict(x,return_std=SAVE_PRED)
                         y_ts_h, y_ts_std = y_ts_h.reshape(-1,), y_ts_std.reshape(-1,)
                         [y_tr_h, y_tr_std] = regModel.predict(X,return_std=SAVE_PRED)
@@ -268,10 +271,10 @@ def run_baselines_particle_size(data, options):
 
                     # Compute scores
                     if LOG_Y:
-                        y_ts_gt = np.exp(y_ts_gt)
-                        y_ts_h = np.exp(y_ts_h)
-                        y_tr_gt = np.exp(y_tr_gt)
-                        y_tr_h = np.exp(y_tr_h)
+                        y_ts_gt = np.exp(y_ts_gt) - 1e-10
+                        y_ts_h = np.exp(y_ts_h) - 1e-10
+                        y_tr_gt = np.exp(y_tr_gt) - 1e-10
+                        y_tr_h = np.exp(y_tr_h) - 1e-10
 
                     # print(np.min(y_tr_gt),np.max(y_tr_gt), ' -- ', np.min(y_tr_h),np.max(y_tr_h))
                     # print(np.min(y_ts_gt),np.max(y_ts_gt), ' -- ', np.min(y_ts_h),np.max(y_ts_h))
@@ -295,6 +298,8 @@ def run_baselines_particle_size(data, options):
                                             'ts_size': tst.shape[0]}#,
                                             # 'y_tr_hat': y_tr_h,
                                             # 'y_ts_hat': y_ts_h}
+                        if 'str_kernel' in locals():
+                            summ[string_exp].update({'kernel': str_kernel})
 
                     elif hasattr(regModel, 'coef_') & ~hasattr(regModel, 'alpha_'):
                         summ[string_exp] = {'weights': regModel.coef_,
@@ -315,6 +320,8 @@ def run_baselines_particle_size(data, options):
                                             'ts_size': tst.shape[0]}#,
                                             # 'y_tr_hat': y_tr_h,
                                             # 'y_ts_hat': y_ts_h}
+                        if 'str_kernel' in locals():
+                            summ[string_exp].update({'kernel': str_kernel})
 
                     if SAVE_PRED:
                         # Convert to pandas series
