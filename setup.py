@@ -22,16 +22,16 @@ from setuptools import find_packages, setup
 # 'GPy==1.9.2'
 # 'Cartopy==0.16.0',
 
-install_requires = [
-    'matplotlib==2.2.2',
-    'numpy==1.14.5',
-    'pandas==0.23.0',
-    'pickleshare==0.7.4',
-    'scikit-learn==0.19.1',
-    'holoviews==1.12.1',
-    'geoviews==1.6.2',
-    'bokeh==1.1.0'
-    ]
+install_requires = [] 
+    # 'matplotlib,
+    # 'numpy',
+    # 'pandas==0.23.0',
+    # 'pickleshare',
+    # 'scikit-learn',
+    # 'holoviews',
+    # 'geoviews',
+    # 'bokeh'
+    # ]
 
 tests_require = []
 
@@ -39,7 +39,7 @@ extras_require = {}
 
 setup(
     name="pyantarctica",
-    version="0.1.3.0",
+    version="0.1.3.1",
     license="Apache License 2.0",
     url="",
 
