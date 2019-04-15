@@ -18,10 +18,11 @@
 
 from setuptools import find_packages, setup
 
-#    'GPy==1.9.2', Manually install if needed, try to remove dependencies it from everywhere
+# Manually install:
+# 'GPy==1.9.2'
+# 'Cartopy==0.16.0',
 
 install_requires = [
-    'Cartopy==0.16.0',
     'matplotlib==2.2.2',
     'numpy==1.14.5',
     'pandas==0.23.0',
