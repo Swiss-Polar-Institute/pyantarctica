@@ -22,16 +22,16 @@ from setuptools import find_packages, setup
 # 'GPy==1.9.2'
 # 'Cartopy==0.16.0',
 
-install_requires = [] 
-    # 'matplotlib,
-    # 'numpy',
-    # 'pandas==0.23.0',
-    # 'pickleshare',
-    # 'scikit-learn',
-    # 'holoviews',
-    # 'geoviews',
-    # 'bokeh'
-    # ]
+install_requires = []
+# 'matplotlib,
+# 'numpy',
+# 'pandas==0.23.0',
+# 'pickleshare',
+# 'scikit-learn',
+# 'holoviews',
+# 'geoviews',
+# 'bokeh'
+# ]
 
 tests_require = []
 
