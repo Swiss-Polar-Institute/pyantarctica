@@ -27,7 +27,7 @@ install_requires = [
     'pandas==0.23.0',
     'pickleshare==0.7.4',
     'scikit-learn==0.19.1',
-    'holoviews==1.12.1', 
+    'holoviews==1.12.1',
     'geoviews==1.6.2',
     'bokeh==1.1.0'
     ]
@@ -38,7 +38,7 @@ extras_require = {}
 
 setup(
     name="pyantarctica",
-    version="0.1.2.dev20181115",
+    version="0.1.3",
     license="Apache License 2.0",
     url="",
 
