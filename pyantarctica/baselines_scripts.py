@@ -592,7 +592,7 @@ def run_regression_simple_data(data_tr, data_ts, regression_model, NORM_X=True, 
 
         regModel = GPy.models.GPRegression(x,y,kernel=k)
         regModel.optimize('bfgs', max_iters=200)
-    #                 print(regModel)
+    #                 gi(regModel)
         weights = 50/regModel.sum.rbf.lengthscale
 
     else:

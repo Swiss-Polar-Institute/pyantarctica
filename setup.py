@@ -18,14 +18,18 @@
 
 from setuptools import find_packages, setup
 
+#    'GPy==1.9.2', Manually install if needed, try to remove dependencies it from everywhere
+
 install_requires = [
     'Cartopy==0.16.0',
-    'GPy==1.9.2',
     'matplotlib==2.2.2',
     'numpy==1.14.5',
     'pandas==0.23.0',
     'pickleshare==0.7.4',
     'scikit-learn==0.19.1',
+    'holoviews==1.12.1', 
+    'geoviews==1.6.2',
+    'bokeh==1.1.0'
     ]
 
 tests_require = []

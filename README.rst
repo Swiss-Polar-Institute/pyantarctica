@@ -100,7 +100,7 @@ Requirements
 
     pyantarctica
     Cartopy==0.16.0
-    GPy==1.9.2
+    ~~GPy==1.9.2~~
     matplotlib==2.2.2
     numpy==1.14.5
     pandas==0.23.0
