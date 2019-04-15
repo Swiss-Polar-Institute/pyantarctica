@@ -490,13 +490,6 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     toplot = pd.concat((coordinates,values), axis=1)
     toplot = toplot.dropna()
 
-    #
-    # if coordinates.shape[0] != values.shape[0]:
-    #     print('size of gps coordinates and variable to be plotted does not match, matching for you')
-
-    # track = toplot.iloc[:,:2].copy()
-    # toplot = toplot.dropna()
-
     # prepare basemap
     if set_in_ax is None:
         # fig = plt.gcf()
