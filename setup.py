@@ -39,7 +39,7 @@ extras_require = {}
 
 setup(
     name="pyantarctica",
-    version="0.1.3",
+    version="0.1.3.0",
     license="Apache License 2.0",
     url="",
 
