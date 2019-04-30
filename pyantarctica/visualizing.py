@@ -376,7 +376,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 
                 index = np.arange(len(sets))
                 fig, [ax] = plt.subplots(1, len_plot, sharey=False, tight_layout=False,
-                figsize=(len_plot*7,7), squeeze=False)
+                figsize=(len_plot*9,7), squeeze=False)
 
                 # print(len_plot)
 
@@ -416,13 +416,13 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                     if errmeasure.lower() == 'r2':
                         tic = [-0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
                         ax[legind].set_yticks(tic)    #[::5])
-                        ax[legind].set_yticklabels([str(i) for i in tic],fontsize=15)
+                        ax[legind].set_yticklabels([str(i) for i in tic],fontsize=12)
                         ax[legind].set_ylim([-0.21,1])
 
                     ax[legind].legend()
 
                     ax[legind].set_xticks(index)#[::5])
-                    ax[legind].set_xticklabels(options['COLNAMES'], rotation='vertical', fontsize=15) #[::5],fontsize=10,rotation='vertical')
+                    ax[legind].set_xticklabels(options['COLNAMES'], rotation='vertical', fontsize=12) #[::5],fontsize=10,rotation='vertical')
 
                     # if errmeasure.lower() == 'r2':
                     ax[legind].grid(color='black', which='both', axis='both', linestyle=':')
