@@ -101,10 +101,9 @@ def aggregated_bins_regression_plot_weights(stats,sets,colnames,options,colors,S
     for sep_method in options['SEP_METHOD']:
 
         fig, ax = plt.subplots(len(sets), len_plot, sharey=False, tight_layout=False,
-                               figsize=(5*len_plot,7), squeeze=False)
+                               figsize=(7*len_plot,7), squeeze=False)
 
         for indbi, bin_ in enumerate(sets):
-            index = np.arange(len(tickname))
             for ind, meth in enumerate(options['REGR_WITH_WEIGTHS']):
                 for legind,leg in enumerate(options['LEG_P']):
                     string_plots = 'leg_' + str(leg) + '_' + sep_method + '_' + meth
@@ -122,13 +121,16 @@ def aggregated_bins_regression_plot_weights(stats,sets,colnames,options,colors,S
                     else:
                         continue
 
+                    index = np.arange(len(w))
+
+                    # print(indbi,legind,len(index),len(w),bar_w)
                     ax[indbi,legind].bar(index, w, bar_w, color=tuple(colors[ind,:]))
 
-                    ax[-1,legind].set_xticks(index)
-                    if indbi == len(sets)-1:
-                        ax[indbi,legind].set_xticklabels(tickname, rotation=90)
-                    else:
-                        ax[indbi,legind].set_xticklabels([])
+                    ax[indbi,legind].set_xticks(index)
+                    # if indbi == len(sets)-1:
+                    ax[indbi,legind].set_xticklabels(tickname, rotation=90)
+                    # else:
+                        # ax[indbi,legind].set_xticklabels([])
 
                     ax[-1,legind].set_xlabel('LEG ' + str(leg), fontsize=16)
 
@@ -220,7 +222,7 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 #                             print('tst:' + str(e_ts))
 #                             print('trn:' + str(e_tr))
 
-                    if leg == 1:
+                    if len(leg) == 1 or leg == 1:
                         ax[0,0].set_ylabel('training ' + errmeasure.upper())
                         ax[1,0].set_ylabel('testing ' + errmeasure.upper())
 
@@ -235,20 +237,18 @@ def aggregated_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                         ax[0,legind].set_yticks(np.arange(-0.5,1,0.1))
                     ax[0,legind].set_xticks(loc)#np.arange(len(sets))/len(sets)+bar_w/2)
                     ax[0,legind].set_xticklabels('')
-                    ax[0,legind].grid(axis='y')
-                    ax[0,legind].grid(color='black', which='both', axis='y', linestyle=':')
+                    ax[0,legind].grid(color='black', which='both', axis='both', linestyle=':')
 
                     if errmeasure.lower() == 'r2':
                         ax[1,legind].set_ylim([-0.5,1])
                         ax[1,legind].set_yticks(np.arange(-0.5,1,0.1))
                     ax[1,legind].set_xticks(loc)#np.arange(len(sets))/len(sets)+bar_w/2)
                     ax[1,legind].set_xticklabels(sets, rotation=90)
-                    ax[1,legind].grid(axis='y')
-                    ax[1,legind].grid(color='black', which='both', axis='y', linestyle=':')
+                    ax[1,legind].grid(color='black', which='both', axis='both', linestyle=':')
 
 
             plt.legend(options['METHODS'])
-            plt.suptitle(sep_method + ' mode')
+            #plt.suptitle(sep_method + ' mode')
             plt.show(block=False)#
 
 
@@ -376,7 +376,9 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 
                 index = np.arange(len(sets))
                 fig, [ax] = plt.subplots(1, len_plot, sharey=False, tight_layout=False,
-                figsize=(15,5), squeeze=False)
+                figsize=(len_plot*9,7), squeeze=False)
+
+                # print(len_plot)
 
                 for legind,leg in enumerate(options['LEG_P']):
                     string_plots = 'leg_' + str(leg) + '_' + sep_method + '_' + meth
@@ -384,6 +386,9 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                     s_tr = []; s_ts = []
 
                     for bin_ in sets:
+                        if string_plots not in stats[bin_].keys():
+                            continue
+
                         if errmeasure.lower() == 'rmse':
                             e_tr.append(stats[bin_][string_plots]['tr_RMSE'][0])
                             e_ts.append(stats[bin_][string_plots]['ts_RMSE'][0])
@@ -405,21 +410,28 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
 #                         l1 = ax[leg-1].bar(index, e_ts, bar_w, color=tuple(colors[0,:]), yerr=s_ts)
 #                         l2 = ax[leg-1].bar(index+bar_w, e_ts, bar_w, color=tuple(colors[1,:]), yerr=s_ts)
 
-                    if leg == 1:
-                        ax[legind].set_ylabel(errmeasure)
-                        ax[legind].legend()
-
-                    ax[legind].set_xticks(index[::5])
-                    ax[legind].set_xticklabels(options['COLNAMES'][::5],fontsize=10,rotation='vertical')
-
+                    #if leg == 1:
+                    ax[legind].set_ylabel(errmeasure, fontsize=20)
+                    # tic = [-1, -0.8, -0.6, -0.4, -0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
                     if errmeasure.lower() == 'r2':
-                        ax[legind].set_ylim([-0.5,1])
-                    ax[legind].grid(color='black', which='both', axis='y', linestyle=':')
+                        tic = [-0.2, 0, 0.2, 0.4, 0.6, 0.8, 1]
+                        ax[legind].set_yticks(tic)    #[::5])
+                        ax[legind].set_yticklabels([str(i) for i in tic],fontsize=12)
+                        ax[legind].set_ylim([-0.21,1])
+
+                    ax[legind].legend()
+
+                    ax[legind].set_xticks(index)#[::5])
+                    ax[legind].set_xticklabels(options['COLNAMES'], rotation='vertical', fontsize=12) #[::5],fontsize=10,rotation='vertical')
+
+                    # if errmeasure.lower() == 'r2':
+                    ax[legind].grid(color='black', which='both', axis='both', linestyle=':')
+                        # ax[legind].set_ylim([-0.5,1])
 
                     for c in options['AGGREGATES']:
                         ax[legind].axvline(c)
 
-                    plt.suptitle(errmeasure + '_' + meth + '_leg_' + str(leg) + '_' + sep_method)
+                    # plt.suptitle(errmeasure + '_' + meth + '_leg_' + str(leg) + '_' + sep_method)
                     fig.subplots_adjust(bottom=0.2) # or whatever
                     plt.show(block=False)#
 
@@ -436,7 +448,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
     return fig, ax
 
 ##############################################################################################################
-def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='aqua', labplot='', plottype='scatter'):
+def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='white', labplot='', plottype='scatter', make_caxes=True, cmap=plt.cm.viridis, set_in_ax=None):
     '''
         Visualize data on a polar stereographic projection map using cartopy on matplotlib.
 
@@ -460,13 +472,33 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         .. note:: Latitude is in °N, longitude in is °E
     '''
 
-    if coordinates.shape[0] != values.shape[0]:
-        print('size of gps coordinates and variable to be plotted does not match')
-        return
+    gps = coordinates.copy()
+    # print(values.describe())
 
-    fig = plt.gcf()
+    tr1 = np.median(np.diff(coordinates.index.tolist()))
+    tr2 = np.median(np.diff(values.index.tolist()))
+    min_tres = max(tr1,tr2)
+    min_tres = int(min_tres.total_seconds() / 60)
+
+    # print(u"matching resolution @ %i minutes"%min_tres)
+    values = pd.DataFrame(data=values.values, index=values.index, columns=['value'])
+    values.index.name = 'timest_'
+
+    coordinates = dataset.ts_aggregate_timebins(coordinates, time_bin=min_tres, operations={'': np.nanmedian}, index_position='middle')
+    values = dataset.ts_aggregate_timebins(values, time_bin=min_tres, operations={'': np.nanmean}, index_position='middle')
+
+    toplot = pd.concat((coordinates,values), axis=1)
+    toplot = toplot.dropna()
+
     # prepare basemap
-    ax = fig.add_subplot(111, projection=ccrs.SouthPolarStereo())
+    if set_in_ax is None:
+        # fig = plt.gcf()
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection=ccrs.SouthPolarStereo())
+    else:
+        fig = set_in_ax[0]
+        shax = set_in_ax[1]
+        ax = fig.add_subplot(shax.shape[0],shax.shape[1],np.where(np.ravel(shax))[0][0]+1, projection=ccrs.SouthPolarStereo())
 
     # ax.set_proj
     ax.set_extent([-180, 180, -90, -35], ccrs.PlateCarree())
@@ -476,17 +508,17 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     ax.gridlines(color='black', linestyle='--', alpha=0.5)
     #m.shadedrelief()
     # prepare colors
-    cmap = plt.cm.get_cmap('viridis')
+    # cmap = plt.cm.get_cmap('viridis')
     normalize = mpl.colors.Normalize(vmin=min_va, vmax=max_va)
-    colors = [cmap(normalize(value)) for value in values]
+    colors = [cmap(normalize(value)) for value in toplot.iloc[:,-1]]
 
     # geo coord to plot coord
     # lon, lat = m(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values)
     # map boat samples with values
+
     if plottype == 'scatter':
-        ax.scatter(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values,
-            transform=ccrs.PlateCarree(),
-            color=colors,s=markersize, linewidth=0, label=labplot)
+        ax.plot(gps.iloc[:,1], gps.iloc[:,0], transform=ccrs.Geodetic(), linewidth=1, color='black', zorder=1)
+        ax.scatter(toplot.iloc[:,1].values,toplot.iloc[:,0].values, transform=ccrs.Geodetic(), c=np.squeeze(toplot.iloc[:,2].values),s=markersize, alpha=0.65, linewidth=0, label=labplot, cmap = cmap, zorder=2)
     elif plottype == 'plot':
         ax.plot(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values,
             transform=ccrs.PlateCarree(),
@@ -497,14 +529,15 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         return -1
 
     # ax.set_title(labplot,fontsize=35)
-
-    cax, _ = clb.make_axes(ax)
-    cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
-
-    return fig, ax, cbar
+    if make_caxes:
+        cax, _ = clb.make_axes(ax)
+        cbar = clb.ColorbarBase(cax, cmap=cmap, norm=normalize)
+        return fig, ax, cbar
+    else:
+        return fig, ax
 
 ##############################################################################################################
-def scatterplot_matrix(df, color=None, size=2):
+def scatterplot_matrix(df, color=None, size=2, nbins=100, alpha=0.5):
 
     """
         Shorthand to plot a matrix of scatterplot.
@@ -518,15 +551,22 @@ def scatterplot_matrix(df, color=None, size=2):
     df.columns = [str(cc) for cc in df.columns]
 
     nrows, ncols = df.shape[1], df.shape[1]
-    fig, ax = plt.subplots(nrows, ncols, sharex=False, sharey=False, tight_layout=True, figsize=(15,15))
+    fig, ax = plt.subplots(nrows, ncols, sharex=False, sharey=False, tight_layout=True, figsize=(10,10))
+    if len(color) > 1:
+        if np.min(color) == 1:
+            color -= 1
+        labs = np.unique(color)
+        s_color = plt.cm.Set1(labs)
+        plot_color = plt.cm.Set1(color)
 
     row = 0; col = 0;
     for row, r_name in enumerate(df.columns):
         for col, c_name in enumerate(df.columns):
             if col == row:
-                ax[row,col].hist(df.iloc[:,row],bins=100, histtype='step')
+                for ll in labs:
+                    ax[row,col].hist(df.loc[color==ll,r_name],bins=nbins, color=s_color[ll,:], histtype='step')
             elif col != row:
-                ax[row,col].scatter(df.iloc[:,col],df.iloc[:,row],c=color, s=size, alpha=0.2)
+                ax[row,col].scatter(df.iloc[:,col],df.iloc[:,row],c=plot_color, s=size, alpha=alpha)
 
             if col == 0:
                 ax[row,col].set_ylabel(r_name)
