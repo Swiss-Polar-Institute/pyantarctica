@@ -400,15 +400,18 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                             s_tr.append(stats[bin_][string_plots]['tr_R2'][1])
                             s_ts.append(stats[bin_][string_plots]['ts_R2'][1])
 
-
-                    l1 = ax[legind].plot(e_tr, color=tuple(colors[0,:]),label='train')#, yerr=s_tr)
-                    l2 = ax[legind].plot(e_ts, color=tuple(colors[1,:]),label='test')#, yerr=s_tr) index+bar_w
                     e_tr = np.asarray(e_tr); s_tr = np.asarray(s_tr)
-                    ax[legind].fill_between(range(len(e_tr)), e_tr-s_tr, e_tr+s_tr, alpha=0.3,                color=tuple(colors[0,:]))
                     e_ts = np.asarray(e_ts); s_ts = np.asarray(s_ts)
-                    ax[legind].fill_between(range(len(e_ts)), e_ts-s_ts, e_ts+s_ts, alpha=0.3,                color=tuple(colors[1,:]))
-#                         l1 = ax[leg-1].bar(index, e_ts, bar_w, color=tuple(colors[0,:]), yerr=s_ts)
-#                         l2 = ax[leg-1].bar(index+bar_w, e_ts, bar_w, color=tuple(colors[1,:]), yerr=s_ts)
+
+                    if 0:
+                        l1 = ax[legind].plot(e_tr, color=tuple(colors[0,:]),label='train')#, yerr=s_tr)
+                        l2 = ax[legind].plot(e_ts, color=tuple(colors[1,:]),label='test')#, yerr=s_tr) index+bar_w
+                        ax[legind].fill_between(range(len(e_tr)), e_tr-s_tr, e_tr+s_tr, alpha=0.3,                color=tuple(colors[0,:]))
+                        ax[legind].fill_between(range(len(e_ts)), e_ts-s_ts, e_ts+s_ts, alpha=0.3,                color=tuple(colors[1,:]))
+                    else:
+                        l1 = ax[leg-1].bar(index-bar_w/4, e_tr, width=bar_w/2, yerr=s_tr, color=tuple(colors[0,:]))
+                        l2 = ax[leg-1].bar(index+bar_w/4, e_ts, width=bar_w/2, yerr=s_ts, color=tuple(colors[1,:]))
+
 
                     #if leg == 1:
                     ax[legind].set_ylabel(errmeasure, fontsize=20)
@@ -443,7 +446,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                         add_string = ''
 
                     filename = errmeasure + '_' + meth + '_leg_' + str(leg) + '_' + sep_method + add_string
-                    plt.savefig((options['SAVEFOLDER'] / filename).with_suffix('.png'), bbox_inches='tight')
+                    plt.savefig((options['SAVEFOLDER'] / (filename + '_TEST_BARS')).with_suffix('.pdf'), bbox_inches='tight')
 
     return fig, ax
 
@@ -581,39 +584,73 @@ def scatterplot_matrix(df, color=None, size=2, nbins=100, alpha=0.5):
     return fig, ax
 
 ##############################################################################################################
-def scatterplot_row(df, colname='', color=None, size=2):
+def scatterplot_row(df, colname='', color='blue', size=2, nbins=50, labels=''):
 
     """
         Shorthand to plot a row of scatterplot (same as scatterplot_matrix but only a single row).
 
         :param df: dataframe contanining the data to be plotted, last column (default) or :param colname: versus all the others.
-        :param color: color of the datapoint, blue default
+        :param color: color of the datapoint, blue default. Can be a column of the matrix
         :param size: size of datapoints
+        :param nbins: number of bins for the histogram
+        :param labels: list of labels for the axes
         :returns: handles to figure and axes
     """
+    from matplotlib import rc
+    rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+    ## for Palatino and other serif fonts use:
+    #rc('font',**{'family':'serif','serif':['Palatino']})
+    rc('text', usetex=True)
 
-    # stirng check
     df.columns = [str(cc) for cc in df.columns]
     if not colname:
         colname = df.columns.tolist()[-1]
+    if not labels:
+        labels = df.columns.tolist()
 
-    nrows, ncols = df.shape[1], df.shape[1]
-    fig, ax = plt.subplots(1, ncols, sharex=False, squeeze=False, sharey=False,
-        tight_layout=True, figsize=(17,3))
 
-    for col, c_name in enumerate(df.columns):
-        if c_name == colname:
-            ax[0,col].hist(df.loc[:,colname],bins=100, histtype='step')
-        else:
-            ax[0,col].scatter(df.iloc[:,col],df.loc[:,colname],c=color, s=size)
 
-        if col == 0:
-            ax[0,col].set_ylabel(colname)
-        else:
-            ax[0,col].set_ylabel('')
+    if color in df.columns.tolist():
+        col_list = df.columns.tolist()
+        col_list.remove(color)
 
-        ax[0,col].set_xlabel(c_name)
+        ncols = len(col_list)
+        fig, ax = plt.subplots(1, ncols, sharex=False, squeeze=True, sharey=False,
+            tight_layout=True, figsize=(25,4))
 
+        for col, c_name in enumerate(col_list):
+            if c_name == colname:
+                for icol in np.unique(df[color]):
+                    ax[col].hist(df.loc[df[color] == icol,colname].dropna(), bins=nbins, histtype='step',linewidth=2.5)
+            else:
+                subdf = df[[colname,c_name, color]].dropna()
+                for icol in np.unique(df[color]):
+                    ax[col].scatter(subdf.loc[subdf[color] == icol,c_name], subdf.loc[subdf[color] == icol,colname], s=size, alpha=0.7)
+
+            if col == 0:
+                ax[col].set_ylabel(labels[col])
+            else:
+                ax[col].set_ylabel('')
+
+            ax[col].set_xlabel(labels[col])
+    else:
+        color = None
+        ncols = len(df.columns)
+        fig, ax = plt.subplots(1, ncols, sharex=False, squeeze=True, sharey=False,
+            tight_layout=True, figsize=(25,4))
+        for col, c_name in enumerate(df.columns):
+            if c_name == colname:
+                ax[col].hist(df.loc[:,colname].dropna(), bins=nbins, histtype='step')
+            else:
+                subdf = df[[colname,c_name]].dropna()
+                ax[col].scatter(subdf.loc[:,c_name],subdf.loc[:,colname],c=color, s=size)
+
+            if col == 0:
+                ax[col].set_ylabel(labels[col])
+            else:
+                ax[col].set_ylabel('')
+
+            ax[col].set_xlabel(labels[col])
     return fig, ax
 
 ##############################################################################################################
