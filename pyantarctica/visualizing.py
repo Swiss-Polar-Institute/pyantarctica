@@ -409,8 +409,8 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                         ax[legind].fill_between(range(len(e_tr)), e_tr-s_tr, e_tr+s_tr, alpha=0.3,                color=tuple(colors[0,:]))
                         ax[legind].fill_between(range(len(e_ts)), e_ts-s_ts, e_ts+s_ts, alpha=0.3,                color=tuple(colors[1,:]))
                     else:
-                        l1 = ax[leg-1].bar(index-bar_w/4, e_tr, width=bar_w/2, yerr=s_tr, color=tuple(colors[0,:]))
-                        l2 = ax[leg-1].bar(index+bar_w/4, e_ts, width=bar_w/2, yerr=s_ts, color=tuple(colors[1,:]))
+                        l1 = ax[leg-1].bar(index-bar_w/4, e_tr, width=bar_w/2, yerr=s_tr, color=tuple(colors[0,:]),label='train')
+                        l2 = ax[leg-1].bar(index+bar_w/4, e_ts, width=bar_w/2, yerr=s_ts, color=tuple(colors[1,:]),label='test')
 
 
                     #if leg == 1:
@@ -422,7 +422,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
                         ax[legind].set_yticklabels([str(i) for i in tic],fontsize=12)
                         ax[legind].set_ylim([-0.21,1])
 
-                    ax[legind].legend()
+                    ax[legind].legend(loc='upper left')
 
                     ax[legind].set_xticks(index)#[::5])
                     ax[legind].set_xticklabels(options['COLNAMES'], rotation='vertical', fontsize=12) #[::5],fontsize=10,rotation='vertical')
@@ -521,7 +521,7 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
 
     if plottype == 'scatter':
         ax.plot(gps.iloc[:,1], gps.iloc[:,0], transform=ccrs.Geodetic(), linewidth=1, color='black', zorder=1)
-        ax.scatter(toplot.iloc[:,1].values,toplot.iloc[:,0].values, transform=ccrs.Geodetic(), c=np.squeeze(toplot.iloc[:,2].values),s=markersize, alpha=0.65, linewidth=0, label=labplot, cmap = cmap, zorder=2)
+        ax.scatter(toplot.iloc[:,1].values,toplot.iloc[:,0].values, transform=ccrs.Geodetic(), c=toplot.iloc[:,2].values, s=markersize, alpha=0.65, linewidth=0, label=labplot, cmap = cmap, zorder=2)
     elif plottype == 'plot':
         ax.plot(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values,
             transform=ccrs.PlateCarree(),

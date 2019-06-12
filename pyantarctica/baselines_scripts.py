@@ -211,7 +211,7 @@ def run_baselines_particle_size(data, options):
                         # 1.0 * kernels.DotProduct(sigma_0=1.0, sigma_0_bounds=(1e-02, 1e2))
 #*  kernels.ExpSineSquared(length_scale=1, periodicity=1) + \ 1.0 * kernels.ConstantKernel(constant_value=1.0, constant_value_bounds=(1e-02, 100.0)) + \
                         regModel = GaussianProcessRegressor(kernel=kernel, optimizer='fmin_l_bfgs_b',
-                                                            alpha=0.1,
+                                                            alpha=0.5,
                                                             n_restarts_optimizer=5).fit(X,y)
 
 
