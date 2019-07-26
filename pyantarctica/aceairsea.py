@@ -41,7 +41,7 @@ def LMoninObukov_bulk(U10,SSHF,SLHF,STair):
     LMO = -(ustar*ustar*ustar)/vKarman/B0 # Monin Obukove Length scale
     return np.squeeze(LMO)
 
-def PSIu(zeta, option='default'):
+def PSIu(zeta, option='Fairall_1996'):
     #stability correction function for modifying the logarithmic wind speed profiles based on atmospheric stability
     # use e.g. for: u(z)=u*/k[log(z/z0)-PSIu(z/L)]
     #
@@ -51,25 +51,34 @@ def PSIu(zeta, option='default'):
     # default = 'Dyer_Hicks_1970'
     
     import numpy as np
-    # zeta=z/L or is it -z/L ???
+    # zeta=z/L 
     # with L = -u*^3/vkarman/(g<wT>/T+0.61g<wq>)
     #x=np.sqrt(np.sqrt(1-15*zeta)); #sqrt(sqrt) instead of ^.25
     
     zeta = np.asarray([zeta])
-        
-    if option == 'default': # or Dyer_Hicks_1970
+    isnan = np.isnan(zeta)
+    zeta[isnan]=0
+    if option == 'Dyer_Hicks_1970': # or Dyer_Hicks_1970
         # Dyer and Hicks 1970       
         x=zeta*0 # avoid warings
         x[zeta<0]=np.sqrt(np.sqrt(1-15*zeta[zeta<0])); #sqrt(sqrt) instead of ^.25
         psi=2*np.log((1+x)/2)+np.log((1+x*x)/2)-2*np.arctan(x)+2*np.arctan(1); 
         psi[zeta>=0]=-5*zeta[zeta>=0];
     elif option == 'Fairall_1996':
-        print('todo')
-        psi = []
+        xk = np.power( (1-16*zeta) , .25)
+        xc = np.power( (1-12.87*zeta) , .3333)
+
+        psik=2*np.log((1+xk)/2)+np.log((1+xk*xk)/2)-2*np.arctan(xk)+2*np.arctan(1); 
+
+        psic=1.5*np.log((1+xc+xc*xc)/3)-np.sqrt(3)*np.arctan((1+2*xc)/np.sqrt(3))+4*np.arctan(1)/np.sqrt(3);
+        f=1/(1+zeta*zeta);
+        psi=(1-f)*psic+f*psik;
+        c=np.min([50*np.ones_like(zeta),.35*zeta],axis=0);
+        psi[zeta>0]=-((1+1.0*zeta[zeta>0]) +.667*(zeta[zeta>0]-14.28)/np.exp(c[zeta>0])+8.525);
     else:
         print('unexpected option: please use "default"')
         psi = []
-            
+    psi[isnan]=np.nan   
     return np.squeeze(psi)
 
 
@@ -137,7 +146,7 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
         # with updated charnock (and ustar) re-calcualte z0 and the Drag Coefficient
         z0 = gamma*(visa/ustar)+charnock*ustar*ustar/grav;
         sqrt_C_D = (vKarman/np.log(z/z0));
-        sqrt_C_D = (vKarman/(np.log(z/z0)-PSIu(zeta))); # when adding stability use this equation ...
+        sqrt_C_D = (vKarman/(np.log(z/z0)-PSIu(zeta, option = 'Fairall_1996'))); # when adding stability use this equation ...
         sqrt_C_D_10 = (vKarman/np.log(10/z0)); # 10m neutral drag coefficient
 
         if input_string == 'ustar2u':

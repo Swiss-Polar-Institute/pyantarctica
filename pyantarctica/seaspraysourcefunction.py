@@ -10,6 +10,109 @@ def dFdD_to_dFdlogD(dFdr80,r80):
     dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
     return dFdlogr80
 
+def deposition_velocity(model_str, Dp, rho_p, h_ref, U10, T, P, zL=0):
+#if 1:
+    # Required input:
+    # Dp = aerosol diameter [um] as (n,) numpy.array with n>=1
+    # rho_p = aerosol density g cm^-3
+    # h_ref = 15 [m] reference height
+    # U10 = wind speed [m/s] referenced to 10m, neutral stability as (m,) numpy.array with m>=1
+    # T [C]
+    # P [hPa]
+    #
+    # Output
+    # vd = deposition velocity [m/s ] production flux per size bin as numpy.array (m,n) 
+    # or (n,) if m=1 & n>1
+    # or (m,) if n=1 & m>1
+    # or (1,) if n=m=1
+    # vs = settiling velocity in the same shape as vd
+    import pyantarctica.aceairsea as aceairsea
+    
+    U10 = U10.reshape(len(U10),1)
+    T = T.reshape(len(T),1)
+    P = P.reshape(len(P),1)
+
+    ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
+    ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
+    ustar =   np.array([ustar])
+    ustar = ustar.reshape(np.max(np.shape(ustar)),1)
+    #print(ustar)
+    rho_p = rho_p * 100*100*100/1000 # g cm^-3 -> kg m^-3
+    Dp = Dp*1E-6 # um -> m
+    
+    T = T+273.15 # C-> K
+    P = P*100 # hPa -> Pa
+
+    
+    
+    #ustar = p.reshape(len(ustar),1)
+    
+    Ccunn = 1 # need to parametrise base ond Dp, RH!
+    dyn_visc = 0.000018 #kg m−1 s−1 dynamic viscosity of air
+    g = 9.81 # kg m−1 s−2
+    R = 8.314 # Nm/mol/K
+    M = 28.9647/1000 # kg/mol
+    kBolz = 1.38*1E-23 # m2 kg s-2 K-1
+
+    kin_visc = 1.5E-5 # m^2/s  kinematic viscosity of air (depends on temperature!) ?
+    # mean free path of air molecules
+    if 0:
+        mfp = 2*dyn_visc/(P*np.sqrt(8*M/(np.pi*R*T ))) # ~0.0651 um
+        # varying p-> *0.7, T-> -40K changes mfp by only 30%
+        # change in Ccunn 6%
+        # alsomost invisible in vg
+    else:
+        mfp = 6.511*1E-8
+    Ccunn = 1+mfp/Dp*(2.514+0.8*np.exp(-0.55*Dp/mfp)) # Seinfeld Pandis 8.34
+    # Ccunn varies from 1.2 for Dp=.8um to 1.032 for Dp=5um 
+
+    # Diffusivity
+    Diffusivity = kBolz*T*Ccunn/3/np.pi/dyn_visc/Dp # Diffusivity of the aerosol in air
+
+    # setttling velocity in m/s,note that the Dp and rho_p play an important role!
+    vs = g*rho_p*Dp*Dp*Ccunn/18/dyn_visc
+    
+
+    kappa = 0.4
+    Pr = 0.72 # Prandtl number
+    Sc = kin_visc/Diffusivity # Schmidt number
+    z0=0.016*ustar*ustar/g # roughness length ! Check
+    ra = 1/kappa/ustar*(np.log(h_ref/z0) + 0 ) # -Psi(z/L)+Pis(z0/L) ! Need to add
+    rb = 2/kappa/ustar*np.power(Sc/Pr,2/3) # 
+
+
+    vs =   np.array([vs])
+    
+    vd = vs + 1/(ra+rb+ra*rb) # addition currenlty makes almost no difference for Dp>.8
+    
+    # Giradina 2018
+    m=0.1; n=3; # tunig params
+    St = vs/g*ustar*ustar/kin_visc # (eq. 23)
+    tau = rho_p*Dp*Dp*Ccunn/18/dyn_visc
+    tau_plus = tau*ustar*ustar/kin_visc
+    rdb = 1/ustar*np.power(Sc,2/3) # (eq. 20)
+    rii = 1/ustar/(St*St/(St*St+1)) # eq. 22 for rough surfaces
+    rii = 1/ustar/(St*St/(St*St+400)) # eq. 22 for smooth surfaces
+
+    rti = 1/ustar/m/tau_plus
+    vd = vs/(1-np.exp(-vs*(ra+1/(1/rdb+1/rii+1/(rii+rti)  )  )) )
+    
+
+    # ensuring the right shape what ever the input
+    if np.max(np.shape(vd))>1:
+        vd = vd.squeeze()
+    else:
+        vd = np.array([vd[0]])
+        if len(np.shape(vd))==2:
+            vd = vd[0]
+        
+    if np.max(np.shape(vs))>1:
+        vs = vs.squeeze()
+    else:
+        vs = np.array([vs[0]])
+    
+    return vd, vs
+
 def sssf(sssf_str, r80, U10, SST=[], Re=[]):
     # sssf(sssf_str, r80, U10, SST, Re):
     #
@@ -149,7 +252,7 @@ def aps_D_to_r80(Dca, rhop=2.017, chic=1.08, gf=2):
     r80=Dve*gf/2
     return r80
     
-def aps_aggregate(APS,AGG_WINDOWS):
+def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_'):
     # FOR NOW I ASSUME THAT:
     # diameters given is center diameters of the logarithmic intervals, this would make sense cause:
     #1/(np.log10(0.523)-np.log10(0.542)) #-> 64
@@ -185,7 +288,7 @@ def aps_aggregate(APS,AGG_WINDOWS):
 
     for AGG_WINDOW in AGG_WINDOWS:
         print(AGG_WINDOW)
-        agg_str = 'APS_'+str(round(AGG_WINDOW[0]*1000))+'_'+str(round(AGG_WINDOW[1]*1000)) # give in nm to avoid the .
+        agg_str = label_prefix+str(round(AGG_WINDOW[0]*1000))+'_'+str(round(AGG_WINDOW[1]*1000)) # give in nm to avoid the .
         cond = (part_legend >= AGG_WINDOW[0]) & (part_legend<AGG_WINDOW[1])
         aps_agg = aps_agg.assign(newcol=APS.iloc[:,np.where(cond)[0]].sum(axis=1)/aps_scale)
         # now set to nan where we have no data (could be more strict by requesting all sizebins with cond==True to be present, for APS does not matter)
