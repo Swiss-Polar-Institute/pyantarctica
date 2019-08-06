@@ -106,7 +106,8 @@ def resample_wind_data(df_wind, Nmin=5,interval_center='odd', lon_flip_tolleranc
     wind_5min=wind_5min.resample(str(Nmin)+'T', loffset = loffset).mean() 
 
 
-    wind_5min['longitude'][np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance]=lon_median[np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance]
+   #wind_5min['longitude'][np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance]=lon_median[np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance]
+    wind_5min.at[(np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance), 'longitude']=lon_median[np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance]
 
     #wind_5min = wind_5min.assign(HEADING_DIFF=HEADING_DIFF)
     #wind_5min = wind_5min.assign(SOG_DIFF=(SOG_MAX-SOG_MIN))
