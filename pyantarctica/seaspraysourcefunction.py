@@ -59,6 +59,11 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
     T = T.reshape(len(T),1)
     P = P.reshape(len(P),1)
     zeta = zeta.reshape(len(zeta),1)
+    
+    if ((len(U10)==len(Dp)) & (len(Dp)>1) ):
+        # in this case assume each Dp sample corresponds to a U10 sample and we get a time series of vd
+        Dp = Dp.reshape(len(Dp),1) # 
+
 
     ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
     ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
