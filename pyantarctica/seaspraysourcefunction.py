@@ -2,6 +2,21 @@
 import numpy as np
 import pandas as pd
 
+
+def r_div_r80(RH, option='Lewis2004'):
+    # hygroscopic growth factor 
+    # (below RH=75% this is valid only for decreasing RH)!
+    # THIS NEGLECTS THE KELVIN EFFECT!
+    # But the difference should be really small
+    RH[RH>99]=99 # RH=99 -> gf=2.5 not defined for RH>=100%
+    # or should we limit to 98%?-> gf=2.
+    RH[RH>98]=98 #
+    if option == 'Lewis2004':
+        # within 2.5% of Tang 1997 for RH>50%
+        r_div_r80 = np.power(0.54*(1+1/(1-RH/100)), 1/3)
+        
+    return r_div_r80
+
 def dFdlogD_to_dFdD(dFdlogr80,r80):
     dFdr80 = dFdlogr80/r80*np.log10(np.exp(1))
     return dFdr80
@@ -10,7 +25,9 @@ def dFdD_to_dFdlogD(dFdr80,r80):
     dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
     return dFdlogr80
 
-def deposition_velocity(model_str, Dp, rho_p, h_ref, U10, T, P, zL=0):
+#def deposition_velocity(model_str, Dp, rho_p, h_ref, U10, T, P, zeta=0):
+def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0., model='giardina_2018'):
+
 #if 1:
     # Required input:
     # Dp = aerosol diameter [um] as (n,) numpy.array with n>=1
@@ -27,10 +44,21 @@ def deposition_velocity(model_str, Dp, rho_p, h_ref, U10, T, P, zL=0):
     # or (1,) if n=m=1
     # vs = settiling velocity in the same shape as vd
     import pyantarctica.aceairsea as aceairsea
+    import numpy as np
     
+    if type(zeta) != np.ndarray:
+        zeta = np.asarray([zeta])
+    if type(U10) != np.ndarray:
+        U10 = np.asarray([U10])
+    if type(P) != np.ndarray:
+        P = np.asarray([P])
+    if type(T) != np.ndarray:
+        T = np.asarray([T])
+       
     U10 = U10.reshape(len(U10),1)
     T = T.reshape(len(T),1)
     P = P.reshape(len(P),1)
+    zeta = zeta.reshape(len(zeta),1)
 
     ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
     ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
@@ -77,7 +105,7 @@ def deposition_velocity(model_str, Dp, rho_p, h_ref, U10, T, P, zL=0):
     Pr = 0.72 # Prandtl number
     Sc = kin_visc/Diffusivity # Schmidt number
     z0=0.016*ustar*ustar/g # roughness length ! Check
-    ra = 1/kappa/ustar*(np.log(h_ref/z0) + 0 ) # -Psi(z/L)+Pis(z0/L) ! Need to add
+    ra = 1/kappa/ustar*(np.log(h_ref/z0) - aceairsea.PSIh(zeta) ) # -Psi(z/L)+Pis(z0/L) ! Need to add
     rb = 2/kappa/ustar*np.power(Sc/Pr,2/3) # 
 
 
@@ -240,19 +268,20 @@ def aps_D_to_Dphys(Dca, rhop=2.017, chic=1.08):
     return Dve
 
 
+
 def aps_D_to_r80(Dca, rhop=2.017, chic=1.08, gf=2):
     # assume continous flow regime => cunningham slip factors ~1
     # ρ0 = 1g/cm^3
     # ρp = 2.2g/cm^3 (sea salt) -> changed to 2.017 g/cm3 (Ziegler 2017)
     # χ_c = 1.08 (cubic shape)
-    # gf = hygroscopic growth factor
+    # gf = hygroscopic growth factor: use gf=r_div_r80(RH)
     # Dve volume equivalent diameter of the dried sea salt particle (assume this equals r80)
     # Dve = Dca √(χ_c  ρ0/ρp)
     Dve = Dca*np.sqrt(chic*1.0/rhop)
     r80=Dve*gf/2
     return r80
     
-def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_'):
+def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_', LABELS=[]):
     # FOR NOW I ASSUME THAT:
     # diameters given is center diameters of the logarithmic intervals, this would make sense cause:
     #1/(np.log10(0.523)-np.log10(0.542)) #-> 64
@@ -286,9 +315,14 @@ def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_'):
     aps_scale = 1/np.mean((np.log10(part_legend[1:]) - np.log10(part_legend[0:-1])))
     print(aps_scale)
 
+    jlabel = -1
     for AGG_WINDOW in AGG_WINDOWS:
         print(AGG_WINDOW)
         agg_str = label_prefix+str(round(AGG_WINDOW[0]*1000))+'_'+str(round(AGG_WINDOW[1]*1000)) # give in nm to avoid the .
+        if len(LABELS)==len(AGG_WINDOWS):
+            jlabel=jlabel+1
+            agg_str = label_prefix+LABELS[jlabel] # custom label set by user
+        
         cond = (part_legend >= AGG_WINDOW[0]) & (part_legend<AGG_WINDOW[1])
         aps_agg = aps_agg.assign(newcol=APS.iloc[:,np.where(cond)[0]].sum(axis=1)/aps_scale)
         # now set to nan where we have no data (could be more strict by requesting all sizebins with cond==True to be present, for APS does not matter)

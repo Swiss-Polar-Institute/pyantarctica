@@ -42,6 +42,56 @@ def LMoninObukov_bulk(U10,SSHF,SLHF,STair):
     LMO = -(ustar*ustar*ustar)/vKarman/B0 # Monin Obukove Length scale
     return np.squeeze(LMO)
 
+def PHIu(zeta, option='Hogstroem_1988'):
+    zeta = np.asarray([zeta])
+    isnan = np.isnan(zeta)
+    zeta[isnan]=0
+    option_list = ['Hogstroem_1988']
+    
+    if option == 'Hogstroem_1988':
+        phi = 1+5*zeta
+        phi[zeta<0]=np.power((1-16*zeta[zeta<0]),-0.25)
+    else:
+        print('unexpected option! available options are:')
+        print(option_list)
+        phi = []
+    phi[isnan]=np.nan   
+    return np.squeeze(phi)
+
+def PHIh(zeta, option='Hogstroem_1988'):
+    import numpy as np
+    zeta = np.asarray([zeta])
+    isnan = np.isnan(zeta)
+    zeta[isnan]=0
+    option_list = ['Hogstroem_1988']
+    
+    if option == 'Hogstroem_1988':
+        phi = np.power((1+4*zeta[zeta<0]),2)
+        phi[zeta<0]=np.power((1-16*zeta[zeta<0]),-0.5)
+    else:
+        print('unexpected option! available options are:')
+        print(option_list)
+        phi = []
+    phi[isnan]=np.nan   
+    return np.squeeze(phi)
+
+def PSIh(zeta, option='Brandt_2002'):
+    import numpy as np
+    zeta = np.asarray([zeta])
+    isnan = np.isnan(zeta)
+    zeta[isnan]=0
+    option_list = ['Brandt_2002']
+    
+    if option == 'Brandt_2002':
+        psi=-5*zeta
+        psi[zeta<0] = np.exp(0.598+0.390*np.log(-zeta[zeta<0])-0.09*np.power(np.log(-zeta[zeta<0]),2) )
+    else:
+        print('unexpected option! available options are:')
+        print(option_list)
+        psi = []
+    psi[isnan]=np.nan   
+    return np.squeeze(psi)
+
 def PSIu(zeta, option='Fairall_1996'):
     #stability correction function for modifying the logarithmic wind speed profiles based on atmospheric stability
     # use e.g. for: u(z)=u*/k[log(z/z0)-PSIu(z/L)]
