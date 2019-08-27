@@ -3,19 +3,24 @@ import numpy as np
 import pandas as pd
 
 
+
 def r_div_r80(RH, option='Lewis2004'):
     # hygroscopic growth factor 
     # (below RH=75% this is valid only for decreasing RH)!
     # THIS NEGLECTS THE KELVIN EFFECT!
     # But the difference should be really small
-    RH[RH>99]=99 # RH=99 -> gf=2.5 not defined for RH>=100%
-    # or should we limit to 98%?-> gf=2.
-    RH[RH>98]=98 #
     if option == 'Lewis2004':
-        # within 2.5% of Tang 1997 for RH>50%
-        r_div_r80 = np.power(0.54*(1+1/(1-RH/100)), 1/3)
-        
+        # within 2.5% of Tang 1997 for RH>50%, 
+        r_div_r80 = 0.54*np.power((1+1/(1-RH/100)), 1/3)
+    r_div_r80[r_div_r80>2]=2 # limit to 98%?-> gf=2.
+    r_div_r80[RH<42]=0.5 # for low RH set rRH=rDry=0.5*r80
     return r_div_r80
+
+
+def rdry2rRH(Dp, RH, option='Lewis2004'):
+    # convert try diameter/radius to expected diameter/radius at RH[%] 
+    # rRH/rDry = (rRH/r80)*(r80/rDry) = (rRH/r80)*2
+    return 2*r_div_r80(RH, option=option)*Dp
 
 def dFdlogD_to_dFdD(dFdlogr80,r80):
     dFdr80 = dFdlogr80/r80*np.log10(np.exp(1))
@@ -54,15 +59,21 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
         P = np.asarray([P])
     if type(T) != np.ndarray:
         T = np.asarray([T])
+    if type(rho_p) != np.ndarray:
+        rho_p = np.asarray([rho_p])
        
     U10 = U10.reshape(len(U10),1)
     T = T.reshape(len(T),1)
     P = P.reshape(len(P),1)
     zeta = zeta.reshape(len(zeta),1)
+    rho_p = rho_p.reshape(len(rho_p),1)
     
     if ((len(U10)==len(Dp)) & (len(Dp)>1) ):
         # in this case assume each Dp sample corresponds to a U10 sample and we get a time series of vd
         Dp = Dp.reshape(len(Dp),1) # 
+    #if ((len(U10)==len(rho_p)) & (len(rho_p)>1) ):
+    #    # in this case assume each Dp sample corresponds to a U10 sample and we get a time series of vd
+    #    rho_p = rho_p.reshape(len(rho_p),1) # 
 
 
     ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)

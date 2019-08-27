@@ -60,9 +60,9 @@ def dirdiff(HEADING,Nmin,loffset):
 
 def resample_wind_data(df_wind, Nmin=5,interval_center='odd', lon_flip_tollerance=0.0005):
     
-
-    #lon_flip_tollerance = 0.0005 # for 1min to 5min a value well aboved the normal difference of mean and median longitudes
-    #lon_flip_tollerance = 0.1 # for 1min to 1hour
+    # suggested input for lon_flip_tollerance:
+    #lon_flip_tollerance = 0.0005 # for Nmin=1min a value well aboved the normal difference of mean and median longitudes
+    #lon_flip_tollerance = 0.1 # for Nmin 5min to 1hour
 
 
     wind_5min = df_wind.copy(); # make copy (may not be necessary here)
