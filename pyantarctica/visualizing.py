@@ -451,7 +451,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
     return fig, ax
 
 ##############################################################################################################
-def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='white', labplot='', plottype='scatter', make_caxes=True, cmap=plt.cm.viridis, set_in_ax=None):
+def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='white', labplot='', plottype='scatter', make_caxes=True, cmap=plt.cm.viridis, set_in_ax=None, centercm=False):
     '''
         Visualize data on a polar stereographic projection map using cartopy on matplotlib.
 
@@ -490,6 +490,9 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     coordinates = dataset.ts_aggregate_timebins(coordinates, time_bin=min_tres, operations={'': np.nanmedian}, index_position='middle')
     values = dataset.ts_aggregate_timebins(values, time_bin=min_tres, operations={'': np.nanmean}, index_position='middle')
 
+    # values[values > max_va] = max_va
+    # values[values < min_va] = min_va
+
     toplot = pd.concat((coordinates,values), axis=1)
     toplot = toplot.dropna()
 
@@ -512,16 +515,25 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     #m.shadedrelief()
     # prepare colors
     # cmap = plt.cm.get_cmap('viridis')
-    normalize = mpl.colors.Normalize(vmin=min_va, vmax=max_va)
-    colors = [cmap(normalize(value)) for value in toplot.iloc[:,-1]]
+    if centercm:
+        th_ = -np.max((np.abs(min_va), max_va)), np.max((np.abs(min_va), max_va))
+    else:
+        th_ = min_va, max_va
 
+    normalize = mpl.colors.Normalize( vmin=th_[0], vmax=th_[1])
+    colors = [cmap(normalize(value)) for value in toplot.iloc[:,-1]]
     # geo coord to plot coord
     # lon, lat = m(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values)
     # map boat samples with values
+    # if centercm:
+    #     norm = MidPointNorm(midpoint=0)
+    # else:
+    #     norm=None
 
     if plottype == 'scatter':
         ax.plot(gps.iloc[:,1], gps.iloc[:,0], transform=ccrs.Geodetic(), linewidth=1, color='black', zorder=1)
-        ax.scatter(toplot.iloc[:,1].values,toplot.iloc[:,0].values, transform=ccrs.Geodetic(), c=toplot.iloc[:,2].values, s=markersize, alpha=0.65, linewidth=0, label=labplot, cmap = cmap, zorder=2)
+
+        ax.scatter(toplot.iloc[:,1].values,toplot.iloc[:,0].values, transform=ccrs.Geodetic(), c=toplot.iloc[:,2].values, s=markersize, alpha=0.5, linewidth=0, label=labplot, cmap = cmap, zorder=2) # , norm=norm
     elif plottype == 'plot':
         ax.plot(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values,
             transform=ccrs.PlateCarree(),
@@ -670,7 +682,7 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
     """
 
     f, ax = plt.subplots(2,len(subset_columns_parameters), squeeze=False, figsize=(10,3), sharex='col',
-                sharey='row', gridspec_kw = {'height_ratios':[2, 1]}  )
+                sharey='row', gridspec_kw = {'height_ratios':[2, 1]}, tight_layout=True)
 
     for vvnum, vv in enumerate(subset_columns_parameters):
 
@@ -695,7 +707,7 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
         labels_ = ['{:.2f}'.format(xx) for xx in bins]
 
         if vvnum == 0:
-            ax[0,vvnum].set_ylim(0,1.2*np.max(aerosol.loc[joind].groupby(bins_h).agg(np.nanmean)))
+            ax[0,vvnum].set_ylim(0,1.75*np.max(aerosol.loc[joind].groupby(bins_h).agg(np.nanmean)))
 
         ax[0,vvnum].set_ylabel('Aerosol value \n (mean per bin)')
         ax[0,vvnum].set_xticks(np.arange(0,nbins+1,10))
@@ -708,4 +720,143 @@ def plot_binned_parameters_versus_averages(df, aerosol, subset_columns_parameter
         ax[1,vvnum].set_xticklabels(labels_[::10])
         ax[1,vvnum].tick_params(labelbottom=True, labelleft=True)
 
+        # ax[0,vvnum].autoscale(enable=True, axis='x', tight=True)
+        # ax[1,vvnum].autoscale(enable=True, axis='x', tight=True)
+
     return f, ax
+
+# ########################
+def interactive_map(v1, options):
+    # print(options)
+    import cartopy.crs as ccrs
+    import holoviews as hv
+    from holoviews import opts, dim
+    import geoviews as gv
+    import geoviews.feature as gf
+
+    hv.extension('bokeh', 'matplotlib')
+
+    vname = v1.columns.tolist()[0]
+
+    stretch = [0,100]
+
+    tres = np.median(np.diff(v1.index.tolist()))
+    tres = 1*int(tres.total_seconds() / 60)
+    # vf1 = dataset.ts_aggregate_timebins(v1.to_frame(), time_bin=tres, operations={'': np.nanmean}, index_position='middle')
+
+    # come up with leg coloring
+    leg_series = dataset.add_legs_index(v1)['leg']
+
+    vcol = dataset.ts_aggregate_timebins(v1, time_bin=tres, operations={'': options['resampling_operation']}, index_position='middle')
+
+    vcol.columns = ['color']
+    min_ = np.percentile(vcol.dropna(), stretch[0])
+    max_ = np.percentile(vcol.dropna(), stretch[1])
+    #print(min_,max_)
+    vcol[vcol<min_] = min_
+    vcol[vcol>max_] = max_
+
+    coordinates_raw = dataset.read_standard_dataframe(options['gps_file'])
+
+    # mode_ = lambda x : stats.mode(x)[0]
+    # Deal with coordinates
+    coordinates=dataset.ts_aggregate_timebins(coordinates_raw, time_bin=int(np.floor(options['map_temporal_aggregation']*60)), operations={'': np.nanmedian}, index_position='middle')
+
+    # Resample and merge coordinates + data
+    to_plot = pd.merge(coordinates, v1, left_index=True, right_index=True)
+    to_plot = pd.merge(to_plot, pd.DataFrame(data=to_plot.index.tolist(),columns=['date'],index=to_plot.index), left_index=True, right_index=True)
+    to_plot = to_plot.dropna()
+
+    # colorbar limits
+    min_v1 = min_# np.percentile(to_plot.loc[:,vname].dropna(), stretch[0])
+    max_v1 = max_#np.percentile(to_plot.loc[:,vname].dropna(), stretch[1])
+
+    # Create geoviews datasets
+    v1_tomap = hv.Dataset(to_plot.loc[:,['longitude','latitude','date',vname]], kdims=['longitude', 'latitude'], vdims=[hv.Dimension(vname,range=(min_v1,max_v1))],
+                       group=vname)
+
+    points_v1 = v1_tomap.to(gv.Points, kdims=['longitude', 'latitude'])
+
+    gps_track = gv.Dataset(coordinates_raw)
+    track = gv.Path(gps_track, kdims=['longitude', 'latitude'])
+    # land_ = gf.land#.options(facecolor='red')
+
+    point_map_v1 = points_v1.opts(projection=ccrs.SouthPolarStereo(), cmap=options['colormap'], size=5, tools=['hover'], # ['hover'],
+          width=500, height=400, color_index=2, colorbar=True)
+
+    track_map = track.opts(projection=ccrs.SouthPolarStereo()).opts(color='black')
+
+    return (
+      (gf.land * gf.coastline * track_map * point_map_v1).opts(title=vname)
+      )
+
+    # + (gf.land * gf.coastline * track_map * point_map_v2).opts(title=v2)
+    # )
+
+
+# from numpy import ma
+# from matplotlib import cbook
+# from matplotlib.colors import Normalize
+#
+# class MidPointNorm(Normalize):
+#     def __init__(self, midpoint=0, vmin=None, vmax=None, clip=False):
+#         Normalize.__init__(self,vmin, vmax, clip)
+#         self.midpoint = midpoint
+#
+#     def __call__(self, value, clip=None):
+#         if clip is None:
+#             clip = self.clip
+#
+#         result, is_scalar = self.process_value(value)
+#
+#         self.autoscale_None(result)
+#         vmin, vmax, midpoint = self.vmin, self.vmax, self.midpoint
+#
+#         if not (vmin < midpoint < vmax):
+#             raise ValueError("midpoint must be between maxvalue and minvalue.")
+#         elif vmin == vmax:
+#             result.fill(0) # Or should it be all masked? Or 0.5?
+#         elif vmin > vmax:
+#             raise ValueError("maxvalue must be bigger than minvalue")
+#         else:
+#             vmin = float(vmin)
+#             vmax = float(vmax)
+#             if clip:
+#                 mask = ma.getmask(result)
+#                 result = ma.array(np.clip(result.filled(vmax), vmin, vmax),
+#                                   mask=mask)
+#
+#             # ma division is very slow; we can take a shortcut
+#             resdat = result.data
+#
+#             #First scale to -1 to 1 range, than to from 0 to 1.
+#             resdat -= midpoint
+#             resdat[resdat>0] /= abs(vmax - midpoint)
+#             resdat[resdat<0] /= abs(vmin - midpoint)
+#
+#             resdat /= 2.
+#             resdat += 0.5
+#             result = ma.array(resdat, mask=result.mask, copy=False)
+#
+#         if is_scalar:
+#             result = result[0]
+#         return result
+#
+#     def inverse(self, value):
+#         if not self.scaled():
+#             raise ValueError("Not invertible until scaled")
+#         vmin, vmax, midpoint = self.vmin, self.vmax, self.midpoint
+#
+#         if cbook.iterable(value):
+#             val = ma.asarray(value)
+#             val = 2 * (val-0.5)
+#             val[val>0]  *= abs(vmax - midpoint)
+#             val[val<0] *= abs(vmin - midpoint)
+#             val += midpoint
+#             return val
+#         else:
+#             val = 2 * (val - 0.5)
+#             if val < 0:
+#                 return  val*abs(vmin-midpoint) + midpoint
+#             else:
+#                 return  val*abs(vmax-midpoint) + midpoint

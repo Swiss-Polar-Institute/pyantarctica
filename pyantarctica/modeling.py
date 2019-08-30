@@ -62,26 +62,23 @@ def retrieve_model_av_std(summary):
     return results
 
 ##############################################################################################################
-def sample_trn_test_index(index,split=2.0/3,mode='final',group=20,
-    options={'submode': 'interpolation', 'samples_per_interval': 1, 'temporal_inteval': '1H'}):
+def sample_trn_test_index(index,split=2.0/3,mode='final', group=20, options={'submode': 'interpolation', 'samples_per_interval': 1, 'temporal_inteval': '1H'}):
 
     """
-        Given a dataframe index, sample indexes for different training and test splits. It is possible to create different test subgroups to test temporal consistency of models.
+    Given a dataframe index, sample indexes for different training and test splits. It is possible to create different test subgroups to test temporal consistency of models.
+    :param index: dataframe index from which sample training and test locations from (required to return a dataframe as well, without losing the original indexing)
+    :param split: float, training to test datapoints ratios.
+    :param group: int or 'all', providing the number of samples in each test subgroup, if needed, and for other things.
+    :param mode: string
+        |    - 'prediction' : first split used for training, rest for testing
+        |    - 'interpolation': pure random sampling
 
-        :param index: dataframe index from which sample training and test locations from (required to return a dataframe as well, without losing the original indexing)
-        :param split: float, training to test datapoints ratios.
-        :param group: int or 'all', providing the number of samples in each test subgroup, if needed, and for other things.
-        :param mode: string
-            |    - 'prediction' : first split used for training, rest for testing
-            |    - 'interpolation': pure random sampling
-
-            |    - 'middle' : samples equal groups for training and groups for testing, with size specified by group, independent training are all indexed by 1 and the tests are independent groups with label l in {2,...}, uniformly distributed
-            |    - 'initial' : recursively uses 'final' but on inverted indexes
-            |    - 'training_shifted' : indexes training points in temporally shifted lags, with group specifying how many points _before_ the training set is sampled.
-            |       e.g. 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 where the first 6 "2"s are def in group
-        :param options: additional options, for now only for temporal subsampling.
-
-        :returns: a dataframe with an index column, with integres i denoting wether a datapoint is training (i=1) or test (i=2,...)
+        |    - 'middle' : samples equal groups for training and groups for testing, with size specified by group, independent training are all indexed by 1 and the tests are independent groups with label l in {2,...}, uniformly distributed
+        |    - 'initial' : recursively uses 'final' but on inverted indexes
+        |    - 'training_shifted' : indexes training points in temporally shifted lags, with group specifying how many points _before_ the training set is sampled.
+        |       e.g. 2 2 2 2 2 2 1 1 1 1 1 1 1 1 1 1 1 2 2 2 2 where the first 6 "2"s are def in group
+    :param options: additional options, for now only for temporal subsampling.
+    :returns: a dataframe with an index column, with integres i denoting wether a datapoint is training (i=1) or test (i=2,...)
     """
 
     # data size
@@ -630,5 +627,314 @@ def bayesian_smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=1
             stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
 
             y_hat[inds[:,ind_w] == 2, ind_w] = pred_va_Y
+
+    return W, loss, inds, stats, y_hat
+
+##############################################################################################################
+def smooth_weight_kernel_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRESH=1e-6):
+    """
+        Define a multitask regression problem in which tasks are locally smooth (e.g. bin size prediction), and introduce a penalty in which weights of regressors of related tasks are encouraged to be similar.
+    """
+
+    from sklearn.metrics import mean_squared_error, r2_score
+    from sklearn.metrics.pairwise import rbf_kernel
+
+    def retrieve_neigh_norm(W,ind_w,ss):
+        L = W.shape[1]
+        hs = int(np.floor(ss/2))
+        if ind_w < hs:
+            W_subs = W[:,0:(ind_w + hs + 1)]
+            # W_subs = W[:,np.setdiff1d(range(0,(ind_w+hs+1),1),ind_w)]
+
+        elif ind_w > (L-hs-1):
+            W_subs = W[:,(ind_w-hs):L]
+            # W_subs = W[:,np.setdiff1d(range((ind_w-hs),L,1),ind_w)]
+
+        else:
+            W_subs = W[:,(ind_w-hs):(ind_w+hs+1)]
+            # W_subs = W[:,np.setdiff1d(range((ind_w-hs),(ind_w+hs+1),1),ind_w)]
+
+        return 1/(ss**2) * np.sum(W_subs, axis=1)
+
+    D = data.shape[1]
+    T = labels.shape[1]
+
+    par1 = opts['par1']
+    par2 = opts['par2']
+    kpar = opts['kpar']
+    tr_ts_split = opts['tr_ts_split']
+
+    W_old = np.ones((D,T))
+    W = np.random.rand(D,T)
+
+
+    # init stuff
+    k = 0
+    epsi = np.Inf
+    loss = []
+    while (epsi > opts['THRESH']) & (k < opts['ITERS']):
+        # schedule = np.random.permutation(range(T))
+        schedule = range(opts['TASKS'])
+    W_old = W.copy()
+    for ind_w in schedule:
+
+        X_Y = data.assign(y=labels.iloc[:,ind_w]).copy()
+        trn_X = X_Y.iloc[ind_mat[:,ind_w] == 1, :-1]
+        trn_Y = X_Y.iloc[ind_mat[:,ind_w] == 1, -1]
+
+        K = rbf_kernel(trn_X, gamma=1./opts['kpar']**2)
+        W_mt_n = retrieve_neigh_norm(W[ind_mat[:,ind_w] == 1,:], ind_w, opts['WIN_SIZE'])
+
+        A = K + opts['par1']*np.eye(np.sum(ind_mat[:,ind_w] == 1)) + opts['par2']*np.eye(np.sum(ind_mat[:,ind_w] == 1))
+        A = np.linalg.inv(A)
+
+        B = opts['par2']*W_mt_n + trn_Y
+        W[ind_mat[:,ind_w] == 1,ind_w] = np.dot(A,B)
+
+        epsi = np.abs(np.sum(np.sum(W-W_old)))
+        # print(f'iter {k}, size W {W.shape}, loss {epsi}')
+
+        loss.append(epsi)
+        k += 1
+
+    print(f'iter {k}, size W {W.shape}, loss {epsi}')
+
+    y_hat = np.zeros((opts['DATA_SIZE'][0],T))
+    stats = {}
+    stats['tr_RMSE'] = []#np.inf*np.ones((T))
+    stats['tr_R2'] = []#np.inf*np.ones((T))
+    stats['va_RMSE'] = []#np.inf*np.ones((T))
+    stats['va_R2'] = []#np.inf*np.ones((T))
+
+    # if opts['VAL_MODE']:
+    for ind_w in range(opts['TASKS']):
+        X_Y = data.assign(y=labels.iloc[:,ind_w]).copy()
+        trn_X = X_Y.iloc[ind_mat[:,ind_w] == 1, :-1]
+        trn_Y = X_Y.iloc[ind_mat[:,ind_w] == 1, -1]
+
+        K = rbf_kernel(trn_X, gamma=1./sigma**2)
+        pred_tr_Y = np.dot(K,W[ind_mat[:,ind_w] == 1,ind_w])
+
+        stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
+        stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
+
+        y_hat[ind_mat[:,ind_w] == 1, ind_w] = pred_tr_Y
+
+        if np.any(ind_mat[:,ind_w] == 2):
+            val_X = X_Y.iloc[ind_mat[:,ind_w] == 2, :-1]
+            val_Y = X_Y.iloc[ind_mat[:,ind_w] == 2, -1]
+
+            Kt = rbf_kernel(val_X,trn_X, gamma=1./sigma**2)
+            pred_va_Y = np.dot(Kt,W[ind_mat[:,ind_w] == 1,ind_w])
+
+            stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
+            stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
+
+            y_hat[ind_mat[:,ind_w] == 2, ind_w] = pred_va_Y
+
+    return W, loss, inds, stats, y_hat
+
+##############################################################################################################
+def approximate_smooth_weight_kernel_ridge_regression(data, labels, ind_mat, opts):#, ITERS=100, THRESH=1e-6):
+    """
+        Define a multitask regression problem in which tasks are locally smooth (e.g. bin size prediction), and introduce a penalty in which weights of regressors of related tasks are encouraged to be similar. Instead of optimizing the dual and using explicit kernel matrices, random kitchen sinks style kernel approximations are used.
+    """
+
+    from sklearn.metrics import mean_squared_error, r2_score
+    from sklearn.metrics.pairwise import rbf_kernel
+    from sklearn.kernel_approximation import RBFSampler
+
+    D = opts['approximation_dim']
+    sm = RBFSampler(gamma=1./opts['kpar']**2,n_components=D,random_state=666)
+
+    def retrieve_neigh_norm(W,ind_w,ss):
+        L = W.shape[1]
+        hs = int(np.floor(ss/2))
+        if ind_w < hs:
+            W_subs = W[:,0:(ind_w + hs + 1)]
+        elif ind_w > (L-hs-1):
+            W_subs = W[:,(ind_w-hs):L]
+        else:
+            W_subs = W[:,(ind_w-hs):(ind_w+hs+1)]
+        return 1/(ss) * np.sum(W_subs, axis=1)
+
+    W = np.random.rand(D,opts['TASKS'])
+
+    # init stuff
+    k = 0
+    epsi = np.Inf
+    loss = []
+    while (epsi > opts['THRESH']) & (k < opts['ITERS']):
+        # schedule = np.random.permutation(range(T))
+        schedule = range(opts['TASKS'])
+        W_old = W.copy()
+        t_loss = 0
+        t_norm_w = 0
+
+        for ind_w in schedule:
+            X_Y = data.assign(y=labels.iloc[:,ind_w]).copy()
+            trn_X = sm.fit_transform(X_Y.iloc[ind_mat[:,ind_w] == 1, :-1])
+            trn_Y = X_Y.iloc[ind_mat[:,ind_w] == 1, -1]
+            N = np.sum(ind_mat[:,ind_w] == 1)
+
+            W_mt_n = retrieve_neigh_norm(W, ind_w, opts['WIN_SIZE'])
+
+            A = np.dot(trn_X.T,trn_X) + opts['par1']*np.eye(D) + opts['par2']*np.eye(D)
+            A = np.linalg.inv(A)
+            B = np.dot(trn_X.T,trn_Y) + opts['par2']*W_mt_n
+            W[:,ind_w] = np.dot(A,B)
+
+            t_loss += 1/N*np.sum((trn_Y.values - np.dot(trn_X,W[:,ind_w]))**2) # + np.linalg.norm(W[:,ind_w])
+            t_norm_w += np.linalg.norm(W[:,ind_w])
+
+        emp_err = 1/opts['TASKS'] * t_loss
+        epsi = np.abs(np.sum(np.sum(W-W_old)))
+        loss.append(emp_err)
+        # print(f'iter {k}, size W {W.shape}, conv {epsi}, emp error {emp_err}, mean norm w {1/opts["TASKS"] * t_norm_w}')
+
+        k += 1
+
+    print(f'converged in iter {k}, size W {W.shape}, conv {epsi}, emp error {emp_err}, mean norm w {1/opts["TASKS"] * t_norm_w}')
+
+    y_hat = np.zeros((opts['DATA_SIZE'][0],opts['TASKS']))
+    stats = {}
+    stats['tr_RMSE'] = []#np.inf*np.ones((T))
+    stats['tr_R2'] = []#np.inf*np.ones((T))
+    stats['va_RMSE'] = []#np.inf*np.ones((T))
+    stats['va_R2'] = []#np.inf*np.ones((T))
+
+    # if opts['VAL_MODE']:
+    for ind_w in range(opts['TASKS']):
+        X_Y = data.assign(y=labels.iloc[:,ind_w]).copy()
+        trn_X = sm.fit_transform(X_Y.iloc[ind_mat[:,ind_w] == 1, :-1])
+        trn_Y = X_Y.iloc[ind_mat[:,ind_w] == 1, -1]
+
+        pred_tr_Y = np.dot(trn_X,W[:,ind_w])
+
+        stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
+        stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
+
+        y_hat[ind_mat[:,ind_w] == 1, ind_w] = pred_tr_Y
+
+        if np.any(ind_mat[:,ind_w] == 2):
+            val_X = sm.fit_transform(X_Y.iloc[ind_mat[:,ind_w] == 2, :-1])
+            val_Y = X_Y.iloc[ind_mat[:,ind_w] == 2, -1]
+
+            pred_va_Y = np.dot(val_X,W[:,ind_w])
+
+            stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
+            stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
+
+            y_hat[ind_mat[:,ind_w] == 2, ind_w] = pred_va_Y
+
+    return W, loss, ind_mat, stats, y_hat
+
+##############################################################################################################
+def smooth_weight_approximate_gaussian_process_regression(data, labels, ind_mat, opts):#, ITERS=100, THRESH=1e-6):
+    """
+        Define a Bayesian multitask regression problem in which tasks are locally smooth (e.g. bin size prediction), and introduce a penalty in which weights of regressors of related tasks are encouraged to be similar.
+        See https://icml.cc/Conferences/2005/proceedings/papers/128_GaussianProcesses_YuEtAl.pdf
+    """
+
+    return NotImplementedError
+
+    import scipy.stats as stats
+    from sklearn.metrics import mean_squared_error, r2_score
+    from sklearn.kernel_approximation import RBFSampler
+    D = opts['approximation_dim']
+
+    sm = RBFSampler(gamma=1./opts['kpar']**2,n_components=D,random_state=666)
+
+    T = opts['TASKS']
+    W = np.random.rand(D,T)
+    tau = opts['par1']
+    pi = opts['par2']
+
+    C_w = stats.invwishart.rvs(tau, np.eye(D))
+    mu_w = np.random.multivariate_normal(np.zeros((D)), 1/pi * C_w) # np.ones((D,1))
+
+    sigma = D / T
+    k = 0
+    epsi = 1000
+    loss = []
+
+    while (epsi > opts['THRESH'])&(k < opts['ITERS']):
+          # E-step:
+        schedule = range(T)
+        W_old = W.copy()
+        C_w_temp = 0
+        w_l_ce_temp = 0
+        sigma_l = 0
+        n_l = 0
+        t_loss = 0
+        t_norm_w = 0
+        for ind_w in schedule:
+            # print(ind_w)
+            X_Y = data.assign(y=labels.iloc[:,ind_w]).copy()
+            trn_X = sm.fit_transform(X_Y.iloc[ind_mat[:,ind_w] == 1, :-1])
+            trn_Y = X_Y.iloc[ind_mat[:,ind_w] == 1, -1]
+
+            N = trn_X.shape[0]
+            A = 1/sigma * np.dot(trn_X.T,trn_X) + np.linalg.inv(C_w)
+            A = np.linalg.inv(A)
+            # print(A)
+            C_w_temp += A
+
+            B = 1/sigma * np.dot(trn_X.T,trn_Y).T + np.dot(mu_w.T, np.linalg.inv(C_w))
+            W[:,ind_w] = np.dot(A,np.squeeze(B))
+
+            w_ = W[:,ind_w] - mu_w
+            w_l_ce_temp += np.dot(w_,w_.T)
+
+            n_l += N
+            sigma_l += np.sum((trn_Y - trn_X.dot(W[:,ind_w]))**2) + np.trace(np.dot(trn_X,np.dot(C_w,trn_X.T)))
+
+            t_loss += 1/N*np.sum((trn_Y.values - np.dot(trn_X,W[:,ind_w]))**2) # + np.linalg.norm(W[:,ind_w])
+            t_norm_w += np.linalg.norm(W[:,ind_w])
+
+         # M-step
+        mu_w = 1/(pi + T) * np.sum(W,axis=1)
+        C_w =  1/(tau + T) * (pi*np.dot(mu_w,mu_w.T) + tau*np.eye(D) + w_l_ce_temp) # + tau*np.eye(D)
+        sigma = 1/n_l * sigma_l
+
+        emp_err = 1/T * t_loss
+        epsi = np.abs(np.sum(np.sum(W-W_old)))
+        loss.append(emp_err)
+        # print(f'iter {k}, size W {W.shape}, loss {epsi}')
+        k += 1
+
+        # print(f'iter {k}, size W {W.shape}, conv {epsi}, emp error {emp_err}, mean norm w {1/T * t_norm_w}')
+
+    print(f'iter {k}, size W {W.shape}, conv {epsi}, emp error {emp_err}, mean norm w {1/T * t_norm_w}')
+
+    y_hat = np.zeros((opts['DATA_SIZE'][0],T))
+    pred_stats = {}
+    pred_stats['tr_RMSE'] = []#np.inf*np.ones((T))
+    pred_stats['tr_R2'] = []#np.inf*np.ones((T))
+    pred_stats['va_RMSE'] = []#np.inf*np.ones((T))
+    pred_stats['va_R2'] = []#np.inf*np.ones((T))
+
+    # if opts['VAL_MODE']:
+    for ind_w in range(T):
+        X_Y = data.assign(y=labels.iloc[:,ind_w]).copy()
+        trn_X = sm.fit_transform(X_Y.iloc[ind_mat[:,ind_w] == 1, :-1])
+        trn_Y = X_Y.iloc[ind_mat[:,ind_w] == 1, -1]
+        pred_tr_Y = np.dot(trn_X,W[:,ind_w])
+
+        pred_stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
+        pred_stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
+
+        y_hat[ind_mat[:,ind_w] == 1, ind_w] = pred_tr_Y
+
+        if np.any(ind_mat[:,ind_w] == 2):
+
+            val_X = sm.fit_transform(X_Y.iloc[ind_mat[:,ind_w] == 2, :-1])
+            val_Y = X_Y.iloc[ind_mat[:,ind_w] == 2, -1]
+            pred_va_Y = np.dot(val_X,W[:,ind_w])
+
+            pred_stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
+            pred_stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
+
+            y_hat[ind_mat[:,ind_w] == 2, ind_w] = pred_va_Y
 
     return W, loss, inds, stats, y_hat

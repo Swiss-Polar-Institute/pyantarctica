@@ -90,7 +90,6 @@ def run_baselines_particle_size(data, options):
     #    results = pd.DataFrame(index=[],columns=['tst_r2','tst_rmse','trn_r2','trn_rmse','n_tr','n_ts'])
     # if LOG_Y:
     #     data.parbin = data.parbin.apply(np.log) #(data.loc[:,'parbin'].copy()+10e-6)
-
     for sep_method in SEP_METHOD:
         # print(sep_method)
         for leg in LEG_P:
@@ -98,6 +97,7 @@ def run_baselines_particle_size(data, options):
             for meth in METHODS:
                 nre = 0
                 while nre < NUM_REP:
+                    np.random.seed(nre)
 
                     string_exp = 'leg_' + str(leg) + '_' + sep_method + '_' + meth + '_' + str(nre)
                     nre += 1
@@ -215,7 +215,7 @@ def run_baselines_particle_size(data, options):
                                                             n_restarts_optimizer=5).fit(X,y)
 
 
-                        print(regModel.kernel_)
+                        # print(regModel.kernel_)
 
                     elif meth.lower() == 'gprard':
 
@@ -236,6 +236,7 @@ def run_baselines_particle_size(data, options):
                     else:
                         print('method not implemented yet. Or check the spelling')
                         break
+
 
                     if NORMALIZE_X:
                         x = scalerX.transform(tst.iloc[:,:-1])#, columns=tst.iloc[:,:-1].columns, index=tst.index)
@@ -269,6 +270,8 @@ def run_baselines_particle_size(data, options):
                     else:
                         y_tr_gt = y#trn.iloc[:,-1]
 
+                    # print(y[:10], y_tr_gt[:10])
+
                     # Compute scores
                     if LOG_Y:
                         y_ts_gt = np.exp(y_ts_gt) - 1e-10
@@ -282,6 +285,8 @@ def run_baselines_particle_size(data, options):
 
                     mse = np.sqrt(mean_squared_error(y_ts_gt, y_ts_h))
                     r2 = r2_score(y_ts_gt, y_ts_h)
+
+
                     t_mse = np.sqrt(mean_squared_error(y_tr_gt, y_tr_h))
                     t_r2 = r2_score(y_tr_gt, y_tr_h)
 
@@ -324,11 +329,15 @@ def run_baselines_particle_size(data, options):
                             summ[string_exp].update({'kernel': str_kernel})
 
                     if SAVE_PRED:
-                        # Convert to pandas series
+                        # Convert to pandas
+                        # print(y_tr_gt[:10])
+
                         y_tr_h = pd.Series(y_tr_h,index=inds_trn)
                         y_ts_h = pd.Series(y_ts_h,index=inds_tst)
                         y_tr_gt = pd.Series(np.reshape(y_tr_gt,(-1,)),index=inds_trn)
                         y_ts_gt = pd.Series(np.reshape(y_ts_gt,(-1,)),index=inds_tst)
+                        # print(y_tr_gt.iloc[:10])
+
                         if 'y_ts_std' in locals():
                             y_ts_std = pd.Series(y_ts_std,index=inds_tst)
                             y_tr_std = pd.Series(y_tr_std,index=inds_trn)
