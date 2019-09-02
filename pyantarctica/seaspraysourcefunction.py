@@ -372,20 +372,21 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship'):
 
     from pathlib import Path
     import pyantarctica.aceairsea as aceairsea
+    import pyantarctica.dataset as dataset 
     
     MET_DATA = Path('../data/intermediate/0_shipdata/metdata_5min_parsed.csv')
     ERA5_DATA = Path('../../ecmwf-download/data/ecmwf-on-track/era5_ace_track_nearest.csv')
     # era5 linear, provides NaN if one of neighboring fields is land (lsm=1)
     # era5 nearest, provides NaN if the nearest fields is land (lsm=1)
     WIND_DATA = Path('../data/intermediate/0_shipdata/u10_ship_5min_full_parsed.csv')
-    WAVE_DATA =  pl.Path('../data/processed/17_waves/01_waves_recomputed.csv')
+    WAVE_DATA =  Path('../data/processed/17_waves/01_waves_recomputed.csv')
 
     
     metdata = dataset.read_standard_dataframe(MET_DATA, crop_legs=False)
-    metdata.resample('5min',label='left', inplace=True)
+    metdata.index = metdata.index-pd.Timedelta(5,'min')
 
     wind = dataset.read_standard_dataframe(WIND_DATA, crop_legs=False)
-    wind.resample('5min',label='left', inplace=True)
+    wind.index = wind.index-pd.Timedelta(5,'min')
 
     wind = pd.merge(wind,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     wind.drop(columns=['VIS'], inplace=True)
