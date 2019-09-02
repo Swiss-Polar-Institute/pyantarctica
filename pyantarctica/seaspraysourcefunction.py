@@ -354,3 +354,114 @@ def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_', LABELS=[]):
     aps_agg_meta = pd.DataFrame(aps_agg_meta)
     
     return aps_agg, aps_agg_meta
+
+def merge_wind_wave_parameters(SST_from='era5', TA_from='ship'):
+    # TODO check time stamp label for wave data
+    # add bt_time till land and distance to (populated)land
+    
+    # load intermediate data and compute parameters for the aerosol wind wave regression
+    #
+    # this function uses ship based observations and era5 interpolated model output to fill gaps
+    
+    # sst_from='era5' : use era5 sst 
+    # sst_from='ship' : use ferrybox temperature (+273.15 to convert to Kelvin)
+    # sst_from='merge': merge era5 and ferrybox temperature
+    
+    # TA_from='ship'  : use metdata 'TA' (+273.15 to convert to Kelvin)
+    # I would not trust air temperature from the Model
+
+    from pathlib import Path
+    import pyantarctica.aceairsea as aceairsea
+    
+    MET_DATA = Path('../data/intermediate/0_shipdata/metdata_5min_parsed.csv')
+    ERA5_DATA = Path('../../ecmwf-download/data/ecmwf-on-track/era5_ace_track_nearest.csv')
+    # era5 linear, provides NaN if one of neighboring fields is land (lsm=1)
+    # era5 nearest, provides NaN if the nearest fields is land (lsm=1)
+    WIND_DATA = Path('../data/intermediate/0_shipdata/u10_ship_5min_full_parsed.csv')
+    WAVE_DATA =  pl.Path('../data/processed/17_waves/01_waves_recomputed.csv')
+
+    
+    metdata = dataset.read_standard_dataframe(MET_DATA, crop_legs=False)
+    metdata.resample('5min',label='left', inplace=True)
+
+    wind = dataset.read_standard_dataframe(WIND_DATA, crop_legs=False)
+    wind.resample('5min',label='left', inplace=True)
+
+    wind = pd.merge(wind,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
+    wind.drop(columns=['VIS'], inplace=True)
+    
+    era5 = dataset.read_standard_dataframe(ERA5_DATA, crop_legs=False)
+    era5.set_index(era5.index.tz_convert(None), inplace=True) # remove TZ info
+    era5.index = era5.index-pd.Timedelta(2.5,'min') # adjust to beginning of 5min interval rule
+    era5 = pd.merge(era5,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
+    era5.drop(columns=['VIS'], inplace=True)
+
+    if SST_from in ['merge', 'ship']:
+        ferrybox_file_folder = os.path.join('..','..','local_data','ace_ferrybox_giuseppe')
+        ferrybox = []
+        for fbox_filename in ['track_ferrybox_data_20161220_20170118_1min.csv', 'track_ferrybox_data_20170122_20170223_1min.csv', 'track_ferrybox_data_20170226_20170319_1min.csv']:
+            ferrybox.append(pd.read_csv(os.path.join(ferrybox_file_folder,fbox_filename), na_values=['-9.9999'] ))
+        ferrybox = pd.concat(ferrybox)
+
+        ferrybox = ferrybox.rename(index=str, columns={"date_time": "timest_"})
+        ferrybox = ferrybox.set_index(pd.to_datetime(ferrybox.timest_, format="%Y-%m-%d %H:%M:%S")) # assing the time stamp
+        ferrybox = ferrybox.drop(columns=['timest_'])
+        ferrybox = ferrybox.resample('5min' ).mean() # resample 5min
+        ferrybox = pd.merge(ferrybox,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
+        ferrybox.drop(columns=['VIS'], inplace=True)
+
+    params = wind[['u10']].copy() # 10meter neutral wind speed [m/s]
+    params['RH'] = metdata['RH'] # relative humidity [%]
+    params['TA'] = metdata['TA']+273.15 # air temperature [K] #90 5min data points are NaN & (u10~NaN and LSM==0)
+    
+    if SST_from in ['merge', 'ship']:
+        params['SST'] = ferrybox['temperature']+273.15
+    elif SST_from in ['era5']:
+        params['SST'] = (era5['sst'])
+    else:
+        print('wrong option for SST_from, use: ship, era5, or merge')
+        return
+        
+    if SST_from in ['merge']:
+        # fill the large gaps with era5 sst (-273.15),
+        # there are local mismatches between era5 and ferrybox.temperature,
+        # in oder to avoid plenty of jumpy data we only fill gaps that are longer than 1hour=12*5min in either direction:
+        params['SST'][(( np.isnan(ferrybox.temperature) & np.isnan(ferrybox.interpolate(method='linear', limit=12, limit_direction='both', axis=0)['temperature'])   ))] = (era5.sst[(( np.isnan(ferrybox.temperature) & np.isnan(ferrybox.interpolate(method='linear', limit=12, limit_direction='both', axis=0)['temperature'])   ))])
+    elif SST_from in ['ship', 'era5']:
+        1+1 # nothing to do here
+    else:
+        print('wrong option for SST_from, use: ship, era5, or merge')
+        return
+    
+    params['deltaT']=(params['TA']-params['SST']) # air sea temperature gradient [K]
+    
+    params['BLH']=era5['blh'] # boundary layer height [m]
+    
+    kin_visc_sea = aceairsea.kinematic_viscosity_sea((params['SST']-273.15),35)
+    params['ustar'] = aceairsea.coare_u2ustar (params['u10'], input_string='u2ustar', coare_version='coare3.5', TairC=20.0, z=10.0, zeta=0.0)
+    
+    # Wave derived parms: 
+    
+    # HOW IS THE TIME STAMP CONVENTION OF THIS ONE????
+    # WHERE ARE THE CALCULTIONS DONE, I would like to check them
+    wave = dataset.read_standard_dataframe(WAVE_DATA)
+    wave = pd.merge(wave,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
+    wave.drop(columns=['VIS'], inplace=True)
+    #
+    # define if to rename wave variables when writing to params or not!!!
+    # params['what you like']=wave['wind_sea_hs']
+    for var_str in ['total_age', 'total_hs', 'total_steep', 
+                    'wind_sea_age', 'wind_sea_hs', 'swell_steep']:
+        params[var_str]=wave[var_str]
+    
+    # computation of reighnolds number for total sea and wind see
+    params['wind_sea_ReHs'] = params['ustar']*wave['wind_sea_hs']/kin_visc_sea
+    params['total_ReHs'] = params['ustar']*wave['total_hs']/kin_visc_sea
+
+    # hs^1.25 g^0.5 kp^{-0.25} nu_w^{-1} # Lenain and Melville
+    # kp=((4*pi / tp)^2)/g # wave number at peak frequency (total sea!)
+    params['total_LenainMelville'] = np.power(wave['total_hs'],1.25)*np.power(9.81,.5)*np.power(wave['total_wave_number'],-0.25)/kin_visc_sea
+    params['wind_sea_LenainMelville'] = np.power(wave['wind_sea_hs'],1.25)*np.power(9.81,.5)*np.power(wave['wind_sea_wave_number'],-0.25)/kin_visc_sea
+
+    return params
+
