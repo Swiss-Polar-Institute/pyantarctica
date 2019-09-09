@@ -1,16 +1,18 @@
 # some functions needed in the sea spray source function project
 import numpy as np
 import pandas as pd
-
+from pathlib import Path
+import pyantarctica.aceairsea as aceairsea
+import pyantarctica.dataset as dataset
 
 
 def r_div_r80(RH, option='Lewis2004'):
-    # hygroscopic growth factor 
+    # hygroscopic growth factor
     # (below RH=75% this is valid only for decreasing RH)!
     # THIS NEGLECTS THE KELVIN EFFECT!
     # But the difference should be really small
     if option == 'Lewis2004':
-        # within 2.5% of Tang 1997 for RH>50%, 
+        # within 2.5% of Tang 1997 for RH>50%,
         r_div_r80 = 0.54*np.power((1+1/(1-RH/100)), 1/3)
     r_div_r80[r_div_r80>2]=2 # limit to 98%?-> gf=2.
     r_div_r80[RH<42]=0.5 # for low RH set rRH=rDry=0.5*r80
@@ -18,7 +20,7 @@ def r_div_r80(RH, option='Lewis2004'):
 
 
 def rdry2rRH(Dp, RH, option='Lewis2004'):
-    # convert try diameter/radius to expected diameter/radius at RH[%] 
+    # convert try diameter/radius to expected diameter/radius at RH[%]
     # rRH/rDry = (rRH/r80)*(r80/rDry) = (rRH/r80)*2
     return 2*r_div_r80(RH, option=option)*Dp
 
@@ -43,14 +45,14 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
     # P [hPa]
     #
     # Output
-    # vd = deposition velocity [m/s ] production flux per size bin as numpy.array (m,n) 
+    # vd = deposition velocity [m/s ] production flux per size bin as numpy.array (m,n)
     # or (n,) if m=1 & n>1
     # or (m,) if n=1 & m>1
     # or (1,) if n=m=1
     # vs = settiling velocity in the same shape as vd
     import pyantarctica.aceairsea as aceairsea
     import numpy as np
-    
+
     if type(zeta) != np.ndarray:
         zeta = np.asarray([zeta])
     if type(U10) != np.ndarray:
@@ -61,19 +63,19 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
         T = np.asarray([T])
     if type(rho_p) != np.ndarray:
         rho_p = np.asarray([rho_p])
-       
+
     U10 = U10.reshape(len(U10),1)
     T = T.reshape(len(T),1)
     P = P.reshape(len(P),1)
     zeta = zeta.reshape(len(zeta),1)
     rho_p = rho_p.reshape(len(rho_p),1)
-    
+
     if ((len(U10)==len(Dp)) & (len(Dp)>1) ):
         # in this case assume each Dp sample corresponds to a U10 sample and we get a time series of vd
-        Dp = Dp.reshape(len(Dp),1) # 
+        Dp = Dp.reshape(len(Dp),1) #
     #if ((len(U10)==len(rho_p)) & (len(rho_p)>1) ):
     #    # in this case assume each Dp sample corresponds to a U10 sample and we get a time series of vd
-    #    rho_p = rho_p.reshape(len(rho_p),1) # 
+    #    rho_p = rho_p.reshape(len(rho_p),1) #
 
 
     ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
@@ -83,14 +85,14 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
     #print(ustar)
     rho_p = rho_p * 100*100*100/1000 # g cm^-3 -> kg m^-3
     Dp = Dp*1E-6 # um -> m
-    
+
     T = T+273.15 # C-> K
     P = P*100 # hPa -> Pa
 
-    
-    
+
+
     #ustar = p.reshape(len(ustar),1)
-    
+
     Ccunn = 1 # need to parametrise base ond Dp, RH!
     dyn_visc = 0.000018 #kg m−1 s−1 dynamic viscosity of air
     g = 9.81 # kg m−1 s−2
@@ -108,27 +110,27 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
     else:
         mfp = 6.511*1E-8
     Ccunn = 1+mfp/Dp*(2.514+0.8*np.exp(-0.55*Dp/mfp)) # Seinfeld Pandis 8.34
-    # Ccunn varies from 1.2 for Dp=.8um to 1.032 for Dp=5um 
+    # Ccunn varies from 1.2 for Dp=.8um to 1.032 for Dp=5um
 
     # Diffusivity
     Diffusivity = kBolz*T*Ccunn/3/np.pi/dyn_visc/Dp # Diffusivity of the aerosol in air
 
     # setttling velocity in m/s,note that the Dp and rho_p play an important role!
     vs = g*rho_p*Dp*Dp*Ccunn/18/dyn_visc
-    
+
 
     kappa = 0.4
     Pr = 0.72 # Prandtl number
     Sc = kin_visc/Diffusivity # Schmidt number
     z0=0.016*ustar*ustar/g # roughness length ! Check
     ra = 1/kappa/ustar*(np.log(h_ref/z0) - aceairsea.PSIh(zeta) ) # -Psi(z/L)+Pis(z0/L) ! Need to add
-    rb = 2/kappa/ustar*np.power(Sc/Pr,2/3) # 
+    rb = 2/kappa/ustar*np.power(Sc/Pr,2/3) #
 
 
     vs =   np.array([vs])
-    
+
     vd = vs + 1/(ra+rb+ra*rb) # addition currenlty makes almost no difference for Dp>.8
-    
+
     # Giradina 2018
     m=0.1; n=3; # tunig params
     St = vs/g*ustar*ustar/kin_visc # (eq. 23)
@@ -140,7 +142,7 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
 
     rti = 1/ustar/m/tau_plus
     vd = vs/(1-np.exp(-vs*(ra+1/(1/rdb+1/rii+1/(rii+rti)  )  )) )
-    
+
 
     # ensuring the right shape what ever the input
     if np.max(np.shape(vd))>1:
@@ -149,12 +151,12 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
         vd = np.array([vd[0]])
         if len(np.shape(vd))==2:
             vd = vd[0]
-        
+
     if np.max(np.shape(vs))>1:
         vs = vs.squeeze()
     else:
         vs = np.array([vs[0]])
-    
+
     return vd, vs
 
 def sssf(sssf_str, r80, U10, SST=[], Re=[]):
@@ -173,15 +175,15 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
     # dFdr80, FN:
     # dF/dr80 [#/m^2/s/um ] production flux per size bin as numpy.array (m,n) or (n,) if m=1
     # FN [#/m^2/s] production flux integrated over range of the r80 provided (r80[0] to r80[-1]) as numpy.array (m,)
-    # 
+    #
     # to convert form dF/dr80 to dF/d(log(r80)) using d(ln(x))/dx = 1/x and d(log10(x))/dx = log10(e)*1/x
     # -> dF/r80 = dF/d(log10(r80))*d(log10(r80))/dr80 = dF/d(log10(r80)) * log10(e)* (1/x)
     #
     # if we speek of dF/dlog(r80) below we mean dF/dlog10(r80) otherwise we write dF/dln(r80)
     # note in python np.log = ln!
-    
+
     U10 = U10.reshape(len(U10),1)
-    
+
     if sssf_str in ['Jaeg11', 'Jaegele 2011', 'Jaegele et al., 2011']:
         SST = SST.reshape(len(U10),1) # this way allows inputting SST as single value
         SST[SST<0]=0 # otherwise the results get negative
@@ -193,7 +195,7 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
         fT=(0.3+0.1*SST - 0.0076*SST*SST + 0.00021*SST*SST*SST)
         dFdr80 = fT*1.373*np.power(U10,3.41)*np.power(r80,-A)*(1+0.057*np.power(r80,3.45))*np.power(10,(1.607*np.exp(-np.power(B,2)) ))
         dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
-    
+
     if sssf_str == 'Gong03':
         #Gong03
         #Monahan et al. (1986):
@@ -203,40 +205,40 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
         A=4.7*np.power(1+Theta*r80, -0.017*np.power(r80,-1.44) )
         dFdr80 = 1.373*np.power(U10,3.41)*np.power(r80,-A)*(1+0.057*np.power(r80,3.45))*np.power(10,(1.607*np.exp(-np.power(B,2)) ))
         dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
-    
+
     if sssf_str == 'MM86':
         #MM86
         #Monahan et al. (1986):
         # Wcap method + lab experiments: range: r80=0.8-8um
-        B=(0.380-np.log10(r80))/0.650; 
+        B=(0.380-np.log10(r80))/0.650;
         #W=3.84*1E-6*np.power(U10,3.41); # WhitCap fraction from Monahan and O'Muirchaetaigh 1980
         # from Gyrte2017?? dFdr80 = W*3.6*1E5*np.power(r80,-3)*(1+0.057*np.power(r80,1.05))*np.power(10,(1.19*np.exp(-np.power(B,2)) ))
         # from Gong03:
         dFdr80 = 1.373*np.power(U10,3.41)*np.power(r80,-3)*(1+0.057*np.power(r80,1.05))*np.power(10,(1.19*np.exp(-np.power(B,2)) ))
         dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
-        
+
     elif sssf_str == 'LS04':
         # Either de Leeuw plots it wrong or he is missing a np.log10(np.exp(1))?
         # cause it does not match with the  'LS04wet' on the plot
         # from de Leeuw 2011 [171]: claimed to be Lewis and Schwarz based on multiple methods (can't find it in L&S!)
         # range: r80=0.1-25um; U10=5-20m/s
-        dFdlogr80 = 50*np.power(U10,2.5)*np.exp( -0.5*np.power( np.log(r80/0.3)/np.log(4) ,2) ) 
+        dFdlogr80 = 50*np.power(U10,2.5)*np.exp( -0.5*np.power( np.log(r80/0.3)/np.log(4) ,2) )
         dFdr80 = dFdlogr80/r80*np.log10(np.exp(1)) # added np.log10(np.exp(1)) as the origial is dFdlog10/dr80
-    
+
     elif sssf_str == 'LS04wet':
         # from de Leeuw 2011 [171]: claimed to be Lewis and Schwarz based on multiple methods
         # range: r80=0.1-25um; U10=5-20m/s
-        
+
         dFdlogr80 = 1E4*np.ones_like(r80)*np.ones_like(U10)
         dFdr80 = dFdlogr80/r80*np.log10(np.exp(1)) # added np.log10(np.exp(1)) as the origial is dFdlog10/dr80
         # below not veryfied! / finished
     elif sssf_str == 'Ma03':
         # Martenson 2003 from de Leeuw 2011 [163] and table A1:
-        # 
+        #
         1+1
     elif sssf_str in ['Ov14', 'Ovadnevaite 2014', 'Ovadnevaite et al., 2014']:
         Re = Re.reshape(len(Re),1)
-        
+
         sigma_i = [1.37, 1.5, 1.42, 1.53, 1.85]
         CMD_i = [0.018, 0.041, 0.09, 0.23, 0.83]
         A_FiRe = [104.5, 0.0442, 149.6, 2.96, 0.51]
@@ -253,18 +255,18 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
             # I added the 1/np.log10(np.exp(1)) here cause I assume that (2) gives dF/dln(D):
             dFdlogr80 = dFdlogr80+dFdlnD_i/np.log10(np.exp(1))
 
-        dFdr80 = dFdlogr80/r80*np.log10(np.exp(1)) # 
+        dFdr80 = dFdlogr80/r80*np.log10(np.exp(1)) #
 
     # for calculating mass fluxes
     #rho_ss = 2.2*np.power(10.,-3*(6-2)) # g/cm^3 -> g/um^3
     #dFmdr80 = dFdr80*( 1/8*4*np.pi/3*rho_ss*np.power(r80,3) ) # 1/8=(rdry/r80)^3
-    
+
     #FM = np.trapz(dFmdr80,x=r80) # integrate over given range to get the mass flux [g/m^2/s]
     FN = np.trapz(dFdr80,x=r80) # integrate over given range to get the number flux [#/m^2/s]
     dFdr80 = dFdr80.squeeze() # reduce unnecessary dimensions, [#/m^2/s/um]
 
-    # dFdr80.shape = (m,n) or (n,) if m=1 not sure if I should modify this ? 
-    # FN.shape() = (m,) 
+    # dFdr80.shape = (m,n) or (n,) if m=1 not sure if I should modify this ?
+    # FN.shape() = (m,)
     return dFdr80, FN
 
 def aps_DlowDhigh_to_range(Dca_l,Dca_h,RESOLUTION=1/32):
@@ -275,7 +277,7 @@ def aps_DlowDhigh_to_range(Dca_l,Dca_h,RESOLUTION=1/32):
 def aps_D_to_Dphys(Dca, rhop=2.017, chic=1.08):
     # converts APS aerodynamic diamter into physical diameter
     # assume continous flow regime => cunningham slip factors ~1
-    # ρ0 = 1g/cm^3 
+    # ρ0 = 1g/cm^3
     # ρp = 2.017 g/cm3 = sea salt density (Ziegler 2017)
     # χ_c = 1.08 (shape factor for cubic shape)
     # Dve volume equivalent diameter of the dried sea salt particle (assume this equals the physical diameter)
@@ -296,7 +298,7 @@ def aps_D_to_r80(Dca, rhop=2.017, chic=1.08, gf=2):
     Dve = Dca*np.sqrt(chic*1.0/rhop)
     r80=Dve*gf/2
     return r80
-    
+
 def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_', LABELS=[]):
     # FOR NOW I ASSUME THAT:
     # diameters given is center diameters of the logarithmic intervals, this would make sense cause:
@@ -318,7 +320,7 @@ def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_', LABELS=[]):
     # data from column j is from cloumn_header(j-1) till j
 
     from collections import defaultdict
-    
+
     APS[(APS == 0).sum(axis=1)==len(APS.columns.values)]=np.nan # some rows are all zero -> set them to nan
     part_legend= np.array(list(map(float, APS.columns.values)))
 
@@ -338,12 +340,12 @@ def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_', LABELS=[]):
         if len(LABELS)==len(AGG_WINDOWS):
             jlabel=jlabel+1
             agg_str = label_prefix+LABELS[jlabel] # custom label set by user
-        
+
         cond = (part_legend >= AGG_WINDOW[0]) & (part_legend<AGG_WINDOW[1])
         aps_agg = aps_agg.assign(newcol=APS.iloc[:,np.where(cond)[0]].sum(axis=1)/aps_scale)
         # now set to nan where we have no data (could be more strict by requesting all sizebins with cond==True to be present, for APS does not matter)
         aps_agg['newcol'].loc[np.sum(APS.iloc[:,np.where(cond)[0]].isnull(),axis=1) == cond.sum()] = np.nan
-        #aps_agg['newcol'][(APS == 0).sum(axis=1)==51]=np.nan # 
+        #aps_agg['newcol'][(APS == 0).sum(axis=1)==51]=np.nan #
 
         aps_agg = aps_agg.rename(columns={'newcol': agg_str})
 
@@ -352,36 +354,41 @@ def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_', LABELS=[]):
         aps_agg_meta['Dp_aps_high'].append(part_legend[np.where(part_legend < AGG_WINDOW[1])[0][-1]])
 
     aps_agg_meta = pd.DataFrame(aps_agg_meta)
-    
+
     return aps_agg, aps_agg_meta
 
-def merge_wind_wave_parameters(SST_from='era5', TA_from='ship'):
+def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
+    MET_DATA='../data/intermediate/0_shipdata/metdata_5min_parsed.csv',
+    ERA5_DATA='../../ecmwf-download/data/ecmwf-on-track/era5_ace_track_nearest.csv',
+    WIND_DATA='../data/intermediate/0_shipdata/u10_ship_5min_full_parsed.csv',
+    WAVE_DATA='../data/processed/17_waves/01_waves_recomputed.csv',
+    D_TO_LAND='../data/processed/0_shipdata/BOAT_GPS_distance_to_land_parsed.csv',
+    T_TO_LAND='../data/processed/7_aerosols/hours_till_land_parsed.csv'):
+
     # TODO check time stamp label for wave data
     # add bt_time till land and distance to (populated)land
-    
+
     # load intermediate data and compute parameters for the aerosol wind wave regression
     #
     # this function uses ship based observations and era5 interpolated model output to fill gaps
-    
-    # sst_from='era5' : use era5 sst 
+
+    # sst_from='era5' : use era5 sst
     # sst_from='ship' : use ferrybox temperature (+273.15 to convert to Kelvin)
     # sst_from='merge': merge era5 and ferrybox temperature
-    
-    # TA_from='ship'  : use metdata 'TA' (+273.15 to convert to Kelvin)
-    # I would not trust air temperature from the Model
 
-    from pathlib import Path
-    import pyantarctica.aceairsea as aceairsea
-    import pyantarctica.dataset as dataset 
-    
-    MET_DATA = Path('../data/intermediate/0_shipdata/metdata_5min_parsed.csv')
-    ERA5_DATA = Path('../../ecmwf-download/data/ecmwf-on-track/era5_ace_track_nearest.csv')
+    # TA_from='ship'  : use metdata 'TA' (+273.15 to convert to Kelvin)
+    # I would not trust air temperature from the Mode
+    MET_DATA  = Path(MET_DATA)
+    ERA5_DATA = Path(ERA5_DATA)
     # era5 linear, provides NaN if one of neighboring fields is land (lsm=1)
     # era5 nearest, provides NaN if the nearest fields is land (lsm=1)
-    WIND_DATA = Path('../data/intermediate/0_shipdata/u10_ship_5min_full_parsed.csv')
-    WAVE_DATA =  Path('../data/processed/17_waves/01_waves_recomputed.csv')
+    WIND_DATA = Path(WIND_DATA)
+    WAVE_DATA = Path(WAVE_DATA)
+    # Buffers to land: distance to any land and time to any land
 
-    
+    D_TO_LAND = Path(D_TO_LAND)
+    T_TO_LAND = Path(T_TO_LAND)
+
     metdata = dataset.read_standard_dataframe(MET_DATA, crop_legs=False)
     metdata.index = metdata.index-pd.Timedelta(5,'min')
 
@@ -390,7 +397,13 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship'):
 
     wind = pd.merge(wind,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     wind.drop(columns=['VIS'], inplace=True)
-    
+
+    d_to_land = dataset.read_standard_dataframe(D_TO_LAND, crop_legs=False)
+    d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
+
+    t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
+    t_to_land.index = t_to_land.index-pd.Timedelta(5,'min')
+
     era5 = dataset.read_standard_dataframe(ERA5_DATA, crop_legs=False)
     era5.set_index(era5.index.tz_convert(None), inplace=True) # remove TZ info
     era5.index = era5.index-pd.Timedelta(2.5,'min') # adjust to beginning of 5min interval rule
@@ -412,9 +425,11 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship'):
         ferrybox.drop(columns=['VIS'], inplace=True)
 
     params = wind[['u10']].copy() # 10meter neutral wind speed [m/s]
+    params['d-to-land'] = d_to_land
+    params['t-to-land'] = t_to_land
     params['RH'] = metdata['RH'] # relative humidity [%]
     params['TA'] = metdata['TA']+273.15 # air temperature [K] #90 5min data points are NaN & (u10~NaN and LSM==0)
-    
+
     if SST_from in ['merge', 'ship']:
         params['SST'] = ferrybox['temperature']+273.15
     elif SST_from in ['era5']:
@@ -422,7 +437,7 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship'):
     else:
         print('wrong option for SST_from, use: ship, era5, or merge')
         return
-        
+
     if SST_from in ['merge']:
         # fill the large gaps with era5 sst (-273.15),
         # there are local mismatches between era5 and ferrybox.temperature,
@@ -433,16 +448,16 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship'):
     else:
         print('wrong option for SST_from, use: ship, era5, or merge')
         return
-    
+
     params['deltaT']=(params['TA']-params['SST']) # air sea temperature gradient [K]
-    
+
     params['BLH']=era5['blh'] # boundary layer height [m]
-    
+
     kin_visc_sea = aceairsea.kinematic_viscosity_sea((params['SST']-273.15),35)
     params['ustar'] = aceairsea.coare_u2ustar (params['u10'], input_string='u2ustar', coare_version='coare3.5', TairC=20.0, z=10.0, zeta=0.0)
-    
-    # Wave derived parms: 
-    
+
+    # Wave derived parms:
+
     # HOW IS THE TIME STAMP CONVENTION OF THIS ONE????
     # WHERE ARE THE CALCULTIONS DONE, I would like to check them
     wave = dataset.read_standard_dataframe(WAVE_DATA)
@@ -451,10 +466,10 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship'):
     #
     # define if to rename wave variables when writing to params or not!!!
     # params['what you like']=wave['wind_sea_hs']
-    for var_str in ['total_age', 'total_hs', 'total_steep', 
+    for var_str in ['total_age', 'total_hs', 'total_steep',
                     'wind_sea_age', 'wind_sea_hs', 'swell_steep']:
         params[var_str]=wave[var_str]
-    
+
     # computation of reighnolds number for total sea and wind see
     params['wind_sea_ReHs'] = params['ustar']*wave['wind_sea_hs']/kin_visc_sea
     params['total_ReHs'] = params['ustar']*wave['total_hs']/kin_visc_sea
@@ -465,4 +480,3 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship'):
     params['wind_sea_LenainMelville'] = np.power(wave['wind_sea_hs'],1.25)*np.power(9.81,.5)*np.power(wave['wind_sea_wave_number'],-0.25)/kin_visc_sea
 
     return params
-
