@@ -480,3 +480,43 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     params['wind_sea_LenainMelville'] = np.power(wave['wind_sea_hs'],1.25)*np.power(9.81,.5)*np.power(wave['wind_sea_wave_number'],-0.25)/kin_visc_sea
 
     return params
+
+def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='../data/intermediate/0_shipdata BOAT_GPS_distance_to_land_parsed.csv', T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv', MASK= '../data/intermediate/7_aerosols/mask_1_5_10min++_parsed.csv'):
+    """
+        filters parameters based on `time to land`, `distance to land` (either already contained or added to data) and a binary mask (1=keep)
+        returns the filetered dataframe and the boolean array of VALID data points.
+
+        Return
+        ======
+
+        data_filt : filtered data
+        merged_conditions: conditions met, independently for each filtering attribute
+    """
+    D_TO_LAND = Path(D_TO_LAND); T_TO_LAND = Path(T_TO_LAND); MASK = Path(MASK)
+
+    if 'd-to-land' not in data.columns.tolist():
+        d_to_land = dataset.read_standard_dataframe(D_TO_LAND, crop_legs=False)
+        d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
+        data['d-to-land'] = d_to_land
+
+    if 't-to-land' not in data.columns.tolist():
+        t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
+        t_to_land.index = t_to_land.index-pd.Timedelta(5,'min')
+        data['t-to-land'] = t_to_land
+
+    mask = dataset.read_standard_dataframe(MASK, crop_legs=False)
+    mask.index = mask.index-pd.Timedelta(5,'min')
+    mask = mask['mask_5min']
+    data = data.merge(mask,left_index = True, right_index=True)
+
+    keep_criterion = pd.DataFrame()
+    keep_criterion['d-to-land'] = data['d-to-land'] < d_lim
+    keep_criterion['t-to-land'] = data['t-to-land'] < t_lim
+    keep_criterion['mask'] = data['mask_5min'] != 1
+
+    filt_out = (data['d-to-land'] < d_lim) & (data['t-to-land'] < 24) & (data['mask_5min'] != 1)
+
+    data_filt = data.copy()
+    data_filt.loc[filt_out,:-1] = np.nan
+
+    return data_filt, keep_criterion
