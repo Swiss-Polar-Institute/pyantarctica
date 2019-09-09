@@ -400,9 +400,14 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
 
     d_to_land = dataset.read_standard_dataframe(D_TO_LAND, crop_legs=False)
     d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
+    
+
 
     t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
     t_to_land.index = t_to_land.index-pd.Timedelta(5,'min')
+    t_to_land = pd.merge(t_to_land,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
+    t_to_land.drop(columns=['VIS'], inplace=True)
+    t_to_land = t_to_land.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
 
     era5 = dataset.read_standard_dataframe(ERA5_DATA, crop_legs=False)
     era5.set_index(era5.index.tz_convert(None), inplace=True) # remove TZ info
@@ -466,8 +471,10 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     #
     # define if to rename wave variables when writing to params or not!!!
     # params['what you like']=wave['wind_sea_hs']
-    for var_str in ['total_age', 'total_hs', 'total_steep',
-                    'wind_sea_age', 'wind_sea_hs', 'swell_steep']:
+    # @Michele, why did you include 'swell_steep'?
+    for var_str in ['total_age', 'total_hs', 'total_steep','total_tp',
+                    'wind_sea_age', 'wind_sea_hs', 'wind_sea_steep', 'wind_sea_tp',
+                    ]:
         params[var_str]=wave[var_str]
 
     # computation of reighnolds number for total sea and wind see
