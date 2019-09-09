@@ -5,6 +5,7 @@
 # - # pip install airsea
 # - # https://github.com/pyoceans/python-airsea
 # - # https://pypi.org/project/airsea/
+# new line added during merge request 2019-05-17 SL
 
 import pyantarctica.constants as constants
 
@@ -41,7 +42,57 @@ def LMoninObukov_bulk(U10,SSHF,SLHF,STair):
     LMO = -(ustar*ustar*ustar)/vKarman/B0 # Monin Obukove Length scale
     return np.squeeze(LMO)
 
-def PSIu(zeta, option='default'):
+def PHIu(zeta, option='Hogstroem_1988'):
+    zeta = np.asarray([zeta])
+    isnan = np.isnan(zeta)
+    zeta[isnan]=0
+    option_list = ['Hogstroem_1988']
+    
+    if option == 'Hogstroem_1988':
+        phi = 1+5*zeta
+        phi[zeta<0]=np.power((1-16*zeta[zeta<0]),-0.25)
+    else:
+        print('unexpected option! available options are:')
+        print(option_list)
+        phi = []
+    phi[isnan]=np.nan   
+    return np.squeeze(phi)
+
+def PHIh(zeta, option='Hogstroem_1988'):
+    import numpy as np
+    zeta = np.asarray([zeta])
+    isnan = np.isnan(zeta)
+    zeta[isnan]=0
+    option_list = ['Hogstroem_1988']
+    
+    if option == 'Hogstroem_1988':
+        phi = np.power((1+4*zeta[zeta<0]),2)
+        phi[zeta<0]=np.power((1-16*zeta[zeta<0]),-0.5)
+    else:
+        print('unexpected option! available options are:')
+        print(option_list)
+        phi = []
+    phi[isnan]=np.nan   
+    return np.squeeze(phi)
+
+def PSIh(zeta, option='Brandt_2002'):
+    import numpy as np
+    zeta = np.asarray([zeta])
+    isnan = np.isnan(zeta)
+    zeta[isnan]=0
+    option_list = ['Brandt_2002']
+    
+    if option == 'Brandt_2002':
+        psi=-5*zeta
+        psi[zeta<0] = np.exp(0.598+0.390*np.log(-zeta[zeta<0])-0.09*np.power(np.log(-zeta[zeta<0]),2) )
+    else:
+        print('unexpected option! available options are:')
+        print(option_list)
+        psi = []
+    psi[isnan]=np.nan   
+    return np.squeeze(psi)
+
+def PSIu(zeta, option='Fairall_1996'):
     #stability correction function for modifying the logarithmic wind speed profiles based on atmospheric stability
     # use e.g. for: u(z)=u*/k[log(z/z0)-PSIu(z/L)]
     #
@@ -51,25 +102,34 @@ def PSIu(zeta, option='default'):
     # default = 'Dyer_Hicks_1970'
     
     import numpy as np
-    # zeta=z/L or is it -z/L ???
+    # zeta=z/L 
     # with L = -u*^3/vkarman/(g<wT>/T+0.61g<wq>)
     #x=np.sqrt(np.sqrt(1-15*zeta)); #sqrt(sqrt) instead of ^.25
     
     zeta = np.asarray([zeta])
-        
-    if option == 'default': # or Dyer_Hicks_1970
+    isnan = np.isnan(zeta)
+    zeta[isnan]=0
+    if option == 'Dyer_Hicks_1970': # or Dyer_Hicks_1970
         # Dyer and Hicks 1970       
         x=zeta*0 # avoid warings
         x[zeta<0]=np.sqrt(np.sqrt(1-15*zeta[zeta<0])); #sqrt(sqrt) instead of ^.25
         psi=2*np.log((1+x)/2)+np.log((1+x*x)/2)-2*np.arctan(x)+2*np.arctan(1); 
         psi[zeta>=0]=-5*zeta[zeta>=0];
     elif option == 'Fairall_1996':
-        print('todo')
-        psi = []
+        xk = np.power( (1-16*zeta) , .25)
+        xc = np.power( (1-12.87*zeta) , .3333)
+
+        psik=2*np.log((1+xk)/2)+np.log((1+xk*xk)/2)-2*np.arctan(xk)+2*np.arctan(1); 
+
+        psic=1.5*np.log((1+xc+xc*xc)/3)-np.sqrt(3)*np.arctan((1+2*xc)/np.sqrt(3))+4*np.arctan(1)/np.sqrt(3);
+        f=1/(1+zeta*zeta);
+        psi=(1-f)*psic+f*psik;
+        c=np.min([50*np.ones_like(zeta),.35*zeta],axis=0);
+        psi[zeta>0]=-((1+1.0*zeta[zeta>0]) +.667*(zeta[zeta>0]-14.28)/np.exp(c[zeta>0])+8.525);
     else:
         print('unexpected option: please use "default"')
         psi = []
-            
+    psi[isnan]=np.nan   
     return np.squeeze(psi)
 
 
@@ -136,9 +196,9 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
 
         # with updated charnock (and ustar) re-calcualte z0 and the Drag Coefficient
         z0 = gamma*(visa/ustar)+charnock*ustar*ustar/grav;
-        sqrt_C_D = (vkarman/np.log(z/z0));
-        sqrt_C_D = (vkarman/(np.log(z/z0)-PSIu(zeta))); # when adding stability use this equation ...
-        sqrt_C_D_10 = (vkarman/np.log(10/z0)); # 10m neutral drag coefficient
+        sqrt_C_D = (vKarman/np.log(z/z0));
+        sqrt_C_D = (vKarman/(np.log(z/z0)-PSIu(zeta, option = 'Fairall_1996'))); # when adding stability use this equation ...
+        sqrt_C_D_10 = (vKarman/np.log(10/z0)); # 10m neutral drag coefficient
 
         if input_string == 'ustar2u':
             #ustar stays const (input)
@@ -159,3 +219,52 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
         # in the other case (ustar2u) u is already what we want to return
         
     return np.squeeze(u)
+
+# some sea water properties
+def roh_sea(SST,SSS):
+    # SST in C!
+    # SSS in g/kg
+    # https://www.tandfonline.com/doi/abs/10.5004/dwt.2010.1079
+    # sea water density at atm pressure
+    t=SST
+    S=SSS/1000
+    a1 = 9.999*1E2
+    a2 = 2.034*1E-2
+    a3 = -6.162*1E-3
+    a4 = 2.261*1E-5
+    a5 = -4.657*1E-8
+    b1 = 8.020*1E2
+    b2 = -2.001
+    b3 = 1.677*1E-2
+    b4 = -3.060*1E-5
+    b5 = -1.613*1E-5
+    rho_sea = a1 + t*(a2 + t*(a3 + t*(a4 + a5*t))) + b1*S + b2*S*t + b3*S*t*t + b4*S*t*t*t + b5*S*S*t*t #(8)
+    #Validity: ρsw in (kg/m3); 0 < t < 180 oC; 0 < S < 0.16 kg/kg
+    #Accuracy: ±0.1 %
+    return rho_sea # kg/m3
+
+def dynamic_viscosity_sea(SST,SSS):
+    t=SST
+    S=SSS/1000 # g/kg -> kg/kg
+    #@ 5C @ 35PSU
+
+    # https://www.tandfonline.com/doi/abs/10.5004/dwt.2010.1079
+    # dynamic viscosity 
+    # μw is based on the IAPWS 2008 [73] data and given by
+    muw = 4.2844*1E-5 + 1/(0.157*(t+64.993)*(t+64.993)-91.296) # eq. (23)
+
+    A = 1.541 + 1.998*1E-2*t - 9.52*1E-5*t*t
+    B = 7.974 - 7.561*1E-2*t+ 4.724*1E-4*t*t
+
+    musw = muw*(1 + S*(A + B*S) ) # (22)
+
+    #Validity: μsw and μw in (kg/m.s); 0 < t < 180 oC; 0 < S < 0.15 kg/kg
+    #Accuracy: ±1.5 %
+
+    return musw # [kg/m/s]
+
+def kinematic_viscosity_sea(SST,SSS):
+    roh_sw = roh_sea(SST,SSS)
+    musw = dynamic_viscosity_sea(SST,SSS)
+    nusw = musw/roh_sw
+    return nusw # kinematic viscosity in [m2/s]
