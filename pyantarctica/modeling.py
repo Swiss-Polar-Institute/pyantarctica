@@ -797,11 +797,11 @@ def approximate_smooth_weight_kernel_ridge_regression(data, labels, ind_mat, opt
     print(f'converged in iter {k}, size W {W.shape}, conv {epsi}, emp error {emp_err}, mean norm w {1/opts["TASKS"] * t_norm_w}')
 
     y_hat = np.zeros((opts['DATA_SIZE'][0],opts['TASKS']))
-    stats = {}
-    stats['tr_RMSE'] = []#np.inf*np.ones((T))
-    stats['tr_R2'] = []#np.inf*np.ones((T))
-    stats['va_RMSE'] = []#np.inf*np.ones((T))
-    stats['va_R2'] = []#np.inf*np.ones((T))
+    pred_stats = {}
+    pred_stats['tr_RMSE'] = []#np.inf*np.ones((T))
+    pred_stats['tr_R2'] = []#np.inf*np.ones((T))
+    pred_stats['va_RMSE'] = []#np.inf*np.ones((T))
+    pred_stats['va_R2'] = []#np.inf*np.ones((T))
 
     # if opts['VAL_MODE']:
     for ind_w in range(opts['TASKS']):
@@ -811,8 +811,8 @@ def approximate_smooth_weight_kernel_ridge_regression(data, labels, ind_mat, opt
 
         pred_tr_Y = np.dot(trn_X,W[:,ind_w])
 
-        stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
-        stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
+        pred_stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
+        pred_stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
 
         y_hat[ind_mat[:,ind_w] == 1, ind_w] = pred_tr_Y
 
@@ -822,12 +822,12 @@ def approximate_smooth_weight_kernel_ridge_regression(data, labels, ind_mat, opt
 
             pred_va_Y = np.dot(val_X,W[:,ind_w])
 
-            stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
-            stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
+            pred_stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
+            pred_stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
 
             y_hat[ind_mat[:,ind_w] == 2, ind_w] = pred_va_Y
 
-    return W, loss, ind_mat, stats, y_hat
+    return W, loss, ind_mat, pred_stats, y_hat
 
 ##############################################################################################################
 def smooth_weight_approximate_gaussian_process_regression(data, labels, ind_mat, opts):#, ITERS=100, THRESH=1e-6):
@@ -836,11 +836,10 @@ def smooth_weight_approximate_gaussian_process_regression(data, labels, ind_mat,
         See https://icml.cc/Conferences/2005/proceedings/papers/128_GaussianProcesses_YuEtAl.pdf
     """
 
-    return NotImplementedError
-
     import scipy.stats as stats
     from sklearn.metrics import mean_squared_error, r2_score
     from sklearn.kernel_approximation import RBFSampler
+
     D = opts['approximation_dim']
 
     sm = RBFSampler(gamma=1./opts['kpar']**2,n_components=D,random_state=666)
@@ -859,7 +858,7 @@ def smooth_weight_approximate_gaussian_process_regression(data, labels, ind_mat,
     loss = []
 
     while (epsi > opts['THRESH'])&(k < opts['ITERS']):
-          # E-step:
+        # E-step:
         schedule = range(T)
         W_old = W.copy()
         C_w_temp = 0
@@ -892,7 +891,7 @@ def smooth_weight_approximate_gaussian_process_regression(data, labels, ind_mat,
             t_loss += 1/N*np.sum((trn_Y.values - np.dot(trn_X,W[:,ind_w]))**2) # + np.linalg.norm(W[:,ind_w])
             t_norm_w += np.linalg.norm(W[:,ind_w])
 
-         # M-step
+        # M-step
         mu_w = 1/(pi + T) * np.sum(W,axis=1)
         C_w =  1/(tau + T) * (pi*np.dot(mu_w,mu_w.T) + tau*np.eye(D) + w_l_ce_temp) # + tau*np.eye(D)
         sigma = 1/n_l * sigma_l
@@ -900,7 +899,7 @@ def smooth_weight_approximate_gaussian_process_regression(data, labels, ind_mat,
         emp_err = 1/T * t_loss
         epsi = np.abs(np.sum(np.sum(W-W_old)))
         loss.append(emp_err)
-        # print(f'iter {k}, size W {W.shape}, loss {epsi}')
+        # print(f'iter {k}, size W {W.shape}, conv {epsi}, emp error {emp_err}, mean norm w {1/T * t_norm_w}')
         k += 1
 
         # print(f'iter {k}, size W {W.shape}, conv {epsi}, emp error {emp_err}, mean norm w {1/T * t_norm_w}')
@@ -937,4 +936,4 @@ def smooth_weight_approximate_gaussian_process_regression(data, labels, ind_mat,
 
             y_hat[ind_mat[:,ind_w] == 2, ind_w] = pred_va_Y
 
-    return W, loss, inds, stats, y_hat
+    return W, loss, ind_mat, pred_stats, y_hat
