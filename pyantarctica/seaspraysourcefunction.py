@@ -404,7 +404,7 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
     t_to_land.index = t_to_land.index-pd.Timedelta(5,'min')
     t_to_land = pd.merge(t_to_land,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
-    t_to_land.drop(columns=['VIS'], inplace=True)
+    t_to_land.drop(columns=['VIS'], inplace=True) # drop the unnecessary column we got from merging
     t_to_land = t_to_land.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
 
     era5 = dataset.read_standard_dataframe(ERA5_DATA, crop_legs=False)
@@ -486,7 +486,7 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
 
     return params
 
-def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='../data/intermediate/0_shipdata BOAT_GPS_distance_to_land_parsed.csv', T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv', MASK= '../data/intermediate/7_aerosols/mask_1_5_10min++_parsed.csv'):
+def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='../data/intermediate/0_shipdata/BOAT_GPS_distance_to_land_parsed.csv', T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv', MASK= '../data/intermediate/7_aerosols/mask_1_5_10min++_parsed.csv'):
     """
         filters parameters based on `time to land`, `distance to land` (either already contained or added to data) and a binary mask (1=keep)
         returns the filetered dataframe and the boolean array of VALID data points.
@@ -502,12 +502,21 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
     if 'd-to-land' not in data.columns.tolist():
         d_to_land = dataset.read_standard_dataframe(D_TO_LAND, crop_legs=False)
         d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
-        data['d-to-land'] = d_to_land
+        #data['d-to-land'] = d_to_land this does not work
+        data = data.merge(d_to_land[['distance']],left_index = True, right_index=True, how='left')
+        data.rename(columns={"distance": "d-to-land"}, inplace=True)
+
 
     if 't-to-land' not in data.columns.tolist():
         t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
         t_to_land.index = t_to_land.index-pd.Timedelta(5,'min')
-        data['t-to-land'] = t_to_land
+        # here we first merge with data to cover the same range of 5min samples
+        # then cause t_to_land is a 1hr time series we need to interpolate over the gaps.
+        data = data.merge(t_to_land[['hours_till_land']],left_index = True, right_index=True, how='left')
+        data.rename(columns={"hours_till_land": "t-to-land"}, inplace=True)
+        data['t-to-land'] = data['t-to-land'].interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
+        
+        #data['t-to-land'] = t_to_land
 
     mask = dataset.read_standard_dataframe(MASK, crop_legs=False)
     mask.index = mask.index-pd.Timedelta(5,'min')
@@ -515,14 +524,19 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
     data = data.merge(mask,left_index = True, right_index=True)
 
     keep_criterion = pd.DataFrame()
-    keep_criterion['d-to-land'] = data['d-to-land'] < d_lim
-    keep_criterion['t-to-land'] = data['t-to-land'] < t_lim
-    keep_criterion['mask'] = data['mask_5min'] != 1
+    keep_criterion['d-to-land'] = (data['d-to-land'] <= d_lim)
+    keep_criterion['t-to-land'] = (data['t-to-land'] <= t_lim)
+    keep_criterion['mask'] = (data['mask_5min'] != 1)
 
-    filt_out = (data['d-to-land'] < d_lim) & (data['t-to-land'] < 24) & (data['mask_5min'] != 1)
+    keep_in = (data['d-to-land'] > d_lim) & (data['t-to-land'] > t_lim) & (data['mask_5min'] == 1)
 
     data_filt = data.copy()
-    data_filt.loc[filt_out,:-1] = np.nan
+    #print(data_filt.columns) #  [..., 'd-to-land', 't-to-land', 'mask_5min']
+    #data_filt.loc[~keep_in,:-3] = np.nan 
+    # set all the data to nan, but leaf 'd-to-land', 't-to-land', 'mask_5min' with their values
+    for col in data_filt.columns:
+        if col not in list(['d-to-land', 't-to-land', 'mask_5min']):
+            data_filt.loc[~keep_in,col] = np.nan
     data_filt = data_filt.drop('mask_5min',axis=1)
 
     return data_filt, keep_criterion
