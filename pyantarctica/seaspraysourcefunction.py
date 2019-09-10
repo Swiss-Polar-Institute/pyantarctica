@@ -400,8 +400,6 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
 
     d_to_land = dataset.read_standard_dataframe(D_TO_LAND, crop_legs=False)
     d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
-    
-
 
     t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
     t_to_land.index = t_to_land.index-pd.Timedelta(5,'min')
@@ -525,5 +523,6 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
 
     data_filt = data.copy()
     data_filt.loc[filt_out,:-1] = np.nan
+    data_filt = data_filt.drop('mask_5min',axis=1)
 
     return data_filt, keep_criterion
