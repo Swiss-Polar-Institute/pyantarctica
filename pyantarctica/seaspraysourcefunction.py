@@ -6,34 +6,144 @@ import pyantarctica.aceairsea as aceairsea
 import pyantarctica.dataset as dataset
 
 
-def r_div_r80(RH, option='Lewis2004'):
+def r_div_r80(RH, option='Zieger2016_'):
     # hygroscopic growth factor
     # (below RH=75% this is valid only for decreasing RH)!
     # THIS NEGLECTS THE KELVIN EFFECT!
     # But the difference should be really small
+    
+    RH=RH.copy(); RH[RH>98]=98; # 
     if option == 'Lewis2004':
         # within 2.5% of Tang 1997 for RH>50%,
         r_div_r80 = 0.54*np.power((1+1/(1-RH/100)), 1/3)
-    r_div_r80[r_div_r80>2]=2 # limit to 98%?-> gf=2.
-    r_div_r80[RH<42]=0.5 # for low RH set rRH=rDry=0.5*r80
+        r_div_r80[r_div_r80>2]=2 # limit to 98%?-> gf=2.
+        r_div_r80[RH>98]=2 # limit to 98%?-> gf=2.
+        r_div_r80[RH<42]=0.5 # for low RH set rRH=rDry=0.5*r80
+    if option == 'Zieger2016_':
+        r_div_r80 = 0.54*np.power((1+1/(1-RH/100)), 1/3)*0.8
+        r_div_r80[r_div_r80>2]=2 # limit to 98%?-> gf=2.
+        r_div_r80[RH>98]=2 # limit to 98%?-> gf=2.
+        r_div_r80[RH<50]=( (1-5*.12/45)+0.12/45*RH[RH<50])*0.5
+        r_div_r80[RH<5]=1*0.5
+
+    
     return r_div_r80
 
-
-def rdry2rRH(Dp, RH, option='Lewis2004'):
+def rdry2rRH(Dp, RH, hygroscopic_growth='Zieger2016_'):
     # convert try diameter/radius to expected diameter/radius at RH[%]
     # rRH/rDry = (rRH/r80)*(r80/rDry) = (rRH/r80)*2
-    return 2*r_div_r80(RH, option=option)*Dp
+    if type(RH) != np.ndarray:
+        RH = np.asarray([RH])
+    RH = RH.reshape(len(RH),1)
+    if type(Dp) != np.ndarray:
+        Dp = np.asarray([Dp])
+        
+    if ((len(RH)==len(Dp)) & (len(Dp)>1) ):
+        # in this case assume each Dp sample corresponds to an RH sample, output will be (n,)
+        Dp = Dp.reshape(len(Dp),1) #
+    else:
+        # output will be (m,) or (n,m)
+        Dp = Dp.reshape(1,len(Dp)) # 
+    
+    DpRH = 2*r_div_r80(RH, option=hygroscopic_growth)*Dp
+        
+    if np.max(np.shape(DpRH))>1:
+        DpRH = DpRH.squeeze()
+    else:
+        DpRH = np.array([DpRH[0]])
+        if len(np.shape(DpRH))==2:
+            DpRH = DpRH[0]
+        
+    return DpRH
 
-def dFdlogD_to_dFdD(dFdlogr80,r80):
-    dFdr80 = dFdlogr80/r80*np.log10(np.exp(1))
-    return dFdr80
+def rho_sea_spary(Dp_dry, RH, rho_p=2.2, hygroscopic_growth='Zieger2016_'):    
+    if type(RH) != np.ndarray:
+        RH = np.asarray([RH])
+    RH = RH.reshape(len(RH),1)
 
-def dFdD_to_dFdlogD(dFdr80,r80):
-    dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
-    return dFdlogr80
+    if type(Dp_dry) != np.ndarray:
+        Dp_dry = np.asarray([Dp_dry])
 
-#def deposition_velocity(model_str, Dp, rho_p, h_ref, U10, T, P, zeta=0):
-def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0., model='giardina_2018'):
+    if ((len(RH)==len(Dp_dry)) & (len(Dp_dry)>1) ):
+        # in this case assume each Dp sample corresponds to an RH sample, output will be (n,)
+        Dp_dry = Dp_dry.reshape(len(Dp_dry),1) #
+    else:
+        # output will be (m,) or (n,m)
+        Dp_dry = Dp_dry.reshape(1,len(Dp_dry)) # 
+        
+    Dp_RH = 2.*r_div_r80(RH, option=hygroscopic_growth)*Dp_dry
+    V_dry = 3/4*np.pi*np.power(Dp_dry/2,3)
+    V_H2O = 3/4*np.pi*np.power(Dp_RH/2,3)-V_dry
+    rho_ss = (1.*V_H2O+rho_p*V_dry)/(V_H2O+V_dry) # new density equals volumn weighted average of the densities
+    
+    # ensuring the right shape what ever the input
+    if np.max(np.shape(rho_ss))>1:
+        rho_ss = rho_ss.squeeze()
+    else:
+        rho_ss = np.array([rho_ss[0]])
+        if len(np.shape(rho_ss))==2:
+            rho_ss = rho_ss[0]
+    
+    return rho_ss
+
+def sea_salt_settling_velocity(Dp, rho_p=2.2, RH=80., T=20., P=1013., hygroscopic_growth='Zieger2016_'):
+    
+    
+    rho_p = rho_p * 100*100*100/1000 # g cm^-3 -> kg m^-3
+    Dp = Dp*1E-6 # um -> m
+
+    T = T+273.15 # C-> K
+    P = P*100 # hPa -> Pa
+    
+    if type(RH) != np.ndarray:
+        RH = np.asarray([RH])
+    if type(P) != np.ndarray:
+        P = np.asarray([P])
+    if type(T) != np.ndarray:
+        T = np.asarray([T])
+
+
+    T = T.reshape(len(T),1)
+    P = P.reshape(len(P),1)
+    RH = RH.reshape(len(RH),1)
+
+    # convert denisty and diameter based on Relative Humidity [%]
+    rho_p = rho_sea_spary(Dp, RH, rho_p=2.2, hygroscopic_growth=hygroscopic_growth)
+    Dp = rdry2rRH(Dp, RH, hygroscopic_growth=hygroscopic_growth)
+
+    Ccunn = 1 # need to parametrise base ond Dp, RH!
+    dyn_visc = 0.000018 #kg m−1 s−1 dynamic viscosity of air
+    g = 9.81 # kg m−1 s−2
+    R = 8.314 # Nm/mol/K
+    M = 28.9647/1000 # kg/mol
+    kBolz = 1.38*1E-23 # m2 kg s-2 K-1
+
+    kin_visc = 1.5E-5 # m^2/s  kinematic viscosity of air (depends on temperature!) ?
+    # mean free path of air molecules
+    if 0:
+        mfp = 2*dyn_visc/(P*np.sqrt(*M/(np.pi*R*T ))) # ~0.0651 um
+        # varying p-> *0.7, T-> -40K changes mfp by only 30%
+        # change in Ccunn 6%
+        # alsomost invisible in vg
+    else:
+        mfp = 6.511*1E-8
+    Ccunn = 1+mfp/Dp*(2.514+0.8*np.exp(-0.55*Dp/mfp)) # Seinfeld Pandis 8.34
+    # Ccunn varies from 1.2 for Dp=.8um to 1.032 for Dp=5um
+
+    # setttling velocity in m/s,note that the Dp and rho_p play an important role!
+    vs = g*rho_p*Dp*Dp*Ccunn/18/dyn_visc
+    
+    
+    if np.max(np.shape(vs))>1:
+        vs = vs.squeeze()
+    else:
+        vs = np.array([vs[0]])
+        
+    return vs
+
+
+
+def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20., P=1013., zeta=0., model='giardina_2018'):
 
 #if 1:
     # Required input:
@@ -45,7 +155,7 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
     # P [hPa]
     #
     # Output
-    # vd = deposition velocity [m/s ] production flux per size bin as numpy.array (m,n)
+    # vd = deposition velocity [m/s ] per size bin as numpy.array (m,n)
     # or (n,) if m=1 & n>1
     # or (m,) if n=1 & m>1
     # or (1,) if n=m=1
@@ -68,15 +178,28 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
     T = T.reshape(len(T),1)
     P = P.reshape(len(P),1)
     zeta = zeta.reshape(len(zeta),1)
-    rho_p = rho_p.reshape(len(rho_p),1)
+    
+    if type(Dp) != np.ndarray:
+        Dp = np.asarray([Dp])
 
     if ((len(U10)==len(Dp)) & (len(Dp)>1) ):
         # in this case assume each Dp sample corresponds to a U10 sample and we get a time series of vd
         Dp = Dp.reshape(len(Dp),1) #
+    else:
+        Dp = Dp.reshape(1,len(Dp)) # 
     #if ((len(U10)==len(rho_p)) & (len(rho_p)>1) ):
     #    # in this case assume each Dp sample corresponds to a U10 sample and we get a time series of vd
     #    rho_p = rho_p.reshape(len(rho_p),1) #
 
+    if len(np.shape(rho_p))==2:
+        rho_p = rho_p.reshape(len(U10),len(Dp))
+    elif len(np.shape(rho_p))==1:
+        if ((len(U10)==len(rho_p)) & (len(rho_p)>1) ):
+            rho_p = rho_p.reshape(len(rho_p),1)
+        elif ((len(Dp)==len(rho_p)) & (len(rho_p)>1) ):
+            rho_p = rho_p.reshape(1,len(rho_p))
+
+    
 
     ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
     ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
@@ -112,11 +235,12 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
     Ccunn = 1+mfp/Dp*(2.514+0.8*np.exp(-0.55*Dp/mfp)) # Seinfeld Pandis 8.34
     # Ccunn varies from 1.2 for Dp=.8um to 1.032 for Dp=5um
 
-    # Diffusivity
-    Diffusivity = kBolz*T*Ccunn/3/np.pi/dyn_visc/Dp # Diffusivity of the aerosol in air
-
+    
     # setttling velocity in m/s,note that the Dp and rho_p play an important role!
     vs = g*rho_p*Dp*Dp*Ccunn/18/dyn_visc
+    
+    # Diffusivity
+    Diffusivity = kBolz*T*Ccunn/3/np.pi/dyn_visc/Dp # Diffusivity of the aerosol in air
 
 
     kappa = 0.4
@@ -158,6 +282,17 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20, P=1013., zeta=0
         vs = np.array([vs[0]])
 
     return vd, vs
+
+
+def dFdlogD_to_dFdD(dFdlogr80,r80):
+    dFdr80 = dFdlogr80/r80*np.log10(np.exp(1))
+    return dFdr80
+
+def dFdD_to_dFdlogD(dFdr80,r80):
+    dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
+    return dFdlogr80
+
+
 
 def sssf(sssf_str, r80, U10, SST=[], Re=[]):
     # sssf(sssf_str, r80, U10, SST, Re):
