@@ -615,3 +615,110 @@ def read_traj_file_to_numpy(filename, ntime):
     traj_ensemble = np.reshape(traj_ensemble,(ntra, ntime, -1))
 
     return traj_ensemble, variables, starttime
+
+from datetime import datetime, timedelta
+
+def match2series(ts,ts2match):
+    """
+        Function to crop/append to the series ts in order to have the same number of samples as ts2match
+        REQUIRES the two indicees to be same for ts2match and ts !!!
+        TODO add a warning if this is not the case!!!
+        this is just a wrapper around pandas merge (import pandas as pd)
+        
+        :param ts: datetime indexed dataframe to be modified
+        :param ts2match: datetime indexed dataframe, of which the index shall be taken
+    
+        :Example:
+            
+            wind = match2series(wind,aerosols) # output is the wind matched to aerosols
+    """
+    ts2match = ts2match[ts2match.columns[0]].to_frame()
+    ts2match.rename(index=str, columns={ts2match.columns[0]: 'var2match'}, inplace=True)
+    ts = pd.merge(ts, ts2match, left_index=True, right_index=True, how='right')
+    ts = ts.drop(columns=['var2match'])
+    return ts
+
+
+def resample_timeseries(ts, time_bin, how='mean', new_label_pos='c', new_label_parity='even', old_label_pos='c', old_resolution=0, COMMENTS=False):
+    """
+        Function to resample timeseries to multiple of minutes placing the inter val label where you like it
+        Info on time series location in the inital ts can be used to ensure accurate binning
+        Output time stamp label position left, right, centre and parity ('even' -> index=00:05:00, 'odd' -> index=00:02:30) can be choosen
+        
+        :param ts: datetime indexed dataframe to resample
+        :param time_bin: integer aggregation time, in minutes
+        :param how: string specifyin how to aggregate. Has to be compatible with df.resample('5T').aggregate(how)
+        :param old_label_pos: string ('l'=left, 'r'=right, 'c'=center) position of the initial timestamp 
+        :param old_resolution: integer input time resolution in minutes used to correct input time stamp if (old_label_pos=='c')==False, set to 0 if unknown
+        :param new_label_pos: string ('l'=left, 'r'=right, 'c'=center), define if timest_ label denotes left, right, center of new intervals
+        :param new_label_parity: string ('even' -> index=00:05:00, 'odd' -> index=00:02:30), if time stamp will look like as when resample would be run ('even')
+        :param COMMENTS: boolean (True->print some info about what is done)
+        :returns: resampled dataframe with uninterrupted datetime index and NaNs where needed
+        :Example:
+
+            ts_mean = dataset.resample_timeseries(ts, 15, how='mean')
+            # if you know that initial ts lable was on right of interval and resolution was 5min (e.g. aerosols)
+            ts_mean = dataset.resample_timeseries(ts, 15, how='mean', old_label_pos='r', old_resolution=5)
+
+    """
+
+    # assume input time series has label on interval center, then
+    # we can resample to new time series with label position in center of interval,
+    # choose if you like the lable to look like 'even' -> index=00:05:00, 'odd' -> index=00:02:30
+    if ((new_label_pos=='c') & (new_label_parity=='even')):
+        # put label on center, index=00:05:00 
+        ts_offset = timedelta(minutes=(time_bin/2))
+        rs_loffset = timedelta(minutes=0)
+    elif ((new_label_pos=='c') & (new_label_parity=='odd')):
+        # put label on center, index=00:02:30 
+        ts_offset = timedelta(minutes=0)
+        rs_loffset = timedelta(minutes=(time_bin/2))   
+    elif ((new_label_pos=='l') & (new_label_parity=='even')):
+        # put label on left, index=00:05:00 (classic resample behaviour)
+        ts_offset = timedelta(minutes=0)
+        rs_loffset = timedelta(minutes=0)
+    elif ((new_label_pos=='l') & (new_label_parity=='odd')):
+        # put label on left, index=00:02:30
+        ts_offset = timedelta(minutes=-(time_bin/2))
+        rs_loffset = timedelta(minutes=+(time_bin/2))
+    elif ((new_label_pos=='r') & (new_label_parity=='even')):
+        # put label on right end of new resample interval, index=00:05:00 
+        ts_offset = timedelta(minutes=+time_bin)
+        rs_loffset = timedelta(minutes=0)
+    elif ((new_label_pos=='r') & (new_label_parity=='odd')):
+        # put label on right end of new resample interval, index=00:02:30 
+        ts_offset = timedelta(minutes=0)
+        rs_loffset = timedelta(minutes=+time_bin)
+    else:
+        print('new_label_pos must be either "l","r", or "c"!')
+        print('new_label_parity must be either "odd" or "even"!')
+        return 
+    
+    # now check if the old lable pos is not 'c' and add an offset to ts_offset to correct for this
+    
+    if ((old_label_pos=='c')==False):
+        if old_resolution>0: 
+            # known old_resolution we can use it to calcualte the offset to add
+            if old_label_pos=='l':
+                ts_offset = ts_offset + timedelta(minutes=+(old_resolution/2))
+            elif old_label_pos=='r':
+                ts_offset = ts_offset + timedelta(minutes=-(old_resolution/2))
+        else:
+            tres_ = np.median(np.diff(ts.index.tolist())).total_seconds()
+            tres_ = int(tres_) # round to full second
+            if COMMENTS==True:
+                print('Inferring old time resolution to be '+str(tres_)+' seconds ('+str(tres_/60)+' minutes)')
+            if old_label_pos=='l':
+                ts_offset = ts_offset + timedelta(seconds=+(tres_/2))
+            elif old_label_pos=='r':
+                ts_offset = ts_offset + timedelta(seconds=-(tres_/2))
+            else:
+                print('old_label_pos must be either "l","r", or "c"')
+                return
+    
+    # fix the initial index if it is needed,
+    ts_resampled = ts.copy()
+    ts_resampled.index=ts_resampled.index+ts_offset;
+    # resample with desired offset (the loffset changes the lable after resample has acted on the time series)
+    ts_resampled=ts_resampled.resample(str(time_bin)+'T', loffset=rs_loffset).aggregate(how)
+    return ts_resampled
