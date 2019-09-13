@@ -619,6 +619,18 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     params['total_LenainMelville'] = np.power(wave['total_hs'],1.25)*np.power(9.81,.5)*np.power(wave['total_wave_number'],-0.25)/kin_visc_sea
     params['wind_sea_LenainMelville'] = np.power(wave['wind_sea_hs'],1.25)*np.power(9.81,.5)*np.power(wave['wind_sea_wave_number'],-0.25)/kin_visc_sea
 
+    # add some expansions of u10, RH, and deltaT
+    params['u10^2'] = np.power(params['u10'],2)
+    params['u10^3'] = np.power(params['u10'],3)
+    
+    params['RH^2'] = np.power(params['RH'],2)
+    params['RH^3'] = np.power(params['RH'],3)
+    params['RH^4'] = np.power(params['RH'],4)
+    
+    params['deltaT^2'] = np.power(params['deltaT'],2)
+    params['deltaT^3'] = np.power(params['deltaT'],3)
+    params['deltaT^4'] = np.power(params['deltaT'],4)
+    
     return params
 
 def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='../data/intermediate/0_shipdata/BOAT_GPS_distance_to_land_parsed.csv', T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv', MASK= '../data/intermediate/7_aerosols/mask_1_5_10min++_parsed.csv'):
