@@ -370,15 +370,15 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
                 opts['par2'] = p2
                 opts['kpar'] = kpar
 
-                if opts['MODEL'] == 'smooth-linear-ridge-regression':
+                if opts['MODEL'] == 'smooth_weight_ridge_regression':
                     W_mtl, loss, inds, stats, y_hat = smooth_weight_ridge_regression(data, labels, inds, opts)#, ITERS=100, THRESH=1e-6):
-                elif opts['MODEL'] == 'smooth-kernel-ridge-regression':
+                elif opts['MODEL'] == 'smooth_weight_kernel_ridge_regression':
                     W_mtl, loss, inds, stats, y_hat = smooth_weight_kernel_ridge_regression(data, labels, inds, opts)
-                elif opts['MODEL'] == 'smooth-kernel-ridge-regression':
+                elif opts['MODEL'] == 'approximate_smooth_weight_kernel_ridge_regression':
                     W_mtl, loss, inds, stats, y_hat = approximate_smooth_weight_kernel_ridge_regression(data, labels, inds, opts)
-                elif opts['MODEL'] == 'smooth-linear-bayesian-regression':
+                elif opts['MODEL'] == 'bayesian_smooth_weight_ridge_regression':
                     W_mtl, loss, inds, stats, y_hat = bayesian_smooth_weight_ridge_regression(data, labels, inds, opts)
-                elif opts['MODEL'] == 'smooth-approximate-gaussian-process-regression':
+                elif opts['MODEL'] == 'ssmooth_weight_approximate_gaussian_process_regression':
                     W_mtl, loss, inds, stats, y_hat = smooth_weight_approximate_gaussian_process_regression(data, labels, inds, opts)
 
                 trerr[count, :] = stats['tr_R2']
@@ -741,8 +741,7 @@ def approximate_smooth_weight_kernel_ridge_regression(data, labels, ind_mat, opt
     from sklearn.metrics import mean_squared_error, r2_score
     from sklearn.metrics.pairwise import rbf_kernel
     from sklearn.kernel_approximation import RBFSampler
-
-    D = opts['approximation_dim']
+    D = opts['APPROXIMATION_DIM']
     sm = RBFSampler(gamma=1./opts['kpar']**2,n_components=D,random_state=666)
 
     def retrieve_neigh_norm(W,ind_w,ss):
