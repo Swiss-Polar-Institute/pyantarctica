@@ -123,7 +123,7 @@ def sample_trn_test_index(index,split=2.0/3,mode='final', group=20, options={'su
         if sub_mode == 'interpolation':
             np.random.shuffle(tr_ts_splits)
         elif sub_mode == 'prediction':
-            _ = None #do nothing
+            _ = None #do nothing for now, this is a placeholder
 
         # sample per_temp examples every time_int. time_ints are split randomly for training and testing
         b = []
@@ -340,6 +340,69 @@ def dependency_measures_per_dataset(series_1, series_2):
     return COR, MI, HSIC, NSAMP
 
 ##############################################################################################################
+def CV_smooth_weight_regression(data, labels, inds, opts):
+    """
+        Cross-validate smooth ridge regression
+        CV_MEASURE: val_R2, trn_R2, minLoss
+    """
+
+    if not opts['CV_MEASURE']:
+        opts['CV_MEASURE'] = 'val_R2'
+
+    # if opts['MODEL'] == 'smooth-linear-ridge-regression':
+    #     opts['KPAR_CV'] = []
+    # elif opts['MODEL'] == 'smooth-linear-bayesian-regression':
+    #     opts['KPAR_CV'] = []
+
+    trerr = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), opts['TASKS']))
+    vaerr = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), opts['TASKS']))
+
+    minlo = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), 1))
+    pars = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV']*len(opts['KPAR_CV'])), 3))
+
+
+    count = 0
+    for p1 in opts['PAR_1_CV']:
+        for p2 in opts['PAR_2_CV']:
+            for kpar in opts['KPAR_CV']:
+
+                opts['par1'] = p1
+                opts['par2'] = p2
+                opts['kpar'] = kpar
+
+                if opts['MODEL'] == 'smooth-linear-ridge-regression':
+                    W_mtl, loss, inds, stats, y_hat = smooth_weight_ridge_regression(data, labels, inds, opts)#, ITERS=100, THRESH=1e-6):
+                elif opts['MODEL'] == 'smooth-kernel-ridge-regression':
+                    W_mtl, loss, inds, stats, y_hat = smooth_weight_kernel_ridge_regression(data, labels, inds, opts)
+                elif opts['MODEL'] == 'smooth-kernel-ridge-regression':
+                    W_mtl, loss, inds, stats, y_hat = approximate_smooth_weight_kernel_ridge_regression(data, labels, inds, opts)
+                elif opts['MODEL'] == 'smooth-linear-bayesian-regression':
+                    W_mtl, loss, inds, stats, y_hat = bayesian_smooth_weight_ridge_regression(data, labels, inds, opts)
+                elif opts['MODEL'] == 'smooth-approximate-gaussian-process-regression':
+                    W_mtl, loss, inds, stats, y_hat = smooth_weight_approximate_gaussian_process_regression(data, labels, inds, opts)
+
+                trerr[count, :] = stats['tr_R2']
+                vaerr[count, :] = stats['va_R2']
+                minlo[count, 0] = loss[-1]
+                pars[count, :] = [p1,p2,kpar]
+
+                # print(f"c {count}, p1 {p1}, p2 {p2}, kpar {kpar}, loss {loss[-1]}, trerr {0.01 * np.sum(stats['tr_R2'])}, valerr {0.01 * np.sum(stats['va_R2'])}")
+                count += 1
+
+
+    if opts['CV_MEASURE'] == 'trn_R2':
+        p1,p2,kpar = pars[np.argmax(np.sum(vaerr,axis=1)),:]
+
+    elif opts['CV_MEASURE'] == 'val_R2':
+        p1,p2,kpar = pars[np.argmax(np.sum(trerr,axis=1)),:]
+
+    elif opts['CV_MEASURE'] == 'minLoss':
+        p1,p2,kpar = pars[np.argmin(minlo),:]
+
+    print(f'p1 {p1}, p2 {p2}, kpar {kpar}')
+    return p1, p2, kpar
+
+##############################################################################################################
 def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRESH=1e-6):
     """
         Define a multitask regression problem in which tasks are locally smooth (e.g. bin size prediction), and introduce a penalty in which weights of regressors of related tasks are encouraged to be similar.
@@ -365,19 +428,6 @@ def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRES
 
         return 1/(len(W_subs)) * np.sum(W_subs, axis=1)
 
-        # if ind_w == 0:
-        #     W_subs = W[:,ind_w+1]#:ind_w+1]
-        # #         elif ind_w == T-2:
-        # #             W_subs = W[:,ind_w-2:T]
-        # #         elif ind_w == 1:
-        # #             W_subs = W[:,ind_w-1]
-        # elif ind_w == T-1:
-        #     W_subs = W[:,ind_w-1]
-        # else:
-        #     W_subs = 0.5*(W[:,ind_w-1] + W[:,ind_w+1])
-        #
-        # return W_subs
-
     D = data.shape[1]
     T = labels.shape[1]
 
@@ -385,7 +435,7 @@ def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRES
 
     par1 = opts['par1']
     par2 = opts['par2']
-    tr_ts_split = opts['tr_ts_split']
+    # tr_ts_split = opts['tr_ts_split']
 
     W_old = np.ones((D,T))
     W = np.random.rand(D,T)
@@ -425,7 +475,7 @@ def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRES
 
         loss.append(epsi)
         k += 1
-    print(f'iter {k}, size W {W.shape}, loss {epsi}')
+    # print(f'iter {k}, size W {W.shape}, loss {epsi}')
 
     y_hat = np.zeros((opts['DATA_SIZE'][0],T))
     stats = {}
@@ -438,6 +488,7 @@ def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRES
     for ind_w in range(T):
         X_Y = data.assign(y=labels.iloc[:,ind_w]).copy()
         trn_X = X_Y.iloc[inds[:,ind_w] == 1, :-1]
+
         trn_Y = X_Y.iloc[inds[:,ind_w] == 1, -1]
         pred_tr_Y = np.dot(trn_X,W[:,ind_w])
 
@@ -458,59 +509,6 @@ def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRES
             y_hat[inds[:,ind_w] == 2, ind_w] = pred_va_Y
 
     return W, loss, inds, stats, y_hat
-
-##############################################################################################################
-def CV_smooth_weight_ridge_regression(data, labels, inds, opts):
-    """
-        Cross-validate smooth ridge regression
-        CV_MEASURE: val_R2, trn_R2, minLoss
-    """
-
-    if not opts['CV_MEASURE']:
-        opts['CV_MEASURE'] = 'val_R2'
-        if not opts['VAL_MODE']:
-            print("opts['VAL_MODE'] must be set to True")
-            return
-
-    par1_cv = opts['par1_cv']
-    par2_cv = opts['par2_cv']
-
-    trerr = np.zeros((len(par1_cv)*len(par2_cv), opts['TASKS']))
-    vaerr = np.zeros((len(par1_cv)*len(par2_cv), opts['TASKS']))
-
-    minlo = np.zeros((len(par1_cv)*len(par2_cv), 1))
-    pars = np.zeros((len(par1_cv)*len(par2_cv), 2))
-
-    count = 0
-    for p1 in par1_cv:
-        for p2 in par2_cv:
-
-            opts['par1'] = p1
-            opts['par2'] = p2
-
-            W_mtl, loss, inds, stats, y_hat = smooth_weight_ridge_regression(data, labels, inds, opts)#, ITERS=100, THRESH=1e-6):
-
-            trerr[count, :] = stats['tr_R2']
-            vaerr[count, :] = stats['va_R2']
-            minlo[count, 0] = loss[-1]
-            pars[count, :] = [p1,p2]
-
-            # print(f"c {count}, p1 {p1}, p2 {p2}, loss {loss[-1]}, trerr {0.01 * np.sum(stats['tr_R2'])}, valerr {0.01 * np.sum(stats['va_R2'])}")
-
-            count += 1
-
-
-    if opts['CV_MEASURE'] == 'trn_R2':
-        p1,p2 = pars[np.argmax(np.sum(vaerr,axis=1)),:]
-
-    elif opts['CV_MEASURE'] == 'val_R2':
-        p1,p2 = pars[np.argmax(np.sum(trerr,axis=1)),:]
-
-    elif opts['CV_MEASURE'] == 'minLoss':
-        p1,p2 = pars[np.argmin(minlo),:]
-
-    print(f'p1 {p1}, p2 {p2}')
-    return p1, p2
 
 ##############################################################################################################
 def bayesian_smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRESH=1e-6):
@@ -662,7 +660,7 @@ def smooth_weight_kernel_ridge_regression(data, labels, inds, opts):#, ITERS=100
     par1 = opts['par1']
     par2 = opts['par2']
     kpar = opts['kpar']
-    tr_ts_split = opts['tr_ts_split']
+    # tr_ts_split = opts['tr_ts_split']
 
     W_old = np.ones((D,T))
     W = np.random.rand(D,T)

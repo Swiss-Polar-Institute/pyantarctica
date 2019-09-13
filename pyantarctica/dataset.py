@@ -439,55 +439,55 @@ def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_leg
     return data
 
 ##############################################################################################################
-def subset_data_stack_variables(data, varset, seatype='total', mode='subset'):
-    '''
-        Subset variables of a dataset stack. This function is just a shorthand to not have to specify all vaiables when subsetting dataframes. Not the most clever way to deal with this honestly.
-
-        :param data: dataframe of data to subset
-        :param varset: keyword specifiying the subset to get
-        :param seatype: defaults to total. When "wave" parameters are to be retrieved, specify which kind of sea parameters to have
-        :param mode: subset : return actual dataframe or returnnames: return only column names per subset
-        :returns: either dataframe of data, or list of columns names.
-    '''
-
-    if (varset.lower() == 'wave')|(varset.lower() == 'waves'):
-        cols_total = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind']
-        cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind']
-    elif varset.lower() == 'wave_nowind':
-        cols_total = ['hs', 'tp', 'steep', 'phase_vel']
-        cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w']
-    elif varset.lower() == 'wave_reduced':
-        cols_total = ['hs', 'tp', 'wind']
-        cols_wind  = ['hs_w', 'tp_w', 'wind']
-    elif varset.lower() == 'wave_ecmwf':
-        cols_total = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind',
-         't', 'slp', 'q', 'v', 'u', 'iwc', 'ps', 'rh', 'th', 'lsp', 'cp',
-         'rtot', 'blh', 'blhp', 'td2m', 't2m', 'skt', 'sif', 'the', 'lsm']
-        cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind', 't', 'slp', 'q', 'v', 'u', 'iwc', 'ps', 'rh', 'th', 'lsp', 'cp', 'rtot', 'blh', 'blhp', 'td2m', 't2m', 'skt', 'sif', 'the', 'lsm']
-    elif varset.lower() == 'ecmwf':
-        cols_total = ['t', 'slp', 'q', 'v', 'u', 'iwc', 'ps', 'rh', 'th', 'lsp', 'cp',
-        'rtot', 'blh', 'blhp', 'td2m', 't2m', 'skt', 'sif', 'the', 'lsm']
-    elif varset.lower() == 'wholeset':
-        cols_total = data.columns.tolist()[:-1]
-    else:
-        print('variables not specified')
-        return
-
-    if seatype == 'total':
-        cols = cols_total
-    elif seatype == 'wind':
-        cols = cols_wind
-    else:
-        print('seatype not correct')
-        return
-
-    if mode == 'subset':
-        if 'parbin' in data.columns:
-            cols.append('parbin')
-        return data[cols]
-    elif mode == 'returnnames':
-        print(cols)
-        return cols
+# def subset_data_stack_variables(data, varset, seatype='total', mode='subset'):
+    # '''
+    #     Subset variables of a dataset stack. This function is just a shorthand to not have to specify all vaiables when subsetting dataframes. Not the most clever way to deal with this honestly.
+    #
+    #     :param data: dataframe of data to subset
+    #     :param varset: keyword specifiying the subset to get
+    #     :param seatype: defaults to total. When "wave" parameters are to be retrieved, specify which kind of sea parameters to have
+    #     :param mode: subset : return actual dataframe or returnnames: return only column names per subset
+    #     :returns: either dataframe of data, or list of columns names.
+    # '''
+    #
+    # if (varset.lower() == 'wave')|(varset.lower() == 'waves'):
+    #     cols_total = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind']
+    #     cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind']
+    # elif varset.lower() == 'wave_nowind':
+    #     cols_total = ['hs', 'tp', 'steep', 'phase_vel']
+    #     cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w']
+    # elif varset.lower() == 'wave_reduced':
+    #     cols_total = ['hs', 'tp', 'wind']
+    #     cols_wind  = ['hs_w', 'tp_w', 'wind']
+    # elif varset.lower() == 'wave_ecmwf':
+    #     cols_total = ['hs', 'tp', 'steep', 'phase_vel', 'age', 'wind',
+    #      't', 'slp', 'q', 'v', 'u', 'iwc', 'ps', 'rh', 'th', 'lsp', 'cp',
+    #      'rtot', 'blh', 'blhp', 'td2m', 't2m', 'skt', 'sif', 'the', 'lsm']
+    #     cols_wind  = ['hs_w', 'tp_w', 'steep_w', 'phase_vel_w', 'age_w', 'wind', 't', 'slp', 'q', 'v', 'u', 'iwc', 'ps', 'rh', 'th', 'lsp', 'cp', 'rtot', 'blh', 'blhp', 'td2m', 't2m', 'skt', 'sif', 'the', 'lsm']
+    # elif varset.lower() == 'ecmwf':
+    #     cols_total = ['t', 'slp', 'q', 'v', 'u', 'iwc', 'ps', 'rh', 'th', 'lsp', 'cp',
+    #     'rtot', 'blh', 'blhp', 'td2m', 't2m', 'skt', 'sif', 'the', 'lsm']
+    # elif varset.lower() == 'wholeset':
+    #     cols_total = data.columns.tolist()[:-1]
+    # else:
+    #     print('variables not specified')
+    #     return
+    #
+    # if seatype == 'total':
+    #     cols = cols_total
+    # elif seatype == 'wind':
+    #     cols = cols_wind
+    # else:
+    #     print('seatype not correct')
+    #     return
+    #
+    # if mode == 'subset':
+    #     if 'parbin' in data.columns:
+    #         cols.append('parbin')
+    #     return data[cols]
+    # elif mode == 'returnnames':
+    #     print(cols)
+    #     return cols
 
 ##############################################################################################################
 def retrieve_correlation_to_particles(data, particles, var, legs=[1,2,3], plots=True):
@@ -618,18 +618,19 @@ def read_traj_file_to_numpy(filename, ntime):
 
 from datetime import datetime, timedelta
 
+##############################################################################################################
 def match2series(ts,ts2match):
     """
         Function to crop/append to the series ts in order to have the same number of samples as ts2match
         REQUIRES the two indicees to be same for ts2match and ts !!!
         TODO add a warning if this is not the case!!!
         this is just a wrapper around pandas merge (import pandas as pd)
-        
+
         :param ts: datetime indexed dataframe to be modified
         :param ts2match: datetime indexed dataframe, of which the index shall be taken
-    
+
         :Example:
-            
+
             wind = match2series(wind,aerosols) # output is the wind matched to aerosols
     """
     ts2match = ts2match[ts2match.columns[0]].to_frame()
@@ -638,17 +639,18 @@ def match2series(ts,ts2match):
     ts = ts.drop(columns=['var2match'])
     return ts
 
+##############################################################################################################
 
 def resample_timeseries(ts, time_bin, how='mean', new_label_pos='c', new_label_parity='even', old_label_pos='c', old_resolution=0, COMMENTS=False):
     """
         Function to resample timeseries to multiple of minutes placing the inter val label where you like it
         Info on time series location in the inital ts can be used to ensure accurate binning
         Output time stamp label position left, right, centre and parity ('even' -> index=00:05:00, 'odd' -> index=00:02:30) can be choosen
-        
+
         :param ts: datetime indexed dataframe to resample
         :param time_bin: integer aggregation time, in minutes
         :param how: string specifyin how to aggregate. Has to be compatible with df.resample('5T').aggregate(how)
-        :param old_label_pos: string ('l'=left, 'r'=right, 'c'=center) position of the initial timestamp 
+        :param old_label_pos: string ('l'=left, 'r'=right, 'c'=center) position of the initial timestamp
         :param old_resolution: integer input time resolution in minutes used to correct input time stamp if (old_label_pos=='c')==False, set to 0 if unknown
         :param new_label_pos: string ('l'=left, 'r'=right, 'c'=center), define if timest_ label denotes left, right, center of new intervals
         :param new_label_parity: string ('even' -> index=00:05:00, 'odd' -> index=00:02:30), if time stamp will look like as when resample would be run ('even')
@@ -666,13 +668,13 @@ def resample_timeseries(ts, time_bin, how='mean', new_label_pos='c', new_label_p
     # we can resample to new time series with label position in center of interval,
     # choose if you like the lable to look like 'even' -> index=00:05:00, 'odd' -> index=00:02:30
     if ((new_label_pos=='c') & (new_label_parity=='even')):
-        # put label on center, index=00:05:00 
+        # put label on center, index=00:05:00
         ts_offset = timedelta(minutes=(time_bin/2))
         rs_loffset = timedelta(minutes=0)
     elif ((new_label_pos=='c') & (new_label_parity=='odd')):
-        # put label on center, index=00:02:30 
+        # put label on center, index=00:02:30
         ts_offset = timedelta(minutes=0)
-        rs_loffset = timedelta(minutes=(time_bin/2))   
+        rs_loffset = timedelta(minutes=(time_bin/2))
     elif ((new_label_pos=='l') & (new_label_parity=='even')):
         # put label on left, index=00:05:00 (classic resample behaviour)
         ts_offset = timedelta(minutes=0)
@@ -682,22 +684,22 @@ def resample_timeseries(ts, time_bin, how='mean', new_label_pos='c', new_label_p
         ts_offset = timedelta(minutes=-(time_bin/2))
         rs_loffset = timedelta(minutes=+(time_bin/2))
     elif ((new_label_pos=='r') & (new_label_parity=='even')):
-        # put label on right end of new resample interval, index=00:05:00 
+        # put label on right end of new resample interval, index=00:05:00
         ts_offset = timedelta(minutes=+time_bin)
         rs_loffset = timedelta(minutes=0)
     elif ((new_label_pos=='r') & (new_label_parity=='odd')):
-        # put label on right end of new resample interval, index=00:02:30 
+        # put label on right end of new resample interval, index=00:02:30
         ts_offset = timedelta(minutes=0)
         rs_loffset = timedelta(minutes=+time_bin)
     else:
         print('new_label_pos must be either "l","r", or "c"!')
         print('new_label_parity must be either "odd" or "even"!')
-        return 
-    
+        return
+
     # now check if the old lable pos is not 'c' and add an offset to ts_offset to correct for this
-    
+
     if ((old_label_pos=='c')==False):
-        if old_resolution>0: 
+        if old_resolution>0:
             # known old_resolution we can use it to calcualte the offset to add
             if old_label_pos=='l':
                 ts_offset = ts_offset + timedelta(minutes=+(old_resolution/2))
@@ -715,7 +717,7 @@ def resample_timeseries(ts, time_bin, how='mean', new_label_pos='c', new_label_p
             else:
                 print('old_label_pos must be either "l","r", or "c"')
                 return
-    
+
     # fix the initial index if it is needed,
     ts_resampled = ts.copy()
     ts_resampled.index=ts_resampled.index+ts_offset;
