@@ -491,9 +491,14 @@ def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRES
 
         trn_Y = X_Y.iloc[inds[:,ind_w] == 1, -1]
         pred_tr_Y = np.dot(trn_X,W[:,ind_w])
-
-        stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
-        stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
+        if np.sum(np.isinf(pred_tr_Y))>0:
+            print(f'sum isinf: {np.sum(np.isinf(pred_tr_Y))}')
+            print(f'sum isna: {np.sum(np.isnan(pred_tr_Y))}')
+            stats['tr_RMSE'].append(np.inf)
+            stats['tr_R2'].append(-np.inf)
+        else:
+            stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
+            stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
 
         y_hat[inds[:,ind_w] == 1, ind_w] = pred_tr_Y
 
@@ -502,9 +507,15 @@ def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRES
             val_X = X_Y.iloc[inds[:,ind_w] == 2, :-1]
             val_Y = X_Y.iloc[inds[:,ind_w] == 2, -1]
             pred_va_Y = np.dot(val_X,W[:,ind_w])
+            if np.sum(np.isinf(pred_tr_Y))>0:
+                print(f'VAL: sum isinf: {np.sum(np.isinf(pred_tr_Y))}')
+                print(f'VAL: sum isna: {np.sum(np.isnan(pred_tr_Y))}')
+                stats['va_RMSE'].append(np.inf)
+                stats['va_R2'].append(-np.inf)
+            else:
+                stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
+                stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
 
-            stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
-            stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
 
             y_hat[inds[:,ind_w] == 2, ind_w] = pred_va_Y
 
@@ -712,9 +723,15 @@ def smooth_weight_kernel_ridge_regression(data, labels, inds, opts):#, ITERS=100
 
         K = rbf_kernel(trn_X, gamma=1./sigma**2)
         pred_tr_Y = np.dot(K,W[ind_mat[:,ind_w] == 1,ind_w])
+        if np.sum(np.isinf(pred_tr_Y))>0:
+            print(f'sum isinf: {np.sum(np.isinf(pred_tr_Y))}')
+            print(f'sum isna: {np.sum(np.isnan(pred_tr_Y))}')
+            stats['tr_RMSE'].append(np.inf)
+            stats['tr_R2'].append(-np.inf)
+        else:
+            stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
+            stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
 
-        stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
-        stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
 
         y_hat[ind_mat[:,ind_w] == 1, ind_w] = pred_tr_Y
 
@@ -725,8 +742,14 @@ def smooth_weight_kernel_ridge_regression(data, labels, inds, opts):#, ITERS=100
             Kt = rbf_kernel(val_X,trn_X, gamma=1./sigma**2)
             pred_va_Y = np.dot(Kt,W[ind_mat[:,ind_w] == 1,ind_w])
 
-            stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
-            stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
+            if np.sum(np.isinf(pred_tr_Y))>0:
+                print(f'sum isinf: {np.sum(np.isinf(pred_tr_Y))}')
+                print(f'sum isna: {np.sum(np.isnan(pred_tr_Y))}')
+                stats['va_RMSE'].append(np.inf)
+                stats['va_RMSE'].append(-np.inf)
+            else:
+                stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
+                stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
 
             y_hat[ind_mat[:,ind_w] == 2, ind_w] = pred_va_Y
 
