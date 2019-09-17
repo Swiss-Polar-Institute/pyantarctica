@@ -496,23 +496,25 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     MET_DATA='../data/intermediate/0_shipdata/metdata_5min_parsed.csv',
     ERA5_DATA='../../ecmwf-download/data/ecmwf-on-track/era5_ace_track_nearest.csv',
     WIND_DATA='../data/intermediate/0_shipdata/u10_ship_5min_full_parsed.csv',
-    WAVE_DATA='../data/processed/17_waves/01_waves_recomputed.csv',
-    D_TO_LAND='../data/processed/0_shipdata/BOAT_GPS_distance_to_land_parsed.csv',
-    T_TO_LAND='../data/processed/7_aerosols/hours_till_land_parsed.csv'):
+    WAVE_DATA='../data/intermediate/17_waves/01_waves_recomputed.csv',
+    D_TO_LAND='../data/intermediate/0_shipdata/BOAT_GPS_distance_to_land_parsed.csv',
+    T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv',
+    RETURN_EXPANSIONS=False):
 
-    # TODO check time stamp label for wave data
-    # add bt_time till land and distance to (populated)land
-
-    # load intermediate data and compute parameters for the aerosol wind wave regression
+    # loads parameters from various data sets and creates a joint 5min data set
+    # the 5min time stamp label resides on the LEFT (start) of the 5min interval
+    #
     #
     # this function uses ship based observations and era5 interpolated model output to fill gaps
-
+    #
     # sst_from='era5' : use era5 sst
     # sst_from='ship' : use ferrybox temperature (+273.15 to convert to Kelvin)
     # sst_from='merge': merge era5 and ferrybox temperature
-
+    #
     # TA_from='ship'  : use metdata 'TA' (+273.15 to convert to Kelvin)
     # I would not trust air temperature from the Mode
+    #
+    
     MET_DATA  = Path(MET_DATA)
     ERA5_DATA = Path(ERA5_DATA)
     # era5 linear, provides NaN if one of neighboring fields is land (lsm=1)
@@ -535,10 +537,12 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
 
     d_to_land = dataset.read_standard_dataframe(D_TO_LAND, crop_legs=False)
     d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
+    if (len(d_to_land.columns)>1): # if intermediate version is used the csv also contains lat/lon, need to drop these
+        d_to_land.drop(columns=['latitude', 'longitude'], inplace=True)
 
     t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
     t_to_land.index = t_to_land.index-pd.Timedelta(5,'min')
-    t_to_land = pd.merge(t_to_land,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
+    t_to_land = pd.merge(t_to_land[['hours_till_land']],metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     t_to_land.drop(columns=['VIS'], inplace=True) # drop the unnecessary column we got from merging
     t_to_land = t_to_land.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
 
@@ -596,8 +600,7 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
 
     # Wave derived parms:
 
-    # HOW IS THE TIME STAMP CONVENTION OF THIS ONE????
-    # WHERE ARE THE CALCULTIONS DONE, I would like to check them
+    # wave time stamp already on left
     wave = dataset.read_standard_dataframe(WAVE_DATA)
     wave = pd.merge(wave,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     wave.drop(columns=['VIS'], inplace=True)
@@ -619,17 +622,18 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     params['total_LenainMelville'] = np.power(wave['total_hs'],1.25)*np.power(9.81,.5)*np.power(wave['total_wave_number'],-0.25)/kin_visc_sea
     params['wind_sea_LenainMelville'] = np.power(wave['wind_sea_hs'],1.25)*np.power(9.81,.5)*np.power(wave['wind_sea_wave_number'],-0.25)/kin_visc_sea
 
-    # add some expansions of u10, RH, and deltaT
-    params['u10^2'] = np.power(params['u10'],2)
-    params['u10^3'] = np.power(params['u10'],3)
-    
-    params['RH^2'] = np.power(params['RH'],2)
-    params['RH^3'] = np.power(params['RH'],3)
-    params['RH^4'] = np.power(params['RH'],4)
-    
-    params['deltaT^2'] = np.power(params['deltaT'],2)
-    params['deltaT^3'] = np.power(params['deltaT'],3)
-    params['deltaT^4'] = np.power(params['deltaT'],4)
+    if RETURN_EXPANSIONS:
+        # add some expansions of u10, RH, and deltaT
+        params['u10^2'] = np.power(params['u10'],2)
+        params['u10^3'] = np.power(params['u10'],3)
+
+        params['RH^2'] = np.power(params['RH'],2)
+        params['RH^3'] = np.power(params['RH'],3)
+        params['RH^4'] = np.power(params['RH'],4)
+
+        params['deltaT^2'] = np.power(params['deltaT'],2)
+        params['deltaT^3'] = np.power(params['deltaT'],3)
+        params['deltaT^4'] = np.power(params['deltaT'],4)
     
     return params
 
