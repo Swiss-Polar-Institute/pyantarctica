@@ -358,8 +358,7 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
     vaerr = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), opts['TASKS']))
 
     minlo = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), 1))
-    pars = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV']*len(opts['KPAR_CV'])), 3))
-
+    pars = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), 3))
 
     count = 0
     for p1 in opts['PAR_1_CV']:
