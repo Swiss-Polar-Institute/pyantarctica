@@ -815,7 +815,7 @@ def approximate_smooth_weight_kernel_ridge_regression(data, labels, ind_mat, opt
 
         k += 1
 
-    if x >= opts['ITERS']:
+    if k >= opts['ITERS']:
         print(f'converged in iter {k}, size W {W.shape}, conv {epsi}, emp error {emp_err}, mean norm w {1/opts["TASKS"] * t_norm_w}')
 
     y_hat = np.zeros((opts['DATA_SIZE'][0],opts['TASKS']))
