@@ -386,7 +386,7 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
                 minlo[count, 0] = loss[-1]
                 pars[count, :] = [p1,p2,kpar]
 
-                print(f"c {count+1} / {iit}"",
+                print(f"c {count+1} / {iit}")
                 # p1 {p1}, p2 {p2}, kpar {kpar}, loss {loss[-1]}, trerr {0.01 * np.sum(stats['tr_R2'])}, valerr {0.01 * np.sum(stats['va_R2'])}")
                 count += 1
 
