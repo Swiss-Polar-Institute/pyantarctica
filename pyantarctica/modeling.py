@@ -354,12 +354,14 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
     #     opts['KPAR_CV'] = []
     # elif opts['MODEL'] == 'smooth-linear-bayesian-regression':
     #     opts['KPAR_CV'] = []
-
+    print('KPAR_CV', opts['KPAR_CV'])
     if opts['KPAR_CV'] == 'distance_mode':
         D = euclidean_distances(data.dropna(), squared=False)
+        print('D_feats =', data.dropna().columns.tolist())
         D = D.reshape(-1,1)
         D = D[D!=0]
         opts['KPAR_CV'] = [np.median(D)]
+
         # counts,bins = np.histogram(D,bins=100)
         # opts['KPAR_CV'] = [bins[np.argmax(counts)]]
 
@@ -409,7 +411,7 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
     elif opts['CV_MEASURE'] == 'minLoss':
         p1,p2,kpar = pars[np.argmin(minlo),:]
 
-    print(f'p1 {p1}, p2 {p2}, kpar {kpar}')
+    #print(f'p1 {p1}, p2 {p2}, kpar {kpar}')
     return p1, p2, kpar
 
 ##############################################################################################################
