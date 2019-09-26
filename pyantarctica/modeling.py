@@ -17,6 +17,7 @@
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import euclidean_distances
 
 ##############################################################################################################
 # def retrieve_model_av_std(summary):
@@ -353,6 +354,13 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
     #     opts['KPAR_CV'] = []
     # elif opts['MODEL'] == 'smooth-linear-bayesian-regression':
     #     opts['KPAR_CV'] = []
+
+    if opts['KPAR_CV'] == 'distance_mode':
+        D = euclidean_distances(data.dropna(), squared=False)
+        D = D.reshape(-1,1)
+        D = D[D!=0]
+        counts,bins = np.histogram(D,bins=100)
+        opts['KPAR_CV'] = [bins[np.argmax(counts)]]
 
     trerr = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), opts['TASKS']))
     vaerr = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), opts['TASKS']))
