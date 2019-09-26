@@ -514,7 +514,7 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     # TA_from='ship'  : use metdata 'TA' (+273.15 to convert to Kelvin)
     # I would not trust air temperature from the Mode
     #
-    
+
     MET_DATA  = Path(MET_DATA)
     ERA5_DATA = Path(ERA5_DATA)
     # era5 linear, provides NaN if one of neighboring fields is land (lsm=1)
@@ -640,7 +640,7 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
         params['deltaT^2'] = np.power(params['deltaT'],2)
         params['deltaT^3'] = np.power(params['deltaT'],3)
         params['deltaT^4'] = np.power(params['deltaT'],4)
-    
+
 
     return params
 
