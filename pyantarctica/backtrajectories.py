@@ -128,6 +128,7 @@ def bt_get_values(bt_, return_value, return_times, aggr_trajs, aggr_time):
     # aggregates data over trajectories
     # option to calculated '', 'cumsum', or 'cumprod' along time axis
     # returns array of data shape (len(return_times), len(bt_.timest_) )
+    timest_=pd.DatetimeIndex(np.unique(bt_.timest_))
     bt_ = bt_.groupby(['timest_', 'time']).aggregate(aggr_trajs) # average over the trajectories
     
     # build a wrapper for percentiles: (runs a few seconds!)
@@ -141,7 +142,7 @@ def bt_get_values(bt_, return_value, return_times, aggr_trajs, aggr_time):
         for return_time in return_times:
             x_.append(bt_.iloc[bt_.index.get_level_values('time') == np.float(return_time)][return_value].values)
 
-        x_ = pd.DataFrame( np.transpose(x_), index=pd.DatetimeIndex(np.unique(bt.timest_)))
+        x_ = pd.DataFrame( np.transpose(x_), index=timest_)
 
     else:
         x_ = pd.DataFrame( bt_[return_value].values, columns=[return_value], index=pd.DatetimeIndex(np.unique(bt.timest_)) )

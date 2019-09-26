@@ -527,9 +527,13 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     T_TO_LAND = Path(T_TO_LAND)
 
     metdata = dataset.read_standard_dataframe(MET_DATA, crop_legs=False)
+    if (str(metdata.index.tzinfo)=='None')==False:
+        metdata.set_index(metdata.index.tz_convert(None), inplace=True) # remove TZ info
     metdata.index = metdata.index-pd.Timedelta(5,'min')
 
     wind = dataset.read_standard_dataframe(WIND_DATA, crop_legs=False)
+    if (str(wind.index.tzinfo)=='None')==False:
+        wind.set_index(wind.index.tz_convert(None), inplace=True) # remove TZ info
     wind.index = wind.index-pd.Timedelta(5,'min')
 
     wind = pd.merge(wind,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
@@ -547,7 +551,8 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     t_to_land = t_to_land.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
 
     era5 = dataset.read_standard_dataframe(ERA5_DATA, crop_legs=False)
-    era5.set_index(era5.index.tz_convert(None), inplace=True) # remove TZ info
+    if (str(era5.index.tzinfo)=='None')==False:
+        era5.set_index(era5.index.tz_convert(None), inplace=True) # remove TZ info
     era5.index = era5.index-pd.Timedelta(2.5,'min') # adjust to beginning of 5min interval rule
     era5 = pd.merge(era5,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     era5.drop(columns=['VIS'], inplace=True)

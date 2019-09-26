@@ -46,6 +46,37 @@ def WSWD2WSRWDR(WS,WD,HEADING,velEast,velNorth):
     return WSR, WDR
 
 
+# function to estimate how sensitive predicted relative wind speed and direction are on biased TRUE WIND input
+def WSRWDR_uncertainy(WSPD,WDIR,HEADING,velEast,velNorth,a_WSPD=1.1,d_WDIR=10):
+    WSR, WDR = WSWD2WSRWDR(WSPD,WDIR,HEADING,velEast,velNorth) # basline
+    WSR_aup, WDR_aup = WSWD2WSRWDR(WSPD*a_WSPD,WDIR,HEADING,velEast,velNorth) # vary WSPD up by factor
+    WSR_alo, WDR_alo = WSWD2WSRWDR(WSPD/a_WSPD,WDIR,HEADING,velEast,velNorth)# vary WSPD down by factor
+    
+    d_WSPD = np.max([WSPD*(a_WSPD-1), np.ones_like(WSPD)], axis=0) # error x% or 1m/s
+    
+    #d_WSPD[(d_WSPD>WSPD)]=WSPD[(d_WSPD>WSPD)] # max error of 100%
+    WSR_aup, WDR_aup = WSWD2WSRWDR(WSPD+d_WSPD,WDIR,HEADING,velEast,velNorth) # vary WSPD up by factor
+    WSR_alo, WDR_alo = WSWD2WSRWDR(WSPD-d_WSPD,WDIR,HEADING,velEast,velNorth)# vary WSPD down by factor
+    
+    WSR_dup, WDR_dup = WSWD2WSRWDR(WSPD,WDIR+d_WDIR,HEADING,velEast,velNorth) # vary WDIR up by degree
+    WSR_dlo, WDR_dlo = WSWD2WSRWDR(WSPD,WDIR-d_WDIR,HEADING,velEast,velNorth)#  vary WDIR up by degree
+
+    # estimate the uncertainty in WSR by looking for the maximal deviation caused by the variant input
+    WSR_err = np.max([np.abs(WSR_aup-WSR),
+                      np.abs(WSR_alo-WSR),
+                      np.abs(WSR_dup-WSR),
+                      np.abs(WSR_dlo-WSR),
+                     ], axis=0)
+
+    WDR_err = np.max([np.abs(ang180(WDR_aup-WDR)),
+                      np.abs(ang180(WDR_alo-WDR)),
+                      np.abs(ang180(WDR_dup-WDR)),
+                      np.abs(ang180(WDR_dlo-WDR)),
+                     ], axis=0)
+
+    return WSR_err, WDR_err
+
+
 
 # ACE specific functions ...
 def dirdiff(HEADING,Nmin,loffset):
@@ -141,3 +172,158 @@ def resample_wind_data(df_wind, Nmin=5,interval_center='odd', lon_flip_tolleranc
     wind_5min.WSR2 = np.sqrt( np.square(wind_5min.vR2) + np.square(wind_5min.uR2) )
 
     return wind_5min
+
+
+def wind_merge_gps_afc_option(gps_file,wind_file,merge_at_nseconds,afc_loess_files=[]):
+    from scipy.interpolate import interp1d # for afc correction
+
+    df_gps = pd.read_csv(gps_file)
+    df_gps = df_gps.rename(index=str, columns={"Unnamed: 0": "timest_"})
+    df_gps = df_gps.set_index( (pd.to_datetime(df_gps.timest_, format="%Y-%m-%d %H:%M:%S"))  ) # assing the time stamp
+    df_gps = df_gps.drop(columns=['timest_'])
+    df_gps.index.name = 'timest_'
+
+    df_wind = pd.read_csv(wind_file)
+    df_wind = df_wind.rename(index=str, columns={"Unnamed: 0": "timest_"})
+    df_wind = df_wind.set_index( (pd.to_datetime(df_wind.timest_, format="%Y-%m-%d %H:%M:%S"))  ) # assing the time stamp
+    df_wind = df_wind.drop(columns=['timest_'])
+    df_wind.index.name = 'timest_'
+    
+    df_wind.at[ ((df_wind.index>pd.to_datetime("2017-04-05 06:00:00", format="%Y-%m-%d %H:%M:%S").tz_localize(tz='UTC'))&(df_wind.index<pd.to_datetime("2017-04-05 12:00:00", format="%Y-%m-%d %H:%M:%S").tz_localize(tz='UTC')))==1, 'WSR2'] = np.NaN
+    df_wind.at[ ((df_wind.index>pd.to_datetime("2017-04-05 06:00:00", format="%Y-%m-%d %H:%M:%S").tz_localize(tz='UTC'))&(df_wind.index<pd.to_datetime("2017-04-05 12:00:00", format="%Y-%m-%d %H:%M:%S").tz_localize(tz='UTC')))==1, 'WDR2'] = np.NaN
+
+    if len(afc_loess_files)>0: # if afc data provided
+        # interpolate onto wind series and calculate afc wind speed and direction
+
+        afc_loess1 = pd.read_csv(afc_loess_files+'1.csv')
+        afc_loess2 = pd.read_csv(afc_loess_files+'2.csv')
+        
+        afc_loess1=afc_expand(afc_loess1)
+        afc_loess2=afc_expand(afc_loess2)
+
+        # interpolate bias onto time series
+        r1=((df_wind.WDR1)+180)%360-180
+        fA1 = interp1d(afc_loess1.R, afc_loess1.A, kind='linear')
+        a1 = fA1(r1)
+        fD1 = interp1d(afc_loess1.R, afc_loess1.D, kind='linear')
+        d1 = fD1(r1)
+        # interpolate bias onto time series
+        r2=((df_wind.WDR2)+180)%360-180
+        fA2 = interp1d(afc_loess2.R, afc_loess2.A, kind='linear')
+        a2 = fA2(r2)
+        fD2 = interp1d(afc_loess2.R, afc_loess2.D, kind='linear')
+        d2 = fD2(r2)
+
+        # WSR = WSR/a
+        # WDR =  WDR-d
+        #s1
+        df_wind.WSR1 = np.true_divide(df_wind.WSR1,a1)
+        df_wind.WDR1 = (df_wind.WDR1-d1)
+        #s2
+        df_wind.WSR2 = np.true_divide(df_wind.WSR2,a2)
+        df_wind.WDR2 = (df_wind.WDR2-d2)
+
+    # calculate uR,vR and u,v from SR, DR and WS,WR
+    # uR are positive for wind along ships main axis
+    # vR are positive for wind in port direction
+    # u are positive for wind blowing East
+    # v are positive for wind blowing North
+    df_wind = df_wind.assign(uR1=df_wind.WSR1*np.cos(np.deg2rad(180-df_wind.WDR1)))
+    df_wind = df_wind.assign(vR1=df_wind.WSR1*np.sin(np.deg2rad(180-df_wind.WDR1)))
+    df_wind = df_wind.assign(u1=df_wind.WS1*np.cos(np.deg2rad(270-df_wind.WD1)))
+    df_wind = df_wind.assign(v1=df_wind.WS1*np.sin(np.deg2rad(270-df_wind.WD1)))
+    #
+    df_wind = df_wind.assign(uR2=df_wind.WSR2*np.cos(np.deg2rad(180-df_wind.WDR2)))
+    df_wind = df_wind.assign(vR2=df_wind.WSR2*np.sin(np.deg2rad(180-df_wind.WDR2)))
+    df_wind = df_wind.assign(u2=df_wind.WS2*np.cos(np.deg2rad(270-df_wind.WD2)))
+    df_wind = df_wind.assign(v2=df_wind.WS2*np.sin(np.deg2rad(270-df_wind.WD2)))
+
+    # add heading sin cos for proper averaging
+    df_wind = df_wind.assign(hdg_cos=np.cos(np.deg2rad(df_wind.HEADING)))
+    df_wind = df_wind.assign(hdg_sin=np.sin(np.deg2rad(df_wind.HEADING)))
+
+    # assing apparent wind in eart,north coordinates
+    df_wind = df_wind.assign(uA1=df_wind.WSR1*np.cos(np.deg2rad(270-df_wind.HEADING-df_wind.WDR1)))
+    df_wind = df_wind.assign(vA1=df_wind.WSR1*np.sin(np.deg2rad(270-df_wind.HEADING-df_wind.WDR1)))
+    df_wind = df_wind.assign(uA2=df_wind.WSR2*np.cos(np.deg2rad(270-df_wind.HEADING-df_wind.WDR2)))
+    df_wind = df_wind.assign(vA2=df_wind.WSR2*np.sin(np.deg2rad(270-df_wind.HEADING-df_wind.WDR2)))
+
+
+
+    nSample_min = 6 # out of 20 possible (usually 12+/2)
+
+    nWSR1=df_wind.WSR1.resample(str(merge_at_nseconds)+'S', loffset = datetime.timedelta(seconds=(merge_at_nseconds*0.5))).count() # calculate 6 second average
+    nWSR2=df_wind.WSR2.resample(str(merge_at_nseconds)+'S', loffset = datetime.timedelta(seconds=(merge_at_nseconds*0.5))).count() # calculate 6 second average
+    #plt.plot(nWSR1,'.')
+    # strangely some bins contain more than nSec/3 wind samples!!!
+
+    print( 'WSR1 removing ' + str( np.sum((nWSR1>0) & (nWSR1<nSample_min)) ) + ' of '+str(np.sum(nWSR1>0)) )
+    print( 'WSR2 removing ' + str( np.sum((nWSR2>0) & (nWSR2<nSample_min)) ) + ' of '+str(np.sum(nWSR1>0)) )
+
+    if 1: # compute HEADING DIFF accross 1min interval
+        HEADING = df_wind.HEADING.copy();
+        HEADING_MAX=HEADING.resample(str(merge_at_nseconds)+'S').max()
+        HEADING_MIN=HEADING.resample(str(merge_at_nseconds)+'S').min()
+        HEADING = (HEADING-180)%360
+        HEADING_MAX_=HEADING.resample(str(merge_at_nseconds)+'S').max()
+        HEADING_MIN_=HEADING.resample(str(merge_at_nseconds)+'S').min()
+        HEADING_DIFF = np.min([(HEADING_MAX-HEADING_MIN), (HEADING_MAX_-HEADING_MIN_)], axis=0)
+
+
+
+    df_wind=df_wind.resample(str(merge_at_nseconds)+'S', loffset = datetime.timedelta(seconds=(merge_at_nseconds*0.5))).mean() # calculate 6 second average
+
+    if 1:
+        df_wind = df_wind.assign(HEADING_DIFF=HEADING_DIFF)
+
+        df_wind = df_wind.assign(nWSR1=nWSR1)
+        df_wind = df_wind.assign(nWSR2=nWSR2)
+
+    # set data with too few readings to NaN
+    df_wind.at[nWSR1<nSample_min, 'uR1'] = np.nan
+    df_wind.at[nWSR1<nSample_min, 'vR1'] = np.nan
+    df_wind.at[nWSR1<nSample_min, 'uA1'] = np.nan
+    df_wind.at[nWSR1<nSample_min, 'vA1'] = np.nan
+    df_wind.at[nWSR2<nSample_min, 'uR2'] = np.nan
+    df_wind.at[nWSR2<nSample_min, 'vR2'] = np.nan
+    df_wind.at[nWSR2<nSample_min, 'uA2'] = np.nan
+    df_wind.at[nWSR2<nSample_min, 'vA2'] = np.nan
+
+    # rebuild the angles:
+    df_wind.HEADING = np.rad2deg(np.arctan2(df_wind.hdg_sin, df_wind.hdg_cos)) % 360
+    df_wind.WD1 = (270 - np.rad2deg(np.arctan2(df_wind.v1, df_wind.u1)) )% 360
+    df_wind.WDR1 = (180 - np.rad2deg(np.arctan2(df_wind.vR1, df_wind.uR1)) )% 360
+    df_wind.WD2 = (270 - np.rad2deg(np.arctan2(df_wind.v2, df_wind.u2)) )% 360
+    df_wind.WDR2 = (180 - np.rad2deg(np.arctan2(df_wind.vR2, df_wind.uR2)) )% 360
+    # recalcualte the speeds as vector average
+    df_wind.WS1 = np.sqrt( np.square(df_wind.v1) + np.square(df_wind.u1) )
+    df_wind.WS2 = np.sqrt( np.square(df_wind.v2) + np.square(df_wind.u2) )
+    df_wind.WSR1 = np.sqrt( np.square(df_wind.vR1) + np.square(df_wind.uR1) )
+    df_wind.WSR2 = np.sqrt( np.square(df_wind.vR2) + np.square(df_wind.uR2) )
+
+    # merge with GPS on 30sec basis
+    df_wind = df_wind.merge(df_gps, left_on='timest_', right_on='timest_', how='inner')
+
+    df_wind.COG = (90-np.rad2deg(np.arctan2(df_wind.velNorth,df_wind.velEast))) % 360 # recompute COG from averaged North/Easte velocities
+
+
+    # True wind correction using GPS data
+
+    # use average apparent wind for motion correction
+    df_wind.u1 = df_wind.uA1 + df_wind.velEast
+    df_wind.v1 = df_wind.vA1 + df_wind.velNorth
+    df_wind.u2 = df_wind.uA2 + df_wind.velEast
+    df_wind.v2 = df_wind.vA2 + df_wind.velNorth
+
+    # rebuild the angles:
+    df_wind.WD1 = (270 - np.rad2deg(np.arctan2(df_wind.v1, df_wind.u1)) )% 360
+    df_wind.WD2 = (270 - np.rad2deg(np.arctan2(df_wind.v2, df_wind.u2)) )% 360
+    # recalcualte the speeds as vector average
+    df_wind.WS1 = np.sqrt( np.square(df_wind.v1) + np.square(df_wind.u1) )
+    df_wind.WS2 = np.sqrt( np.square(df_wind.v2) + np.square(df_wind.u2) )
+
+
+    # AT THIS POIN IT MAKES SENSE TO MAKE A BREAK AND SAVE df_wind 1min merged time series
+    #df_wind.to_csv(data_intermediate + 'ship_data\\' + 'merged_afc_wind_gps_filtered.csv') # NAME TO BE DEFINED
+
+    return df_wind
