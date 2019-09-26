@@ -361,7 +361,7 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
         D = D.reshape(-1,1)
         D = D[D!=0]
         opts['KPAR_CV'] = [np.median(D)]
-
+        print('kpar:', opts['KPAR_CV'])
         # counts,bins = np.histogram(D,bins=100)
         # opts['KPAR_CV'] = [bins[np.argmax(counts)]]
 
