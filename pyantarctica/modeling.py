@@ -357,7 +357,7 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
     print('KPAR_CV', opts['KPAR_CV'])
     if opts['KPAR_CV'] == 'distance_mode':
         D = euclidean_distances(data.dropna(), squared=False)
-        print('D_feats =', data.dropna().columns.tolist())
+        # print('D_feats =', data.dropna().columns.tolist())
         D = D.reshape(-1,1)
         D = D[D!=0]
         opts['KPAR_CV'] = [np.median(D)]
