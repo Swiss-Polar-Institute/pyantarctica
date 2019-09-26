@@ -11,8 +11,8 @@ def r_div_r80(RH, option='Zieger2016_'):
     # (below RH=75% this is valid only for decreasing RH)!
     # THIS NEGLECTS THE KELVIN EFFECT!
     # But the difference should be really small
-    
-    RH=RH.copy(); RH[RH>98]=98; # 
+
+    RH=RH.copy(); RH[RH>98]=98; #
     if option == 'Lewis2004':
         # within 2.5% of Tang 1997 for RH>50%,
         r_div_r80 = 0.54*np.power((1+1/(1-RH/100)), 1/3)
@@ -26,7 +26,7 @@ def r_div_r80(RH, option='Zieger2016_'):
         r_div_r80[RH<50]=( (1-5*.12/45)+0.12/45*RH[RH<50])*0.5
         r_div_r80[RH<5]=1*0.5
 
-    
+
     return r_div_r80
 
 def rdry2rRH(Dp, RH, hygroscopic_growth='Zieger2016_'):
@@ -37,26 +37,26 @@ def rdry2rRH(Dp, RH, hygroscopic_growth='Zieger2016_'):
     RH = RH.reshape(len(RH),1)
     if type(Dp) != np.ndarray:
         Dp = np.asarray([Dp])
-        
+
     if ((len(RH)==len(Dp)) & (len(Dp)>1) ):
         # in this case assume each Dp sample corresponds to an RH sample, output will be (n,)
         Dp = Dp.reshape(len(Dp),1) #
     else:
         # output will be (m,) or (n,m)
-        Dp = Dp.reshape(1,len(Dp)) # 
-    
+        Dp = Dp.reshape(1,len(Dp)) #
+
     DpRH = 2*r_div_r80(RH, option=hygroscopic_growth)*Dp
-        
+
     if np.max(np.shape(DpRH))>1:
         DpRH = DpRH.squeeze()
     else:
         DpRH = np.array([DpRH[0]])
         if len(np.shape(DpRH))==2:
             DpRH = DpRH[0]
-        
+
     return DpRH
 
-def rho_sea_spary(Dp_dry, RH, rho_p=2.2, hygroscopic_growth='Zieger2016_'):    
+def rho_sea_spary(Dp_dry, RH, rho_p=2.2, hygroscopic_growth='Zieger2016_'):
     if type(RH) != np.ndarray:
         RH = np.asarray([RH])
     RH = RH.reshape(len(RH),1)
@@ -69,13 +69,13 @@ def rho_sea_spary(Dp_dry, RH, rho_p=2.2, hygroscopic_growth='Zieger2016_'):
         Dp_dry = Dp_dry.reshape(len(Dp_dry),1) #
     else:
         # output will be (m,) or (n,m)
-        Dp_dry = Dp_dry.reshape(1,len(Dp_dry)) # 
-        
+        Dp_dry = Dp_dry.reshape(1,len(Dp_dry)) #
+
     Dp_RH = 2.*r_div_r80(RH, option=hygroscopic_growth)*Dp_dry
     V_dry = 3/4*np.pi*np.power(Dp_dry/2,3)
     V_H2O = 3/4*np.pi*np.power(Dp_RH/2,3)-V_dry
     rho_ss = (1.*V_H2O+rho_p*V_dry)/(V_H2O+V_dry) # new density equals volumn weighted average of the densities
-    
+
     # ensuring the right shape what ever the input
     if np.max(np.shape(rho_ss))>1:
         rho_ss = rho_ss.squeeze()
@@ -83,18 +83,18 @@ def rho_sea_spary(Dp_dry, RH, rho_p=2.2, hygroscopic_growth='Zieger2016_'):
         rho_ss = np.array([rho_ss[0]])
         if len(np.shape(rho_ss))==2:
             rho_ss = rho_ss[0]
-    
+
     return rho_ss
 
 def sea_salt_settling_velocity(Dp, rho_p=2.2, RH=80., T=20., P=1013., hygroscopic_growth='Zieger2016_'):
-    
-    
+
+
     rho_p = rho_p * 100*100*100/1000 # g cm^-3 -> kg m^-3
     Dp = Dp*1E-6 # um -> m
 
     T = T+273.15 # C-> K
     P = P*100 # hPa -> Pa
-    
+
     if type(RH) != np.ndarray:
         RH = np.asarray([RH])
     if type(P) != np.ndarray:
@@ -132,13 +132,13 @@ def sea_salt_settling_velocity(Dp, rho_p=2.2, RH=80., T=20., P=1013., hygroscopi
 
     # setttling velocity in m/s,note that the Dp and rho_p play an important role!
     vs = g*rho_p*Dp*Dp*Ccunn/18/dyn_visc
-    
-    
+
+
     if np.max(np.shape(vs))>1:
         vs = vs.squeeze()
     else:
         vs = np.array([vs[0]])
-        
+
     return vs
 
 
@@ -178,7 +178,7 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20., P=1013., zeta=
     T = T.reshape(len(T),1)
     P = P.reshape(len(P),1)
     zeta = zeta.reshape(len(zeta),1)
-    
+
     if type(Dp) != np.ndarray:
         Dp = np.asarray([Dp])
 
@@ -186,7 +186,7 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20., P=1013., zeta=
         # in this case assume each Dp sample corresponds to a U10 sample and we get a time series of vd
         Dp = Dp.reshape(len(Dp),1) #
     else:
-        Dp = Dp.reshape(1,len(Dp)) # 
+        Dp = Dp.reshape(1,len(Dp)) #
     #if ((len(U10)==len(rho_p)) & (len(rho_p)>1) ):
     #    # in this case assume each Dp sample corresponds to a U10 sample and we get a time series of vd
     #    rho_p = rho_p.reshape(len(rho_p),1) #
@@ -199,7 +199,7 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20., P=1013., zeta=
         elif ((len(Dp)==len(rho_p)) & (len(rho_p)>1) ):
             rho_p = rho_p.reshape(1,len(rho_p))
 
-    
+
 
     ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
     ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
@@ -235,10 +235,10 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20., P=1013., zeta=
     Ccunn = 1+mfp/Dp*(2.514+0.8*np.exp(-0.55*Dp/mfp)) # Seinfeld Pandis 8.34
     # Ccunn varies from 1.2 for Dp=.8um to 1.032 for Dp=5um
 
-    
+
     # setttling velocity in m/s,note that the Dp and rho_p play an important role!
     vs = g*rho_p*Dp*Dp*Ccunn/18/dyn_visc
-    
+
     # Diffusivity
     Diffusivity = kBolz*T*Ccunn/3/np.pi/dyn_visc/Dp # Diffusivity of the aerosol in air
 
@@ -627,6 +627,7 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     params['total_LenainMelville'] = np.power(wave['total_hs'],1.25)*np.power(9.81,.5)*np.power(wave['total_wave_number'],-0.25)/kin_visc_sea
     params['wind_sea_LenainMelville'] = np.power(wave['wind_sea_hs'],1.25)*np.power(9.81,.5)*np.power(wave['wind_sea_wave_number'],-0.25)/kin_visc_sea
 
+
     if RETURN_EXPANSIONS:
         # add some expansions of u10, RH, and deltaT
         params['u10^2'] = np.power(params['u10'],2)
@@ -640,6 +641,7 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
         params['deltaT^3'] = np.power(params['deltaT'],3)
         params['deltaT^4'] = np.power(params['deltaT'],4)
     
+
     return params
 
 def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='../data/intermediate/0_shipdata/BOAT_GPS_distance_to_land_parsed.csv', T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv', MASK= '../data/intermediate/7_aerosols/mask_1_5_10min++_parsed.csv'):
@@ -671,7 +673,7 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
         data = data.merge(t_to_land[['hours_till_land']],left_index = True, right_index=True, how='left')
         data.rename(columns={"hours_till_land": "t-to-land"}, inplace=True)
         data['t-to-land'] = data['t-to-land'].interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
-        
+
         #data['t-to-land'] = t_to_land
 
     mask = dataset.read_standard_dataframe(MASK, crop_legs=False)
@@ -688,7 +690,7 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
 
     data_filt = data.copy()
     #print(data_filt.columns) #  [..., 'd-to-land', 't-to-land', 'mask_5min']
-    #data_filt.loc[~keep_in,:-3] = np.nan 
+    #data_filt.loc[~keep_in,:-3] = np.nan
     # set all the data to nan, but leaf 'd-to-land', 't-to-land', 'mask_5min' with their values
     for col in data_filt.columns:
         if col not in list(['d-to-land', 't-to-land', 'mask_5min']):

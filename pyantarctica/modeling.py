@@ -17,49 +17,50 @@
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import euclidean_distances
 
 ##############################################################################################################
-def retrieve_model_av_std(summary):
-    """
-        This function takes as argument the dicitonary given by functions in baselines_scripts and returns model averages and standard deviations of accuracies and weights.
-
-        :param summary: dictionary of model outputs
-        :reuturns: dictionary of summary of summary statistics
-    """
-
-    exps_ = [s[:-2] for s in list(summary.keys())]
-    exps = set(exps_)
-
-    NUM_REP = int(len(exps_) / len(exps))
-    results = {}
-    for name_ in exps:
-    #     print(name_)
-        results[name_] = {}
-
-        init_ = True
-        for nre in range(0,NUM_REP,1):
-            sub_res = summary[name_ + '_' + str(nre)]
-            if init_:
-                for sub_, val_ in sub_res.items():
-                        exec(sub_ + '= []' )
-                        init_ = False
-
-            for sub_, val_ in sub_res.items():
-    #             print('-> ', sub_,val_)
-                exec(sub_+'.append(val_)')
-
-        # for sub_ in sub_res:
-        #     if ('_gt' not in sub_) and ('_hat' not in sub_) :
-        #         exec(sub_ + '= np.array(' + sub_ + ')')
-
-        for sub_ in sub_res:
-            if ('_gt' not in sub_) and ('_hat' not in sub_) and ('_std' not in sub_):
-                exec(sub_ + '= np.array(' + sub_ + ')')
-                exec('results[name_][sub_] = np.append(np.mean([' + sub_ + '], axis=1), np.std([' + sub_ + '], axis=1),axis=0)')
-            else:
-                exec('results[name_][sub_] =' + sub_)
-
-    return results
+# def retrieve_model_av_std(summary):
+#     """
+#         This function takes as argument the dicitonary given by functions in baselines_scripts and returns model averages and standard deviations of accuracies and weights.
+#
+#         :param summary: dictionary of model outputs
+#         :reuturns: dictionary of summary of summary statistics
+#     """
+#
+#     exps_ = [s[:-2] for s in list(summary.keys())]
+#     exps = set(exps_)
+#
+#     NUM_REP = int(len(exps_) / len(exps))
+#     results = {}
+#     for name_ in exps:
+#     #     print(name_)
+#         results[name_] = {}
+#
+#         init_ = True
+#         for nre in range(0,NUM_REP,1):
+#             sub_res = summary[name_ + '_' + str(nre)]
+#             if init_:
+#                 for sub_, val_ in sub_res.items():
+#                         exec(sub_ + '= []' )
+#                         init_ = False
+#
+#             for sub_, val_ in sub_res.items():
+#     #             print('-> ', sub_,val_)
+#                 exec(sub_+'.append(val_)')
+#
+#         # for sub_ in sub_res:
+#         #     if ('_gt' not in sub_) and ('_hat' not in sub_) :
+#         #         exec(sub_ + '= np.array(' + sub_ + ')')
+#
+#         for sub_ in sub_res:
+#             if ('_gt' not in sub_) and ('_hat' not in sub_) and ('_std' not in sub_):
+#                 exec(sub_ + '= np.array(' + sub_ + ')')
+#                 exec('results[name_][sub_] = np.append(np.mean([' + sub_ + '], axis=1), np.std([' + sub_ + '], axis=1),axis=0)')
+#             else:
+#                 exec('results[name_][sub_] =' + sub_)
+#
+#     return results
 
 ##############################################################################################################
 def sample_trn_test_index(index,split=2.0/3,mode='final', group=20, options={'submode': 'interpolation', 'samples_per_interval': 1, 'temporal_inteval': '1H'}):
@@ -354,13 +355,20 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
     # elif opts['MODEL'] == 'smooth-linear-bayesian-regression':
     #     opts['KPAR_CV'] = []
 
+    if opts['KPAR_CV'] == 'distance_mode':
+        D = euclidean_distances(data.dropna(), squared=False)
+        D = D.reshape(-1,1)
+        D = D[D!=0]
+        counts,bins = np.histogram(D,bins=100)
+        opts['KPAR_CV'] = [bins[np.argmax(counts)]]
+
     trerr = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), opts['TASKS']))
     vaerr = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), opts['TASKS']))
 
     minlo = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), 1))
-    pars = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV']*len(opts['KPAR_CV'])), 3))
-
-
+    pars = np.zeros((len(opts['PAR_1_CV'])*len(opts['PAR_2_CV'])*len(opts['KPAR_CV']), 3))
+    print()
+    iit  = pars.shape[0]
     count = 0
     for p1 in opts['PAR_1_CV']:
         for p2 in opts['PAR_2_CV']:
@@ -370,15 +378,15 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
                 opts['par2'] = p2
                 opts['kpar'] = kpar
 
-                if opts['MODEL'] == 'smooth-linear-ridge-regression':
+                if opts['MODEL'] == 'smooth_weight_ridge_regression':
                     W_mtl, loss, inds, stats, y_hat = smooth_weight_ridge_regression(data, labels, inds, opts)#, ITERS=100, THRESH=1e-6):
-                elif opts['MODEL'] == 'smooth-kernel-ridge-regression':
+                elif opts['MODEL'] == 'smooth_weight_kernel_ridge_regression':
                     W_mtl, loss, inds, stats, y_hat = smooth_weight_kernel_ridge_regression(data, labels, inds, opts)
-                elif opts['MODEL'] == 'smooth-kernel-ridge-regression':
+                elif opts['MODEL'] == 'approximate_smooth_weight_kernel_ridge_regression':
                     W_mtl, loss, inds, stats, y_hat = approximate_smooth_weight_kernel_ridge_regression(data, labels, inds, opts)
-                elif opts['MODEL'] == 'smooth-linear-bayesian-regression':
+                elif opts['MODEL'] == 'bayesian_smooth_weight_ridge_regression':
                     W_mtl, loss, inds, stats, y_hat = bayesian_smooth_weight_ridge_regression(data, labels, inds, opts)
-                elif opts['MODEL'] == 'smooth-approximate-gaussian-process-regression':
+                elif opts['MODEL'] == 'ssmooth_weight_approximate_gaussian_process_regression':
                     W_mtl, loss, inds, stats, y_hat = smooth_weight_approximate_gaussian_process_regression(data, labels, inds, opts)
 
                 trerr[count, :] = stats['tr_R2']
@@ -386,7 +394,8 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
                 minlo[count, 0] = loss[-1]
                 pars[count, :] = [p1,p2,kpar]
 
-                # print(f"c {count}, p1 {p1}, p2 {p2}, kpar {kpar}, loss {loss[-1]}, trerr {0.01 * np.sum(stats['tr_R2'])}, valerr {0.01 * np.sum(stats['va_R2'])}")
+                print(f"{count+1} / {iit}")
+                # p1 {p1}, p2 {p2}, kpar {kpar}, loss {loss[-1]}, trerr {0.01 * np.sum(stats['tr_R2'])}, valerr {0.01 * np.sum(stats['va_R2'])}")
                 count += 1
 
 
@@ -491,9 +500,14 @@ def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRES
 
         trn_Y = X_Y.iloc[inds[:,ind_w] == 1, -1]
         pred_tr_Y = np.dot(trn_X,W[:,ind_w])
-
-        stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
-        stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
+        if np.sum(np.isinf(pred_tr_Y))>0:
+            print(f'sum isinf: {np.sum(np.isinf(pred_tr_Y))}')
+            print(f'sum isna: {np.sum(np.isnan(pred_tr_Y))}')
+            stats['tr_RMSE'].append(np.inf)
+            stats['tr_R2'].append(-np.inf)
+        else:
+            stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
+            stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
 
         y_hat[inds[:,ind_w] == 1, ind_w] = pred_tr_Y
 
@@ -502,9 +516,15 @@ def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRES
             val_X = X_Y.iloc[inds[:,ind_w] == 2, :-1]
             val_Y = X_Y.iloc[inds[:,ind_w] == 2, -1]
             pred_va_Y = np.dot(val_X,W[:,ind_w])
+            if np.sum(np.isinf(pred_tr_Y))>0:
+                print(f'VAL: sum isinf: {np.sum(np.isinf(pred_tr_Y))}')
+                print(f'VAL: sum isna: {np.sum(np.isnan(pred_tr_Y))}')
+                stats['va_RMSE'].append(np.inf)
+                stats['va_R2'].append(-np.inf)
+            else:
+                stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
+                stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
 
-            stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
-            stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
 
             y_hat[inds[:,ind_w] == 2, ind_w] = pred_va_Y
 
@@ -712,9 +732,15 @@ def smooth_weight_kernel_ridge_regression(data, labels, inds, opts):#, ITERS=100
 
         K = rbf_kernel(trn_X, gamma=1./sigma**2)
         pred_tr_Y = np.dot(K,W[ind_mat[:,ind_w] == 1,ind_w])
+        if np.sum(np.isinf(pred_tr_Y))>0:
+            print(f'sum isinf: {np.sum(np.isinf(pred_tr_Y))}')
+            print(f'sum isna: {np.sum(np.isnan(pred_tr_Y))}')
+            stats['tr_RMSE'].append(np.inf)
+            stats['tr_R2'].append(-np.inf)
+        else:
+            stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
+            stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
 
-        stats['tr_RMSE'].append(np.sqrt(mean_squared_error(trn_Y,pred_tr_Y)))
-        stats['tr_R2'].append(r2_score(trn_Y,pred_tr_Y))
 
         y_hat[ind_mat[:,ind_w] == 1, ind_w] = pred_tr_Y
 
@@ -725,8 +751,14 @@ def smooth_weight_kernel_ridge_regression(data, labels, inds, opts):#, ITERS=100
             Kt = rbf_kernel(val_X,trn_X, gamma=1./sigma**2)
             pred_va_Y = np.dot(Kt,W[ind_mat[:,ind_w] == 1,ind_w])
 
-            stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
-            stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
+            if np.sum(np.isinf(pred_tr_Y))>0:
+                print(f'sum isinf: {np.sum(np.isinf(pred_tr_Y))}')
+                print(f'sum isna: {np.sum(np.isnan(pred_tr_Y))}')
+                stats['va_RMSE'].append(np.inf)
+                stats['va_RMSE'].append(-np.inf)
+            else:
+                stats['va_RMSE'].append(np.sqrt(mean_squared_error(val_Y,pred_va_Y)))
+                stats['va_R2'].append(r2_score(val_Y,pred_va_Y))
 
             y_hat[ind_mat[:,ind_w] == 2, ind_w] = pred_va_Y
 
@@ -741,8 +773,7 @@ def approximate_smooth_weight_kernel_ridge_regression(data, labels, ind_mat, opt
     from sklearn.metrics import mean_squared_error, r2_score
     from sklearn.metrics.pairwise import rbf_kernel
     from sklearn.kernel_approximation import RBFSampler
-
-    D = opts['approximation_dim']
+    D = opts['APPROXIMATION_DIM']
     sm = RBFSampler(gamma=1./opts['kpar']**2,n_components=D,random_state=666)
 
     def retrieve_neigh_norm(W,ind_w,ss):
@@ -792,7 +823,8 @@ def approximate_smooth_weight_kernel_ridge_regression(data, labels, ind_mat, opt
 
         k += 1
 
-    print(f'converged in iter {k}, size W {W.shape}, conv {epsi}, emp error {emp_err}, mean norm w {1/opts["TASKS"] * t_norm_w}')
+    if k == opts['ITERS']:
+        print(f'converged in iter {k}, size W {W.shape}, conv {epsi}, emp error {emp_err}, mean norm w {1/opts["TASKS"] * t_norm_w}')
 
     y_hat = np.zeros((opts['DATA_SIZE'][0],opts['TASKS']))
     pred_stats = {}
