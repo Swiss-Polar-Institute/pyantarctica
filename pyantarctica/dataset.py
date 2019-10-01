@@ -138,6 +138,15 @@ def add_legs_index(df, **kwargs):
         leg_dates = [['2016-12-20', '2017-01-21'], # leg 1
                     ['2017-01-22', '2017-02-25'],  # leg 2
                     ['2017-02-26', '2017-03-19']]  # leg 3
+        # updates leg dates with hourly resolution
+        leg_dates = [
+                    ['2016-11-17', '2016-12-19'], # leg 0
+                    ['2016-12-20 16:00', '2017-01-18 22:00'], # leg 1
+                    ['2017-01-22 10:00', '2017-02-22 12:00'],  # leg 2
+                    ['2017-02-26 01:00', '2017-03-19 09:00'],  # leg 3, ship at full speed @'2017-02-26 02:00', in the vicinity at '2017-03-18 14:00'
+                    ['2017-03-22 19:00', '2017-04-11 16:00']  # leg 4
+                    ]
+        
     else:
         leg_dates = kwargs['leg_dates']
 
@@ -146,6 +155,7 @@ def add_legs_index(df, **kwargs):
 
     if 'codes' not in kwargs:
         codes = np.arange(1,1+len(leg_dates))
+        codes = [0, 1, 2, 3, 4] # SL
     else:
         codes = kwargs['codes']
 
