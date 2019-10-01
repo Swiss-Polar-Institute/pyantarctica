@@ -769,7 +769,8 @@ def get_raw_param(VarNameLUT='u10', META_FILE = '../data/ASAID_DATA_OVERVIEW - S
     var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
     return var
 
-def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], META_FILE = '../data/ASAID_DATA_OVERVIEW - Sheet1.csv'):
+
+def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], META_FILE = '../data/ASAID_DATA_OVERVIEW - Sheet1.csv', INTERPOLATE_limit=0):
     """
         Function to read paramters for one LV experiment based on META_FILE
         All parameters are resampled to a common time stamp
@@ -820,6 +821,22 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         else:
             var = resample_timeseries(var, time_bin=time_bin, how='mean', new_label_pos='c', new_label_parity='even', old_label_pos=timest_loc, old_resolution=Resolution, COMMENTS=False)
         var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
+
+        #### - add optional interpolation - ###
+        if INTERPOLATE_limit>0:
+
+            if FilenameIntermediate in ['output-HV_analysis(fice)_v20190926_parsed.csv', 'output-LV_analysis(fice)_v20190926_parsed.csv']:
+                interp_limit = int(np.floor(Resolution/time_bin/2))+INTERPOLATE_limit # limit interpolation to 1/2 of the averaging window on each side
+                var.interpolate(limit=interp_limit, limit_direction='both', method='nearest', inplace=True)
+            elif (int(np.floor((Resolution/time_bin)/2))>0):
+                # if old resolution is below new resolution interpolate near the resampled values
+                interp_limit = int(np.floor((Resolution/time_bin)/2))+INTERPOLATE_limit # limit interpolation to 1/2 of the averaging window on each side
+                var.interpolate(limit=interp_limit, limit_direction='both', method='linear', inplace=True)
+            else:
+                # if old resolution is same or higher than new resolution interpolate INTERPOLATE_limit steps to the side
+                interp_limit = INTERPOLATE_limit #
+                var.interpolate(limit=interp_limit, limit_direction='both', method='linear', inplace=True)
+        #### - - - - - - - - - - - - - -  - ###
 
         # add the variable to the parameter frame
         if len(params)==0:
