@@ -146,7 +146,7 @@ def add_legs_index(df, **kwargs):
                     ['2017-02-26 01:00', '2017-03-19 09:00'],  # leg 3, ship at full speed @'2017-02-26 02:00', in the vicinity at '2017-03-18 14:00'
                     ['2017-03-22 19:00', '2017-04-11 16:00']  # leg 4
                     ]
-        
+
     else:
         leg_dates = kwargs['leg_dates']
 
@@ -758,53 +758,54 @@ def get_raw_param(VarNameLUT='u10', META_FILE = '../data/ASAID_DATA_OVERVIEW - S
     if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']:
         FilenameIntermediate = '01_waves_recomputed.csv'
         var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
-        
+
     elif FilenameIntermediate in ['02_hplc_pigments_parsed.csv']:
         var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
         var=var[var['Depth_m']<10] # only use data from shallow depth <10meter
         var=var[[VarNameIntermediate]].sort_index()
-    
+
     else:
         var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
     var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
     return var
 
-def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], META_FILE = '../data/ASAID_DATA_OVERVIEW - Sheet1.csv'):
+
+def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], META_FILE = '../data/ASAID_DATA_OVERVIEW - Sheet1.csv', INTERPOLATE_limit=0):
     """
         Function to read paramters for one LV experiment based on META_FILE
         All parameters are resampled to a common time stamp
-        
+
         :param time_bin: integer, resampling time in minutes
         :LV_param_set_Index: integer, defining the index of the LV parameter set 1->LatentVar1, IF LV_param_set_Index==-1, LV_params is used instead
         :param LV_params: list of strings for manual defining the Variable names (VarNameLUT column), IGNORED if LV_param_set_Index~=-1
         :META_FILE: path to the META info file with columns
-            'Proj', 'VarNameIntermediate', 'VarNameLUT', 'FilenameRaw', 'FilenameIntermediate', 
-            'Resolution', 'timest_loc', 'Samples', 'Unit', 'Description', 
+            'Proj', 'VarNameIntermediate', 'VarNameLUT', 'FilenameRaw', 'FilenameIntermediate',
+            'Resolution', 'timest_loc', 'Samples', 'Unit', 'Description',
             'LatentVar0', 'LatentVar1', 'LatentVar2', 'LatentVar3'
         :returns: dataframe containing the time series
     """
     META_FILE = Path(META_FILE)
-    
+
     META = pd.read_csv(META_FILE)
     if LV_param_set_Index==-1:
-        LV_params = LV_params # use input parameter list 
+        LV_params = LV_params # use input parameter list
     else:
         # define parameter list from ASAID_DATA_OVERVIEW.csv
         LV_params = list(META['VarNameLUT'][META['LatentVar'+str(LV_param_set_Index)]==1.].values)
-        
+
     params = []
-    for VarNameLUT in LV_params: # 
+    for VarNameLUT in LV_params: #
         #print(VarNameLUT)
         Proj_folder = META['Proj'][META['VarNameLUT']==VarNameLUT].values[0]
         FilenameIntermediate = META['FilenameIntermediate'][META['VarNameLUT']==VarNameLUT].values[0]+'_parsed.csv'
         VarNameIntermediate = META['VarNameIntermediate'][META['VarNameLUT']==VarNameLUT].values[0]
         Resolution = META['Resolution'][META['VarNameLUT']==VarNameLUT].values[0]
         timest_loc = META['timest_loc'][META['VarNameLUT']==VarNameLUT].values[0]
-        
+
         if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']:
             FilenameIntermediate = '01_waves_recomputed.csv'
             var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
-        
+
         elif FilenameIntermediate in ['02_hplc_pigments_parsed.csv']:
             var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
             var=var[var['Depth_m']<10] # only use data from shallow depth <10meter
@@ -820,6 +821,22 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         else:
             var = resample_timeseries(var, time_bin=time_bin, how='mean', new_label_pos='c', new_label_parity='even', old_label_pos=timest_loc, old_resolution=Resolution, COMMENTS=False)
         var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
+
+        #### - add optional interpolation - ###
+        if INTERPOLATE_limit>0:
+
+            if FilenameIntermediate in ['output-HV_analysis(fice)_v20190926_parsed.csv', 'output-LV_analysis(fice)_v20190926_parsed.csv']:
+                interp_limit = int(np.floor(Resolution/time_bin/2))+INTERPOLATE_limit # limit interpolation to 1/2 of the averaging window on each side
+                var.interpolate(limit=interp_limit, limit_direction='both', method='nearest', inplace=True)
+            elif (int(np.floor((Resolution/time_bin)/2))>0):
+                # if old resolution is below new resolution interpolate near the resampled values
+                interp_limit = int(np.floor((Resolution/time_bin)/2))+INTERPOLATE_limit # limit interpolation to 1/2 of the averaging window on each side
+                var.interpolate(limit=interp_limit, limit_direction='both', method='linear', inplace=True)
+            else:
+                # if old resolution is same or higher than new resolution interpolate INTERPOLATE_limit steps to the side
+                interp_limit = INTERPOLATE_limit #
+                var.interpolate(limit=interp_limit, limit_direction='both', method='linear', inplace=True)
+        #### - - - - - - - - - - - - - -  - ###
 
         # add the variable to the parameter frame
         if len(params)==0:
