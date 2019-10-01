@@ -138,6 +138,15 @@ def add_legs_index(df, **kwargs):
         leg_dates = [['2016-12-20', '2017-01-21'], # leg 1
                     ['2017-01-22', '2017-02-25'],  # leg 2
                     ['2017-02-26', '2017-03-19']]  # leg 3
+        # updates leg dates with hourly resolution
+        leg_dates = [
+                    ['2016-11-17', '2016-12-19'], # leg 0
+                    ['2016-12-20 16:00', '2017-01-18 22:00'], # leg 1
+                    ['2017-01-22 10:00', '2017-02-22 12:00'],  # leg 2
+                    ['2017-02-26 01:00', '2017-03-19 09:00'],  # leg 3, ship at full speed @'2017-02-26 02:00', in the vicinity at '2017-03-18 14:00'
+                    ['2017-03-22 19:00', '2017-04-11 16:00']  # leg 4
+                    ]
+
     else:
         leg_dates = kwargs['leg_dates']
 
@@ -146,6 +155,7 @@ def add_legs_index(df, **kwargs):
 
     if 'codes' not in kwargs:
         codes = np.arange(1,1+len(leg_dates))
+        codes = [0, 1, 2, 3, 4] # SL
     else:
         codes = kwargs['codes']
 
@@ -748,12 +758,12 @@ def get_raw_param(VarNameLUT='u10', META_FILE = '../data/ASAID_DATA_OVERVIEW - S
     if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']:
         FilenameIntermediate = '01_waves_recomputed.csv'
         var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
-        
+
     elif FilenameIntermediate in ['02_hplc_pigments_parsed.csv']:
         var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
         var=var[var['Depth_m']<10] # only use data from shallow depth <10meter
         var=var[[VarNameIntermediate]].sort_index()
-    
+
     else:
         var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
     var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
@@ -763,38 +773,38 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
     """
         Function to read paramters for one LV experiment based on META_FILE
         All parameters are resampled to a common time stamp
-        
+
         :param time_bin: integer, resampling time in minutes
         :LV_param_set_Index: integer, defining the index of the LV parameter set 1->LatentVar1, IF LV_param_set_Index==-1, LV_params is used instead
         :param LV_params: list of strings for manual defining the Variable names (VarNameLUT column), IGNORED if LV_param_set_Index~=-1
         :META_FILE: path to the META info file with columns
-            'Proj', 'VarNameIntermediate', 'VarNameLUT', 'FilenameRaw', 'FilenameIntermediate', 
-            'Resolution', 'timest_loc', 'Samples', 'Unit', 'Description', 
+            'Proj', 'VarNameIntermediate', 'VarNameLUT', 'FilenameRaw', 'FilenameIntermediate',
+            'Resolution', 'timest_loc', 'Samples', 'Unit', 'Description',
             'LatentVar0', 'LatentVar1', 'LatentVar2', 'LatentVar3'
         :returns: dataframe containing the time series
     """
     META_FILE = Path(META_FILE)
-    
+
     META = pd.read_csv(META_FILE)
     if LV_param_set_Index==-1:
-        LV_params = LV_params # use input parameter list 
+        LV_params = LV_params # use input parameter list
     else:
         # define parameter list from ASAID_DATA_OVERVIEW.csv
         LV_params = list(META['VarNameLUT'][META['LatentVar'+str(LV_param_set_Index)]==1.].values)
-        
+
     params = []
-    for VarNameLUT in LV_params: # 
+    for VarNameLUT in LV_params: #
         #print(VarNameLUT)
         Proj_folder = META['Proj'][META['VarNameLUT']==VarNameLUT].values[0]
         FilenameIntermediate = META['FilenameIntermediate'][META['VarNameLUT']==VarNameLUT].values[0]+'_parsed.csv'
         VarNameIntermediate = META['VarNameIntermediate'][META['VarNameLUT']==VarNameLUT].values[0]
         Resolution = META['Resolution'][META['VarNameLUT']==VarNameLUT].values[0]
         timest_loc = META['timest_loc'][META['VarNameLUT']==VarNameLUT].values[0]
-        
+
         if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']:
             FilenameIntermediate = '01_waves_recomputed.csv'
             var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
-        
+
         elif FilenameIntermediate in ['02_hplc_pigments_parsed.csv']:
             var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
             var=var[var['Depth_m']<10] # only use data from shallow depth <10meter
