@@ -24,6 +24,9 @@ import matplotlib.pyplot as plt
 
 from datetime import datetime, timedelta
 
+from pathlib import Path as Path
+
+
 ##############################################################################################################
 def save_obj(obj, fname):
     """
@@ -726,6 +729,7 @@ def resample_timeseries(ts, time_bin, how='mean', new_label_pos='c', new_label_p
     return ts_resampled
 
 def get_raw_param(VarNameLUT='u10', META_FILE = '../data/ASAID_DATA_OVERVIEW - Sheet1.csv'):
+
     """
         Function to read the not resampled time series of one parameter based on META_FILE
 
@@ -743,15 +747,15 @@ def get_raw_param(VarNameLUT='u10', META_FILE = '../data/ASAID_DATA_OVERVIEW - S
 
     if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']:
         FilenameIntermediate = '01_waves_recomputed.csv'
-        var = dataset.read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
+        var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
         
     elif FilenameIntermediate in ['02_hplc_pigments_parsed.csv']:
-        var = dataset.read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
+        var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
         var=var[var['Depth_m']<10] # only use data from shallow depth <10meter
         var=var[[VarNameIntermediate]].sort_index()
     
     else:
-        var = dataset.read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
+        var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
     var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
     return var
 
@@ -789,22 +793,22 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         
         if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']:
             FilenameIntermediate = '01_waves_recomputed.csv'
-            var = dataset.read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
+            var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
         
         elif FilenameIntermediate in ['02_hplc_pigments_parsed.csv']:
-            var = dataset.read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
+            var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
             var=var[var['Depth_m']<10] # only use data from shallow depth <10meter
             var=var[[VarNameIntermediate]].sort_index()
         else:
-            var = dataset.read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
+            var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
 
         if VarNameIntermediate in ['CL1', 'CL2', 'CL3']:
             var.at[var[VarNameIntermediate]==np.Inf, VarNameIntermediate] = 10000# set a high value for infinite cloud level
-            var = dataset.resample_timeseries(var, time_bin=time_bin, how='median', new_label_pos='c', new_label_parity='even', old_label_pos=timest_loc, old_resolution=Resolution, COMMENTS=False)
+            var = resample_timeseries(var, time_bin=time_bin, how='median', new_label_pos='c', new_label_parity='even', old_label_pos=timest_loc, old_resolution=Resolution, COMMENTS=False)
         elif VarNameIntermediate in ['longitude']:
-            var = dataset.resample_timeseries(var, time_bin=time_bin, how='median', new_label_pos='c', new_label_parity='even', old_label_pos=timest_loc, old_resolution=Resolution, COMMENTS=False)
+            var = resample_timeseries(var, time_bin=time_bin, how='median', new_label_pos='c', new_label_parity='even', old_label_pos=timest_loc, old_resolution=Resolution, COMMENTS=False)
         else:
-            var = dataset.resample_timeseries(var, time_bin=time_bin, how='mean', new_label_pos='c', new_label_parity='even', old_label_pos=timest_loc, old_resolution=Resolution, COMMENTS=False)
+            var = resample_timeseries(var, time_bin=time_bin, how='mean', new_label_pos='c', new_label_parity='even', old_label_pos=timest_loc, old_resolution=Resolution, COMMENTS=False)
         var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
 
         # add the variable to the parameter frame
