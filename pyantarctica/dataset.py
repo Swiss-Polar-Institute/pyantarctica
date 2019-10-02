@@ -135,9 +135,9 @@ def add_legs_index(df, **kwargs):
     """
 
     if 'leg_dates' not in kwargs:
-        leg_dates = [['2016-12-20', '2017-01-21'], # leg 1
-                    ['2017-01-22', '2017-02-25'],  # leg 2
-                    ['2017-02-26', '2017-03-19']]  # leg 3
+        # leg_dates = [['2016-12-20', '2017-01-21'], # leg 1
+        #             ['2017-01-22', '2017-02-25'],  # leg 2
+        #             ['2017-02-26', '2017-03-19']]  # leg 3
         # updates leg dates with hourly resolution
         leg_dates = [
                     ['2016-11-17', '2016-12-19'], # leg 0
@@ -445,10 +445,12 @@ def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_leg
     data.index = pd.to_datetime(data.index, format='%Y-%m-%d %H:%M:%S')
 
     if crop_legs:
-        data = add_legs_index(data)
-        data = data[data['leg'] != 0]
-        data = data.drop('leg',axis=1)
-
+        leg = add_legs_index(data)['leg']
+        crop_out_ind = np.zeros(leg.shape)
+        for ll in range(3):
+            crop_out_ind += leg == ll+1
+        data = data[crop_out_ind.astype(bool)] # 1-3
+        # data = data.drop('leg',axis=1)
     return data
 
 ##############################################################################################################
