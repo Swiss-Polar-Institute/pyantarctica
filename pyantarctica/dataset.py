@@ -802,10 +802,12 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         Resolution = META['Resolution'][META['VarNameLUT']==VarNameLUT].values[0]
         timest_loc = META['timest_loc'][META['VarNameLUT']==VarNameLUT].values[0]
 
-        if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']:
+        if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']: # catch files not ending on parsed
             FilenameIntermediate = '01_waves_recomputed.csv'
             var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
-
+        elif FilenameIntermediate in ['iDirac_Isoprene_MR_All_Legs_parsed.csv']: # catch files not ending on parsed
+            FilenameIntermediate = 'iDirac_Isoprene_MR_All_Legs.csv'
+            var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
         elif FilenameIntermediate in ['02_hplc_pigments_parsed.csv']:
             var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
             var=var[var['Depth_m']<10] # only use data from shallow depth <10meter
@@ -814,7 +816,8 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
             var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
 
         if VarNameIntermediate in ['CL1', 'CL2', 'CL3']:
-            var.at[var[VarNameIntermediate]==np.Inf, VarNameIntermediate] = 10000# set a high value for infinite cloud level
+            # NEED TO DECIDE WHAT TO DO WITH CL!!
+            #var.at[var[VarNameIntermediate]==np.Inf, VarNameIntermediate] = 10000# set a high value for infinite cloud level
             var = resample_timeseries(var, time_bin=time_bin, how='median', new_label_pos='c', new_label_parity='even', old_label_pos=timest_loc, old_resolution=Resolution, COMMENTS=False)
         elif VarNameIntermediate in ['longitude']:
             var = resample_timeseries(var, time_bin=time_bin, how='median', new_label_pos='c', new_label_parity='even', old_label_pos=timest_loc, old_resolution=Resolution, COMMENTS=False)
