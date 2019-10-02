@@ -166,7 +166,7 @@ def add_legs_index(df, **kwargs):
         print('leg column already there')
         return df
 
-    dd = pd.Series(data=np.zeros((len(df.index))), index=df.index, name='leg')
+    dd = pd.Series(data=np.zeros((len(df.index)))*np.nan, index=df.index, name='leg')
 
     c = 0
     while c < len(codes):
