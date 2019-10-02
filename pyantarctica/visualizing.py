@@ -747,7 +747,7 @@ def interactive_map(v1, options):
     # come up with leg coloring
     leg_series = dataset.add_legs_index(v1)['leg']
 
-    vcol = dataset.ts_aggregate_timebins(v1, time_bin=tres, operations={'': options['resampling_operation']}, index_position='middle')
+    vcol = dataset.ts_aggregate_timebins(v1, time_bin=tres, operations={'': options['resampling_operation']}, index_position='initial')
 
     vcol.columns = ['color']
     min_ = np.percentile(vcol.dropna(), stretch[0])
@@ -760,7 +760,7 @@ def interactive_map(v1, options):
 
     # mode_ = lambda x : stats.mode(x)[0]
     # Deal with coordinates
-    coordinates=dataset.ts_aggregate_timebins(coordinates_raw, time_bin=int(np.floor(options['map_temporal_aggregation']*60)), operations={'': np.nanmedian}, index_position='middle')
+    coordinates=dataset.ts_aggregate_timebins(coordinates_raw, time_bin=int(np.floor(options['map_temporal_aggregation']*60)), operations={'': np.nanmedian}, index_position='initial')
 
     # Resample and merge coordinates + data
     to_plot = pd.merge(coordinates, v1, left_index=True, right_index=True)
