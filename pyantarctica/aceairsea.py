@@ -7,6 +7,8 @@
 # - # https://pypi.org/project/airsea/
 # new line added during merge request 2019-05-17 SL
 
+import numpy as np
+
 import pyantarctica.constants as constants
 
 def LMoninObukov_bulk(U10,SSHF,SLHF,STair):
@@ -17,7 +19,6 @@ def LMoninObukov_bulk(U10,SSHF,SLHF,STair):
     # STair = surface air temperature [C]
     
     import airsea # 
-    import numpy as np
 
     if type(U10) != np.ndarray:
         U10 = np.array([U10])
@@ -268,3 +269,23 @@ def kinematic_viscosity_sea(SST,SSS):
     musw = dynamic_viscosity_sea(SST,SSS)
     nusw = musw/roh_sw
     return nusw # kinematic viscosity in [m2/s]
+
+
+def wet_bulb_temperature(TA,RH):
+    # https://journals.ametsoc.org/doi/full/10.1175/JAMC-D-11-0143.1
+    # Roland Stull "Wet-Bulb Temperature from Relative Humidity and Air Temperature"
+
+    #Tw = T atan[0.151977(RH% + 8.313659)^1/2] + atan(T + RH%) - atan(RH% - 1.676331) + 0.00391838(RH%)^3/2*atan(0.023101RH%) - 4.686035
+    TW = TA*np.arctan(0.151977*np.power(RH + 8.313659,0.5)) + np.arctan(TA + RH) - np.arctan(RH - 1.676331) + 0.00391838*np.power(RH,1.5)*np.arctan(0.023101*RH) - 4.686035
+    return TW
+
+def water_vapour_saturation_pressure(TA,PA,SSS=35):
+    # TA Celsius,
+    # PA hPa (1hecto Pa = 1 mbar = 0.1*1kilo Pa)
+    # SSS PSU
+    # returns e_sat in hPa
+    e_sat = (6.1121)*(1.0007 + 3.46E-6*PA)*np.exp( 17.502*TA/(240.97+TA))
+    # Arden L. Buck, New Equations for Computing Vapor Pressure and Enhancement
+    # Factor, Journal of Applied Meterology, December 1981, Volume 20, Page 1529.
+    e_sat = e_sat*(1 - 0.000537*SSS)
+    return e_sat
