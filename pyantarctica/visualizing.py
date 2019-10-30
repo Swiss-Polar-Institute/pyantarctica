@@ -733,6 +733,8 @@ def interactive_map(v1, options):
     from holoviews import opts, dim
     import geoviews as gv
     import geoviews.feature as gf
+    import simplekml
+
 
     hv.extension('bokeh', 'matplotlib')
 
@@ -767,6 +769,27 @@ def interactive_map(v1, options):
     to_plot = pd.merge(to_plot, pd.DataFrame(data=to_plot.index.tolist(),columns=['date'],index=to_plot.index), left_index=True, right_index=True)
     to_plot = to_plot.dropna()
 
+    if options['kml_file']:
+        kml_ = simplekml.Kml()
+        fol = kml_.newfolder(name="LV_KML")
+
+        colz = (to_plot.loc[:,vname] - to_plot.loc[:,vname].min())/(to_plot.loc[:,vname].max() - to_plot.loc[:,vname].min())
+        colz = np.floor(255*plt.cm.Spectral_r(colz.values)).astype(int)
+        c = 0
+        for lat, lon, val, date in to_plot.values:
+        #     print(lat, lon, val, date)
+        #     print(row[1].loc['LV#11'])
+            pnt = fol.newpoint(name=str(date), coords=[(lon,lat)])
+            pnt.style.iconstyle.icon.href = 'http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png'
+            pnt.style.iconstyle.scale = 1 # Icon thrice as big
+            pnt.style.iconstyle.color = simplekml.Color.rgb(colz[c,0],colz[c,1],colz[c,2],255)
+            pnt.style.labelstyle.scale = 0.5
+            c += 1
+
+        kml_.save(options['kml_file'])
+    else:
+        print('not saving shit')
+
     # colorbar limits
     min_v1 = min_# np.percentile(to_plot.loc[:,vname].dropna(), stretch[0])
     max_v1 = max_#np.percentile(to_plot.loc[:,vname].dropna(), stretch[1])
@@ -787,7 +810,7 @@ def interactive_map(v1, options):
     track_map = track.opts(projection=ccrs.SouthPolarStereo()).opts(color='black')
 
     return (
-      (gf.land * gf.coastline * track_map * point_map_v1).opts(title=vname)
+        (gf.land * gf.coastline * track_map * point_map_v1).opts(title=vname).options(width=options['figsize'][0],height=options['figsize'][1])
       )
 
     # + (gf.land * gf.coastline * track_map * point_map_v2).opts(title=v2)
