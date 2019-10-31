@@ -792,6 +792,8 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
     META = pd.read_csv(META_FILE)
     if LV_param_set_Index==-1:
         LV_params = LV_params # use input parameter list
+    elif LV_param_set_Index=='all':
+        LV_params = list(META['VarNameLUT'].dropna().values)
     else:
         # define parameter list from ASAID_DATA_OVERVIEW.csv
         LV_params = list(META['VarNameLUT'][META['LatentVar'+str(LV_param_set_Index)]==1.].values)

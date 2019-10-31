@@ -12,17 +12,17 @@ def r_div_r80(RH, option='Zieger2016_'):
     # THIS NEGLECTS THE KELVIN EFFECT!
     # But the difference should be really small
 
-    RH=RH.copy(); RH[RH>98]=98; #
+    RH=RH.copy(); RH[RH>99]=99; #
     if option == 'Lewis2004':
         # within 2.5% of Tang 1997 for RH>50%,
         r_div_r80 = 0.54*np.power((1+1/(1-RH/100)), 1/3)
-        r_div_r80[r_div_r80>2]=2 # limit to 98%?-> gf=2.
-        r_div_r80[RH>98]=2 # limit to 98%?-> gf=2.
+        #r_div_r80[r_div_r80>2]=2 # limit to 98%?-> gf=2.
+        #r_div_r80[RH>98]=2 # limit to 98%?-> gf=2.
         r_div_r80[RH<42]=0.5 # for low RH set rRH=rDry=0.5*r80
     if option == 'Zieger2016_':
-        r_div_r80 = 0.54*np.power((1+1/(1-RH/100)), 1/3)*0.8
-        r_div_r80[r_div_r80>2]=2 # limit to 98%?-> gf=2.
-        r_div_r80[RH>98]=2 # limit to 98%?-> gf=2.
+        r_div_r80 = (1.201*np.power((1-RH/100), -0.2397))*0.5 # per email
+        #r_div_r80[r_div_r80>2]=2 # limit to 98%?-> gf=2.
+        #r_div_r80[RH>98]=2 # limit to 98%?-> gf=2.
         r_div_r80[RH<50]=( (1-5*.12/45)+0.12/45*RH[RH<50])*0.5
         r_div_r80[RH<5]=1*0.5
 
