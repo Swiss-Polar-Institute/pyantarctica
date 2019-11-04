@@ -787,8 +787,6 @@ def interactive_map(v1, options):
             c += 1
 
         kml_.save(options['kml_file'])
-    else:
-        print('not saving shit')
 
     # colorbar limits
     min_v1 = min_# np.percentile(to_plot.loc[:,vname].dropna(), stretch[0])

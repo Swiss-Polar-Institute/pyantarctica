@@ -322,6 +322,7 @@ def dependency_measures_per_dataset(series_1, series_2):
                     COR[i1,i2] = rho[0,1]
                     MI[i1,i2] = compute_mutual_information(v1,v2,nbins=128,sigma_smooth=2)
                     HSIC[i1,i2] = compute_approximate_HSIC(v1.values.reshape(-1,1),v2.values.reshape(-1,1), ncom=100, gamma=[None, None], ntrials=100, random_state=1, sigma_prior=1)
+                    NSAMP[i1,i2] = V.shape[0]
             else:
                 V = pd.concat([series_1.iloc[:,i1],series_2.iloc[:,i2]], axis=1).dropna()
                 v1, v2 = (V.iloc[:,0], V.iloc[:,1]) # could add +1 to both to avoid 0 counts.
