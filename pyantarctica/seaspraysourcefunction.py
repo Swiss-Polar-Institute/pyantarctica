@@ -88,9 +88,18 @@ def rho_sea_spary(Dp_dry, RH, rho_p=2.2, hygroscopic_growth='Zieger2016_'):
 
 def sea_salt_settling_velocity(Dp, rho_p=2.2, RH=80., T=20., P=1013., hygroscopic_growth='Zieger2016_'):
 
+    # Required input:
+    # Dp = aerosol diameter [um] as (n,) numpy.array with n>=1
+    # rho_p = aerosol density g cm^-3
+    # T [C]
+    # P [hPa]
+    #
+    # Output
+    # vd = settling velocity [m/s ] per size bin as numpy.array (m,n) $ COMES OUT IN mm/s ???
+    # or (n,) if m=1 & n>1
+    # or (m,) if n=1 & m>1
+    # or (1,) if n=m=1
 
-    rho_p = rho_p * 100*100*100/1000 # g cm^-3 -> kg m^-3
-    Dp = Dp*1E-6 # um -> m
 
     T = T+273.15 # C-> K
     P = P*100 # hPa -> Pa
@@ -108,9 +117,15 @@ def sea_salt_settling_velocity(Dp, rho_p=2.2, RH=80., T=20., P=1013., hygroscopi
     RH = RH.reshape(len(RH),1)
 
     # convert denisty and diameter based on Relative Humidity [%]
-    rho_p = rho_sea_spary(Dp, RH, rho_p=2.2, hygroscopic_growth=hygroscopic_growth)
+    # THE rho_sea_spary FUNCTION REQUIRES rho_p to be in g cm^-3 !!!!!!!!!!!!!!!!!!!!!!!!!!!
+    rho_p = rho_sea_spary(Dp, RH, rho_p=rho_p, hygroscopic_growth=hygroscopic_growth)
     Dp = rdry2rRH(Dp, RH, hygroscopic_growth=hygroscopic_growth)
 
+    
+    rho_p = rho_p * 100*100*100/1000 # g cm^-3 -> kg m^-3
+    Dp = Dp*1E-6 # um -> m
+
+    
     Ccunn = 1 # need to parametrise base ond Dp, RH!
     dyn_visc = 0.000018 #kg m−1 s−1 dynamic viscosity of air
     g = 9.81 # kg m−1 s−2
@@ -141,7 +156,124 @@ def sea_salt_settling_velocity(Dp, rho_p=2.2, RH=80., T=20., P=1013., hygroscopi
 
     return vs
 
+def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=80., T=20., P=1013., zeta=0., model='giardina_2018', hygroscopic_growth='Zieger2016_'):
 
+#if 1:
+    # Required input:
+    # Dp = aerosol diameter [um] as (n,) numpy.array with n>=1
+    # rho_p = aerosol density g cm^-3!!
+    # h_ref = 15 [m] reference height
+    # U10 = wind speed [m/s] referenced to 10m, neutral stability as (m,) numpy.array with m>=1
+    # T [C]
+    # P [hPa]
+    #
+    # Output
+    # vd = deposition velocity [m/s ] per size bin as numpy.array (m,n)
+    # or (n,) if m=1 & n>1
+    # or (m,) if n=1 & m>1
+    # or (1,) if n=m=1
+    # vs = settiling velocity in the same shape as vd
+    import pyantarctica.aceairsea as aceairsea
+    import numpy as np
+
+    #zeta=0.; T=20.; P=1013.; h_ref=15.;
+    #T=params['TA'].values
+    #hygroscopic_growth='Zieger2016_'
+    #U10 = params['u10'].values
+    #U10 = 1.
+    #Dp_dry = APS.columns.astype('float').values # um
+    #rho_dry = 2.017
+    #RH = params[RH_str].values
+    
+    if type(zeta) != np.ndarray:
+        zeta = np.asarray([zeta])
+    if type(U10) != np.ndarray:
+        U10 = np.asarray([U10])
+    if type(P) != np.ndarray:
+        P = np.asarray([P])
+    if type(T) != np.ndarray:
+        T = np.asarray([T])
+
+    U10 = U10.reshape(len(U10),1)
+    T = T.reshape(len(T),1)
+    P = P.reshape(len(P),1)
+    zeta = zeta.reshape(len(zeta),1)
+
+    # setttling velocity in m/s,note that the Dp and rho_p play an important role!
+    #vs = g*rho_p*Dp*Dp*Ccunn/18/dyn_visc
+    vs = sea_salt_settling_velocity(Dp_dry, rho_p=rho_dry, RH=RH, T=20., P=1013., hygroscopic_growth=hygroscopic_growth)
+    rho_p = rho_sea_spary(Dp_dry, RH=RH, rho_p=rho_dry, hygroscopic_growth=hygroscopic_growth) # rho_p [g cm^-3]
+    Dp = rdry2rRH(Dp_dry, RH=RH, hygroscopic_growth=hygroscopic_growth) # Dp [um]
+    
+    # convert to SI units
+    rho_p = rho_p * 100*100*100/1000 # g cm^-3 -> kg m^-3
+    Dp = Dp*1E-6 # um -> m
+
+    # friction velocity [m/s]
+    ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
+    ustar =   np.array([ustar])
+    ustar = ustar.reshape(np.max(np.shape(ustar)),1)
+    
+    T = T+273.15 # C-> K
+    P = P*100 # hPa -> Pa
+    
+    Ccunn = 1 # need to parametrise base ond Dp, RH!
+    dyn_visc = 0.000018 #kg m−1 s−1 dynamic viscosity of air
+    g = 9.81 # kg m−1 s−2
+    R = 8.314 # Nm/mol/K
+    M = 28.9647/1000 # kg/mol
+    kBolz = 1.38*1E-23 # m2 kg s-2 K-1
+
+    kin_visc = 1.5E-5 # m^2/s  kinematic viscosity of air (depends on temperature!) ?
+    # mean free path of air molecules
+    if 0:
+        mfp = 2*dyn_visc/(P*np.sqrt(8*M/(np.pi*R*T ))) # ~0.0651 um
+        # varying p-> *0.7, T-> -40K changes mfp by only 30%
+        # change in Ccunn 6%
+        # alsomost invisible in vg
+    else:
+        mfp = 6.511*1E-8
+    Ccunn = 1+mfp/Dp*(2.514+0.8*np.exp(-0.55*Dp/mfp)) # Seinfeld Pandis 8.34
+    # Ccunn varies from 1.2 for Dp=.8um to 1.032 for Dp=5um
+
+    # Diffusivity
+    Diffusivity = kBolz*T*Ccunn/3/np.pi/dyn_visc/Dp # Diffusivity of the aerosol in air
+    
+    kappa = 0.4
+    Pr = 0.72 # Prandtl number
+    Sc = kin_visc/Diffusivity # Schmidt number
+    z0=0.016*ustar*ustar/g # roughness length ! Check
+    ra = 1/kappa/ustar*(np.log(h_ref/z0) - aceairsea.PSIh(zeta) ) # -Psi(z/L)+Pis(z0/L) ! Need to add
+    rb = 2/kappa/ustar*np.power(Sc/Pr,2/3) #
+    vd = vs + 1/(ra+rb+ra*rb) # addition currenlty makes almost no difference for Dp>.8
+
+    # Giradina 2018
+    m=0.1; n=3; # tunig params
+    St = vs/g*ustar*ustar/kin_visc # (eq. 23)
+    tau = rho_p*Dp*Dp*Ccunn/18/dyn_visc
+    tau_plus = tau*ustar*ustar/kin_visc
+    rdb = 1/ustar*np.power(Sc,2/3) # (eq. 20)
+    rii = 1/ustar/(St*St/(St*St+1)) # eq. 22 for rough surfaces
+    rii = 1/ustar/(St*St/(St*St+400)) # eq. 22 for smooth surfaces
+
+    rti = 1/ustar/m/tau_plus
+    vd = vs/(1-np.exp(-vs*(ra+1/(1/rdb+1/rii+1/(rii+rti)  )  )) )
+
+    if 0:
+        # ensuring the right shape what ever the input
+        if np.max(np.shape(vd))>1:
+            vd = vd.squeeze()
+        else:
+            vd = np.array([vd[0]])
+            if len(np.shape(vd))==2:
+                vd = vd[0]
+
+        if np.max(np.shape(vs))>1:
+            vs = vs.squeeze()
+        else:
+            vs = np.array([vs[0]])
+
+    return vd
 
 def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20., P=1013., zeta=0., model='giardina_2018'):
 
