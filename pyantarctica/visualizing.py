@@ -451,7 +451,7 @@ def single_bins_regression_plot_errors(stats,sets,options,colors,SAVE=True):
     return fig, ax
 
 ##############################################################################################################
-def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='white', labplot='', plottype='scatter', make_caxes=True, cmap=plt.cm.viridis, set_in_ax=None, centercm=False):
+def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fillconts='grey', fillsea='white', labplot='', plottype='scatter', make_caxes=True, cmap=plt.cm.viridis, set_in_ax=None, centercm=False, resample_time=None):
     '''
         Visualize data on a polar stereographic projection map using cartopy on matplotlib.
 
@@ -489,24 +489,35 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
 
     coordinates = dataset.ts_aggregate_timebins(coordinates, time_bin=min_tres, operations={'': np.nanmedian}, index_position='middle')
     values = dataset.ts_aggregate_timebins(values, time_bin=min_tres, operations={'': np.nanmean}, index_position='middle')
-
     # values[values > max_va] = max_va
     # values[values < min_va] = min_va
 
+    if resample_time == None:
+        resample_time = min_tres
+
     toplot = pd.concat((coordinates,values), axis=1)
+    toplot = dataset.ts_aggregate_timebins(toplot, time_bin=resample_time, operations={'': np.nanmedian}, index_position='middle')
     toplot = toplot.dropna()
 
+
+    ortho = ccrs.SouthPolarStereo()# ccrs.Orthographic(central_longitude=0, central_latitude=-90)
+    # ortho = ccrs.Orthographic(central_longitude=0, central_latitude=-90)
+    geo = ccrs.Geodetic()
+    # ortho = ccrs.Orthographic(central_longitude=0, central_latitude=-90)
+    # geo = ccrs.Geodetic()
     # prepare basemap
     if set_in_ax is None:
         # fig = plt.gcf()
+        # ortho = ccrs.Orthographic(central_longitude=0, central_latitude=-90)
+        # geo = ccrs.Geodetic()
+
         fig = plt.figure()
-        ax = fig.add_subplot(111, projection=ccrs.SouthPolarStereo())
+        ax = fig.add_subplot(111, projection=ortho)
     else:
         fig = set_in_ax[0]
         shax = set_in_ax[1]
-        ax = fig.add_subplot(shax.shape[0],shax.shape[1],np.where(np.ravel(shax))[0][0]+1, projection=ccrs.SouthPolarStereo())
+        ax = fig.add_subplot(shax.shape[0],shax.shape[1],np.where(np.ravel(shax))[0][0]+1, projection=ortho)
 
-    # ax.set_proj
     ax.set_extent([-180, 180, -90, -35], ccrs.PlateCarree())
     ax.coastlines(linewidth=1.5)
     ax.add_feature(cfeature.LAND, facecolor=fillconts)
@@ -530,10 +541,10 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     # else:
     #     norm=None
 
-    if plottype == 'scatter':
-        ax.plot(gps.iloc[:,1], gps.iloc[:,0], transform=ccrs.Geodetic(), linewidth=1, color='black', zorder=1)
 
-        ax.scatter(toplot.iloc[:,1].values,toplot.iloc[:,0].values, transform=ccrs.Geodetic(), c=toplot.iloc[:,2].values, s=markersize, alpha=0.5, linewidth=0, label=labplot, cmap = cmap, zorder=2) # , norm=norm
+    if plottype == 'scatter':
+        ax.plot(gps.iloc[:,1], gps.iloc[:,0], transform=geo, linewidth=1, color='black', zorder=1)
+        ax.scatter(toplot.iloc[:,1].values,toplot.iloc[:,0].values, transform=geo, c=toplot.iloc[:,2].values, s=markersize, alpha=0.75, linewidth=0, label=labplot, cmap = cmap, zorder=2) # , norm=norm
     elif plottype == 'plot':
         ax.plot(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values,
             transform=ccrs.PlateCarree(),
@@ -808,7 +819,7 @@ def interactive_map(v1, options):
     track_map = track.opts(projection=ccrs.SouthPolarStereo()).opts(color='black')
 
     return (
-        (gf.land * gf.coastline * track_map * point_map_v1).opts(title=vname).options(width=options['figsize'][0],height=options['figsize'][1])
+        (gf.land * gf.coastline * track_map * point_map_v1).opts(title=vname, width=options['figsize'][0],height=options['figsize'][1])
       )
 
     # + (gf.land * gf.coastline * track_map * point_map_v2).opts(title=v2)
