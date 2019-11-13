@@ -757,15 +757,16 @@ def get_raw_param(VarNameLUT='u10', META_FILE = '../data/ASAID_DATA_OVERVIEW - S
     Resolution = META['Resolution'][META['VarNameLUT']==VarNameLUT].values[0]
     timest_loc = META['timest_loc'][META['VarNameLUT']==VarNameLUT].values[0]
 
-    if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']:
+    if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']: # catch files not ending on parsed
         FilenameIntermediate = '01_waves_recomputed.csv'
         var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
-
+    elif FilenameIntermediate in ['iDirac_Isoprene_MR_All_Legs_parsed.csv']: # catch files not ending on parsed
+        FilenameIntermediate = 'iDirac_Isoprene_MR_All_Legs.csv'
+        var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
     elif FilenameIntermediate in ['02_hplc_pigments_parsed.csv']:
         var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
         var=var[var['Depth_m']<10] # only use data from shallow depth <10meter
         var=var[[VarNameIntermediate]].sort_index()
-
     else:
         var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
     var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
@@ -791,6 +792,8 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
     META = pd.read_csv(META_FILE)
     if LV_param_set_Index==-1:
         LV_params = LV_params # use input parameter list
+    elif LV_param_set_Index=='all':
+        LV_params = list(META['VarNameLUT'].dropna().values)
     else:
         # define parameter list from ASAID_DATA_OVERVIEW.csv
         LV_params = list(META['VarNameLUT'][META['LatentVar'+str(LV_param_set_Index)]==1.].values)
@@ -804,19 +807,22 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         Resolution = META['Resolution'][META['VarNameLUT']==VarNameLUT].values[0]
         timest_loc = META['timest_loc'][META['VarNameLUT']==VarNameLUT].values[0]
 
-        if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']: # catch files not ending on parsed
-            FilenameIntermediate = '01_waves_recomputed.csv'
-            var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
-        elif FilenameIntermediate in ['iDirac_Isoprene_MR_All_Legs_parsed.csv']: # catch files not ending on parsed
-            FilenameIntermediate = 'iDirac_Isoprene_MR_All_Legs.csv'
-            var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
-        elif FilenameIntermediate in ['02_hplc_pigments_parsed.csv']:
-            var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
-            var=var[var['Depth_m']<10] # only use data from shallow depth <10meter
-            var=var[[VarNameIntermediate]].sort_index()
-        else:
-            var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
-
+        #if FilenameIntermediate in ['01_waves_recomputed_parsed.csv']: # catch files not ending on parsed
+        #    FilenameIntermediate = '01_waves_recomputed.csv'
+        #    var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
+        #elif FilenameIntermediate in ['iDirac_Isoprene_MR_All_Legs_parsed.csv']: # catch files not ending on parsed
+        #    FilenameIntermediate = 'iDirac_Isoprene_MR_All_Legs.csv'
+        #    var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
+        #elif FilenameIntermediate in ['02_hplc_pigments_parsed.csv']:
+        #    var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))
+        #    var=var[var['Depth_m']<10] # only use data from shallow depth <10meter
+        #    var=var[[VarNameIntermediate]].sort_index()
+        #else:
+        #    var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
+        #
+        # use get_raw_param here, instead of dublicating code. It is a bit overkill of releoding META_FILE each time. Could change to handing META over to get_raw_param instead of the file name
+        var = get_raw_param(VarNameLUT=VarNameLUT, META_FILE = META_FILE)
+        
         if VarNameIntermediate in ['CL1', 'CL2', 'CL3']:
             # NEED TO DECIDE WHAT TO DO WITH CL!!
             #var.at[var[VarNameIntermediate]==np.Inf, VarNameIntermediate] = 10000# set a high value for infinite cloud level
