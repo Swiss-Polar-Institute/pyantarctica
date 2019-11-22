@@ -4,6 +4,7 @@ import pandas as pd
 from pathlib import Path
 import pyantarctica.aceairsea as aceairsea
 import pyantarctica.dataset as dataset
+import pyantarctica.datafilter as datafilter
 
 
 def r_div_r80(RH, option='Zieger2016_'):
@@ -624,11 +625,16 @@ def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_', LABELS=[]):
 
     return aps_agg, aps_agg_meta
 
-def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
+def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', WAVE_from='imu',
     MET_DATA='../data/intermediate/0_shipdata/metdata_5min_parsed.csv',
     ERA5_DATA='../../ecmwf-download/data/ecmwf-on-track/era5_ace_track_nearest.csv',
     WIND_DATA='../data/intermediate/0_shipdata/u10_ship_5min_full_parsed.csv',
     WAVE_DATA='../data/intermediate/17_waves/01_waves_recomputed.csv',
+    WAMOS_DATA='../data/intermediate/17_waves/Updated_Wave_Info_ACE_Leg01234_parsed.csv',
+    IMU_DATA='../data/intermediate/17_waves/WaveInfo_ACE_IMU_parsed.csv',
+    FERRYBOX='../data/intermediate/18_percipitation/ferrybox_parsed.csv',
+    SATELLITE='../data/intermediate/18_percipitation/satellite_parsed.csv',
+    SWI_DATA='../data/intermediate/11_meteo/ACE_watervapour_isotopes_SWI13_5min_parsed.csv',
     D_TO_LAND='../data/intermediate/0_shipdata/BOAT_GPS_distance_to_land_parsed.csv',
     T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv',
     RETURN_EXPANSIONS=False):
@@ -641,9 +647,13 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     #
     # sst_from='era5' : use era5 sst
     # sst_from='ship' : use ferrybox temperature (+273.15 to convert to Kelvin)
-    # sst_from='merge': merge era5 and ferrybox temperature
+    # sst_from='merge', 'merge_ship_satellite': merge satellite and ferrybox temperature
+    # sst_from='merge_ship_era5': merge era5 and ferrybox temperature
     #
     # TA_from='ship'  : use metdata 'TA' (+273.15 to convert to Kelvin)
+    #
+    # WAVE_from='imu' : use IMU for total sea, wind and swell are set to NaN
+    # WAVE_from='wamos' : use Wamos data, total, wind and swell separately
     # I would not trust air temperature from the Mode
     #
 
@@ -653,6 +663,13 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     # era5 nearest, provides NaN if the nearest fields is land (lsm=1)
     WIND_DATA = Path(WIND_DATA)
     WAVE_DATA = Path(WAVE_DATA)
+    WAMOS_DATA = Path(WAMOS_DATA)
+    IMU_DATA = Path(IMU_DATA)
+    
+    FERRYBOX = Path(FERRYBOX)
+    SATELLITE = Path(SATELLITE)
+    SWI_DATA = Path(SWI_DATA)
+
     # Buffers to land: distance to any land and time to any land
 
     D_TO_LAND = Path(D_TO_LAND)
@@ -688,52 +705,69 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     era5.index = era5.index-pd.Timedelta(2.5,'min') # adjust to beginning of 5min interval rule
     era5 = pd.merge(era5,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     era5.drop(columns=['VIS'], inplace=True)
+    
+    satellite = dataset.read_standard_dataframe(SATELLITE, crop_legs=False)
+    
+    satellite = dataset.resample_timeseries(satellite, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=60) # old resolution = 60min but time stamp irregular on odd seconds -> resample to 5min
+    satellite = dataset.match2series(satellite,metdata) # match to params seris
+    satellite = satellite.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
+       
+    ferrybox = dataset.read_standard_dataframe(FERRYBOX, crop_legs=False)
+    ferrybox = ferrybox.resample('5min' ).mean() # resample 5min
+    ferrybox = dataset.match2series(ferrybox,metdata) # match to params seris
 
-    if SST_from in ['merge', 'ship']:
-        ferrybox_file_folder = os.path.join('..','..','local_data','ace_ferrybox_giuseppe')
-        ferrybox = []
-        for fbox_filename in ['track_ferrybox_data_20161220_20170118_1min.csv', 'track_ferrybox_data_20170122_20170223_1min.csv', 'track_ferrybox_data_20170226_20170319_1min.csv']:
-            ferrybox.append(pd.read_csv(os.path.join(ferrybox_file_folder,fbox_filename), na_values=['-9.9999'] ))
-        ferrybox = pd.concat(ferrybox)
-
-        ferrybox = ferrybox.rename(index=str, columns={"date_time": "timest_"})
-        ferrybox = ferrybox.set_index(pd.to_datetime(ferrybox.timest_, format="%Y-%m-%d %H:%M:%S")) # assing the time stamp
-        ferrybox = ferrybox.drop(columns=['timest_'])
-        ferrybox = ferrybox.resample('5min' ).mean() # resample 5min
-        ferrybox = pd.merge(ferrybox,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
-        ferrybox.drop(columns=['VIS'], inplace=True)
 
     params = wind[['u10']].copy() # 10meter neutral wind speed [m/s]
     params['d-to-land'] = d_to_land
     params['t-to-land'] = t_to_land
+    # interplate accross the gaps in d-to-land which are due to missing gps.
+    for var_str in ['d-to-land', 't-to-land']:
+        params[var_str] = params[var_str].interpolate(method='linear', limit=200, limit_direction='both', axis=0)
+    
     params['RH'] = metdata['RH'] # relative humidity [%]
     params['TA'] = metdata['TA']+273.15 # air temperature [K] #90 5min data points are NaN & (u10~NaN and LSM==0)
 
-    if SST_from in ['merge', 'ship']:
+    if 1: # interpolate over small gaps in the TA, RH
+        for var_str in ['RH', 'TA']:
+            params[var_str] = params[var_str].interpolate(method='linear', limit=4, limit_direction='both', axis=0)
+   
+    
+    if SST_from in ['merge', 'ship', 'merge_ship_satellite', 'merge_ship_era5']:
         params['SST'] = ferrybox['temperature']+273.15
+        
+        if SST_from in ['merge', 'merge_ship_satellite']:
+            # fill large gaps with satellite SST
+            FILLGAPS = (( np.isnan(ferrybox.temperature) & np.isnan(ferrybox.interpolate(method='linear', limit=12, limit_direction='both', axis=0)['temperature'])   ))
+            params['SST'][FILLGAPS] = satellite.sst[FILLGAPS]+273.15
+        if SST_from in ['merge_ship_era5']:
+            # fill the large gaps with era5 sst (-273.15),
+            # there are local mismatches between era5 and ferrybox.temperature,
+            # in oder to avoid plenty of jumpy data we only fill gaps that are longer than 1hour=12*5min in either direction:
+            FILLGAPS = (( np.isnan(ferrybox.temperature) & np.isnan(ferrybox.interpolate(method='linear', limit=12, limit_direction='both', axis=0)['temperature'])   ))
+            params['SST'][FILLGAPS] = era5.sst[FILLGAPS]
+        
     elif SST_from in ['era5']:
         params['SST'] = (era5['sst'])
     else:
         print('wrong option for SST_from, use: ship, era5, or merge')
         return
-
-    if SST_from in ['merge']:
-        # fill the large gaps with era5 sst (-273.15),
-        # there are local mismatches between era5 and ferrybox.temperature,
-        # in oder to avoid plenty of jumpy data we only fill gaps that are longer than 1hour=12*5min in either direction:
-        params['SST'][(( np.isnan(ferrybox.temperature) & np.isnan(ferrybox.interpolate(method='linear', limit=12, limit_direction='both', axis=0)['temperature'])   ))] = (era5.sst[(( np.isnan(ferrybox.temperature) & np.isnan(ferrybox.interpolate(method='linear', limit=12, limit_direction='both', axis=0)['temperature'])   ))])
-    elif SST_from in ['ship', 'era5']:
-        1+1 # nothing to do here
-    else:
-        print('wrong option for SST_from, use: ship, era5, or merge')
-        return
-
+        
+    if 1: # interpolate over 1hour gaps in the SST
+        params['SST'] = params['SST'].interpolate(method='linear', limit=24, limit_direction='both', axis=0)
+        
     params['deltaT']=(params['TA']-params['SST']) # air sea temperature gradient [K]
 
     params['BLH']=era5['blh'] # boundary layer height [m]
 
     kin_visc_sea = aceairsea.kinematic_viscosity_sea((params['SST']-273.15),35)
     params['ustar'] = aceairsea.coare_u2ustar (params['u10'], input_string='u2ustar', coare_version='coare3.5', TairC=20.0, z=10.0, zeta=0.0)
+    
+    # stable water isotopes
+    swi = dataset.read_standard_dataframe(SWI_DATA,crop_legs=False)
+    swi = dataset.resample_timeseries(swi, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='r', old_resolution=5)
+    swi = dataset.match2series(swi,params)
+    for var_str in ['d18O','d2H','dexc']:
+        params[var_str]=swi[var_str]
 
     # Wave derived parms:
 
@@ -744,20 +778,62 @@ def merge_wind_wave_parameters(SST_from='era5', TA_from='ship',
     #
     # define if to rename wave variables when writing to params or not!!!
     # params['what you like']=wave['wind_sea_hs']
-    # @Michele, why did you include 'swell_steep'?
     for var_str in ['total_age', 'total_hs', 'total_steep','total_tp',
                     'wind_sea_age', 'wind_sea_hs', 'wind_sea_steep', 'wind_sea_tp',
                     ]:
         params[var_str]=wave[var_str]
 
-    # computation of reighnolds number for total sea and wind see
-    params['wind_sea_ReHs'] = params['ustar']*wave['wind_sea_hs']/kin_visc_sea
-    params['total_ReHs'] = params['ustar']*wave['total_hs']/kin_visc_sea
+    wamos = dataset.read_standard_dataframe(WAMOS_DATA)
+    wamos = wamos.resample('5min' ).mean() # resample to 5min
 
+    imu = dataset.read_standard_dataframe(IMU_DATA)
+    # remove Hs spikes and Tp data out of range
+    X_out, _, _ = datafilter.outliers_iqr_time_window(imu[['Hs (m)']].copy(),Nmin=6*60,minN=7,d_phys=0.5, d_iqr=1.5) # perfect for Hs
+    Tp_out = ((imu['Tp (s)']<4.5)| (imu['Tp (s)']>14))
+    for var_str in imu.columns:
+        imu.at[X_out,var_str]=np.NaN
+        imu.at[Tp_out,var_str]=np.NaN
+
+    imu = dataset.resample_timeseries(imu, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=20) # old resolution = 20min but time stamp irregular on odd seconds -> resample to 5min
+    imu = dataset.match2series(imu,params) # match to params seris
+    #imu = imu.interpolate(axis=0, method='nearest', limit=2, limit_direction='both') # fill in nearest 2 5min blocks with the same 20min data
+    imu = imu.interpolate(axis=0, method='nearest', limit=3, limit_direction='both') # allo to fill the neigbourblock
+
+
+    if WAVE_from=='imu':   
+        params['total_hs']=imu['Hs (m)']
+        params['total_tp']=imu['Tp (s)']
+        #params['total_steep']=imu['Steepness (-)']
+        for var_str in ['wind_sea', 'swell']:
+            params[var_str+'_hs']=imu['Hs (m)']*np.NaN
+            params[var_str+'_tp']=imu['Hs (m)']*np.NaN
+
+    elif WAVE_from=='wamos':
+        for var_str in ['total', 'wind_sea', 'swell']:
+            if var_str=='total': 
+                wamos_str = 'Total'
+            elif var_str=='wind_sea': 
+                wamos_str = 'Wind Sea'
+            else: 
+                wamos_str = 'Swell'
+            params[var_str+'_hs']=wamos[wamos_str+' Hs (m)']
+            params[var_str+'_tp']=wamos[wamos_str+' Tp (s)']
+    # recomputation of parameters
+    # steepness, ReHs, LenainMelville, all from Tp and Hs
+    # Wave number: kp=(2*pi/tp)^2/9.81
+    # Steepness: st = 0.5*Hs*kp = 0.5*Hs*(2*pi/tp)^2/9.81
+    # Phase velocity: Cp=Tp*g/2/pi
+    # Age: Cp/U10 ; Cp/ustar
     # hs^1.25 g^0.5 kp^{-0.25} nu_w^{-1} # Lenain and Melville
     # kp=((4*pi / tp)^2)/g # wave number at peak frequency (total sea!)
-    params['total_LenainMelville'] = np.power(wave['total_hs'],1.25)*np.power(9.81,.5)*np.power(wave['total_wave_number'],-0.25)/kin_visc_sea
-    params['wind_sea_LenainMelville'] = np.power(wave['wind_sea_hs'],1.25)*np.power(9.81,.5)*np.power(wave['wind_sea_wave_number'],-0.25)/kin_visc_sea
+    for var_str in ['total', 'wind_sea', 'swell']:
+        params[var_str+'_kp']=4*np.pi*np.pi/params[var_str+'_tp']/params[var_str+'_tp']/9.81
+        params[var_str+'_steep']=0.5*params[var_str+'_hs']*params[var_str+'_kp']
+        params[var_str+'_age'] = params[var_str+'_tp']*9.81/2/np.pi/params['u10']
+        params[var_str+'_ReHs'] = params['ustar']*params[var_str+'_hs']/kin_visc_sea
+        params[var_str+'LenainMelville'] = np.power(params[var_str+'_hs'],1.25)*np.power(9.81,.5)*np.power(params[var_str+'_kp'],-0.25)/kin_visc_sea
+
+    
 
 
     if RETURN_EXPANSIONS:
@@ -788,16 +864,21 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
         merged_conditions: conditions met, independently for each filtering attribute
     """
     D_TO_LAND = Path(D_TO_LAND); T_TO_LAND = Path(T_TO_LAND); MASK = Path(MASK)
-
+    d_to_land_FLAG = False # flag to remove the column after filtering to return original data frame without additional columns
+    t_to_land_FLAG = False
     if 'd-to-land' not in data.columns.tolist():
+        d_to_land_FLAG = True
         d_to_land = dataset.read_standard_dataframe(D_TO_LAND, crop_legs=False)
         d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
         #data['d-to-land'] = d_to_land this does not work
         data = data.merge(d_to_land[['distance']],left_index = True, right_index=True, how='left')
         data.rename(columns={"distance": "d-to-land"}, inplace=True)
+        # interplate accross the gaps in d-to-land which are due to missing gps.
+        data['d-to-land'] = data['d-to-land'].interpolate(method='linear', limit=1000, limit_direction='both', axis=0)
 
 
     if 't-to-land' not in data.columns.tolist():
+        t_to_land_FLAG = True
         t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
         t_to_land.index = t_to_land.index-pd.Timedelta(5,'min')
         # here we first merge with data to cover the same range of 5min samples
@@ -816,9 +897,9 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
     keep_criterion = pd.DataFrame()
     keep_criterion['d-to-land'] = (data['d-to-land'] <= d_lim)
     keep_criterion['t-to-land'] = (data['t-to-land'] <= t_lim)
-    keep_criterion['mask'] = (data['mask_5min'] != 1)
+    keep_criterion['mask'] = (data['mask_5min'] != not_to_mask)
 
-    keep_in = (data['d-to-land'] > d_lim) & (data['t-to-land'] > t_lim) & (data['mask_5min'] == 1)
+    keep_in = (data['d-to-land'] > d_lim) & (data['t-to-land'] > t_lim) & (data['mask_5min'] == not_to_mask)
 
     data_filt = data.copy()
     #print(data_filt.columns) #  [..., 'd-to-land', 't-to-land', 'mask_5min']
@@ -828,5 +909,13 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
         if col not in list(['d-to-land', 't-to-land', 'mask_5min']):
             data_filt.loc[~keep_in,col] = np.nan
     data_filt = data_filt.drop('mask_5min',axis=1)
-
+    
+    # if d-to-land, t-to-land were not in the data frame drop them again
+    if d_to_land_FLAG:
+        data_filt = data_filt.drop('d-to-land',axis=1)
+    if t_to_land_FLAG:
+        data_filt = data_filt.drop('t-to-land',axis=1)
     return data_filt, keep_criterion
+
+
+    

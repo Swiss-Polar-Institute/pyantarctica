@@ -142,7 +142,7 @@ def add_legs_index(df, **kwargs):
         leg_dates = [
                     ['2016-11-17', '2016-12-19'], # leg 0
                     ['2016-12-20 16:00', '2017-01-18 22:00'], # leg 1
-                    ['2017-01-22 10:00', '2017-02-22 12:00'],  # leg 2
+                    ['2017-01-22 11:00', '2017-02-22 12:00'],  # leg 2
                     ['2017-02-26 01:00', '2017-03-19 09:00'],  # leg 3, ship at full speed @'2017-02-26 02:00', in the vicinity at '2017-03-18 14:00'
                     ['2017-03-22 19:00', '2017-04-11 16:00']  # leg 4
                     ]
@@ -855,3 +855,12 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         else:
             params = pd.merge(params, var, left_index=True, right_index=True, how='outer')
     return params
+
+
+
+
+
+
+
+
+
