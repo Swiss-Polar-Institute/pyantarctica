@@ -732,9 +732,9 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     params['TA'] = metdata['TA']+273.15 # air temperature [K] #90 5min data points are NaN & (u10~NaN and LSM==0)
     params['PA'] = metdata['PA'] # atmospheric pressure in hPa = mbar
 
-    if 0: # interpolate over small gaps in the TA, RH
+    if 1: # interpolate over small gaps in the TA, RH
         for var_str in ['RH', 'TA']:
-            params[var_str] = params[var_str].interpolate(method='linear', limit=4, limit_direction='both', axis=0)
+            params[var_str] = params[var_str].interpolate(method='nearest', limit=1, limit_direction='both', axis=0)
 
 
     if SST_from in ['merge', 'ship', 'merge_ship_satellite', 'merge_ship_era5']:
@@ -758,7 +758,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
         return
 
     if 1: # interpolate over 1hour gaps in the SST
-        params['SST'] = params['SST'].interpolate(method='linear', limit=24, limit_direction='both', axis=0)
+        params['SST'] = params['SST'].interpolate(method='linear', limit=40, limit_direction='both', axis=0)
 
     params['deltaT']=(params['TA']-params['SST']) # air sea temperature gradient [K]
 
@@ -773,7 +773,9 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     swi = dataset.match2series(swi,params)
     for var_str in ['d18O','d2H','dexc']:
         params[var_str]=swi[var_str]
-
+    if 1: # interpolate over small gaps in ['d18O','d2H','dexc']
+        for var_str in ['d18O','d2H','dexc']:
+            params[var_str] = params[var_str].interpolate(method='nearest', limit=1, limit_direction='both', axis=0)
     # Wave derived parms:
 
     # wave time stamp already on left
@@ -890,7 +892,7 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
         # then cause t_to_land is a 1hr time series we need to interpolate over the gaps.
         data = data.merge(t_to_land[['hours_till_land']],left_index = True, right_index=True, how='left')
         data.rename(columns={"hours_till_land": "t-to-land"}, inplace=True)
-        data['t-to-land'] = data['t-to-land'].interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
+        data['t-to-land'] = data['t-to-land'].interpolate(axis=0, method='nearest', limit=80, limit_direction='both') # interpolate between the 1 hourly data points
 
         #data['t-to-land'] = t_to_land
 
