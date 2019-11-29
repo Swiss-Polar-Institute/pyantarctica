@@ -717,7 +717,11 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     ferrybox = dataset.match2series(ferrybox,metdata) # match to params seris
 
 
-    params = wind[['u10']].copy() # 10meter neutral wind speed [m/s]
+    params = wind[['u10', 'uR_afc', 'vR_afc']].copy() # 10meter neutral wind speed [m/s] and relative wind vector
+    params['WSR_afc'] = np.sqrt(np.square(params['uR_afc'])+np.square(params['vR_afc']))
+    params['WDR_afc'] = (180 - np.rad2deg(np.arctan2(params['vR_afc'],params['uR_afc']) ) )%360 #
+    params['visibility'] = metdata['VIS']
+    
     params['d-to-land'] = d_to_land
     params['t-to-land'] = t_to_land
     # interplate accross the gaps in d-to-land which are due to missing gps.
@@ -726,8 +730,9 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     
     params['RH'] = metdata['RH'] # relative humidity [%]
     params['TA'] = metdata['TA']+273.15 # air temperature [K] #90 5min data points are NaN & (u10~NaN and LSM==0)
+    params['PA'] = metdata['PA'] # atmospheric pressure in hPa = mbar
 
-    if 1: # interpolate over small gaps in the TA, RH
+    if 0: # interpolate over small gaps in the TA, RH
         for var_str in ['RH', 'TA']:
             params[var_str] = params[var_str].interpolate(method='linear', limit=4, limit_direction='both', axis=0)
    
@@ -831,7 +836,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
         params[var_str+'_steep']=0.5*params[var_str+'_hs']*params[var_str+'_kp']
         params[var_str+'_age'] = params[var_str+'_tp']*9.81/2/np.pi/params['u10']
         params[var_str+'_ReHs'] = params['ustar']*params[var_str+'_hs']/kin_visc_sea
-        params[var_str+'LenainMelville'] = np.power(params[var_str+'_hs'],1.25)*np.power(9.81,.5)*np.power(params[var_str+'_kp'],-0.25)/kin_visc_sea
+        params[var_str+'_LenainMelville'] = np.power(params[var_str+'_hs'],1.25)*np.power(9.81,.5)*np.power(params[var_str+'_kp'],-0.25)/kin_visc_sea
 
     
 

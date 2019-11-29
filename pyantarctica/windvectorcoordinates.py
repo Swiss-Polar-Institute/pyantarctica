@@ -5,8 +5,14 @@ import numpy as np
 def ang180(x):
     return ((x+180)%360)-180 # map any number into -180, 180 keeping the order the same
 
+def URVRship2WSRWDR(Urel,Vrel):
+    # this is for Urel,Vrel in ship coordinate system
+    WSR = np.sqrt(np.square(Urel)+np.square(Vrel))
+    WDR = (180-np.rad2deg(np.arctan2(Vrel,Urel) ) )%360 # 
+    return WSR, WDR
+
 def UVrel2WSRWDR(Urel,Vrel,HEADING):
-    # Urel,Vrel in earth coordinate system!!!
+    # this is for Urel,Vrel in earth coordinate system, the way they come out of UVtrue2UVrel!!!
     WSR = np.sqrt(np.square(Urel)+np.square(Vrel))
     WDR = (270-HEADING-np.rad2deg(np.arctan2(Vrel,Urel) ) )%360 # 
     return WSR, WDR
