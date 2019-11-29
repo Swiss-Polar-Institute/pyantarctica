@@ -734,7 +734,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
 
     if 1: # interpolate over small gaps in the TA, RH
         for var_str in ['RH', 'TA']:
-            params[var_str] = params[var_str].interpolate(method='nearest', limit=1, limit_direction='both', axis=0)
+            params[var_str] = params[var_str].interpolate(method='nearest', limit=4, limit_direction='both', axis=0)
 
 
     if SST_from in ['merge', 'ship', 'merge_ship_satellite', 'merge_ship_era5']:
@@ -775,7 +775,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
         params[var_str]=swi[var_str]
     if 1: # interpolate over small gaps in ['d18O','d2H','dexc']
         for var_str in ['d18O','d2H','dexc']:
-            params[var_str] = params[var_str].interpolate(method='nearest', limit=1, limit_direction='both', axis=0)
+            params[var_str] = params[var_str].interpolate(method='nearest', limit=4, limit_direction='both', axis=0)
     # Wave derived parms:
 
     # wave time stamp already on left
