@@ -16,14 +16,14 @@ def outliers_iqr_score(ys):
     iqr = quartile_3 - quartile_1
     lower_bound = quartile_1 - (iqr * 1.5) # was 1.5
     upper_bound = quartile_3 + (iqr * 1.5) # was 1.5
-    
+
     score3 = np.max( [(ys-quartile_3)/iqr, 0*ys] , axis=0 )
     score1 = np.max( [(quartile_1-ys)/iqr, 0*ys] , axis=0 )
     score = np.max( [score1, score3] , axis=0 )
-    
+
     if iqr==0:
         score = np.abs(ys-np.median(ys))
-    
+
     return score, iqr
 
 def outliers_iqr_time_window(X,Nmin=60,minN=12,d_phys=0, d_iqr=1.5):
@@ -36,16 +36,16 @@ def outliers_iqr_time_window(X,Nmin=60,minN=12,d_phys=0, d_iqr=1.5):
         :param minN: minimum number of samples required within the time window specified by Nmin, in order to filter
         :param d_phys: expected white noise on the data
         :param d_iqr: maximum allowed deviation from the median in units of iqr
-        
+
         :returns: score=series of deviation from the iqr, same shape like ys
         :returns: outlier.values, = boolean vector flaging the outliers with True
-        :returns: np.squeeze(X_iqr.values), 
+        :returns: np.squeeze(X_iqr.values),
         :returns: np.squeeze(X_delta.values)
 
     """
     # use iqr outlier detection, for iqr=0 use {y-median(y)}>d_phys to identyfy outliers
     # uses outliers_iqr_score
-    
+
     # NEED TO ADD TZ-naivisation of X!
     X_iqr = X.copy()*np.NaN
     X_delta = X.copy()*np.NaN
@@ -71,8 +71,8 @@ def outliers_iqr_time_window(X,Nmin=60,minN=12,d_phys=0, d_iqr=1.5):
     if d_phys>0:
         outlier = ( (X_iqr[V_str]*X_delta[V_str])>d_phys) & (X_delta[V_str]>d_iqr ) | ( (X_delta[V_str]>d_phys ) & (X_iqr[V_str]==0) )
     else:
-        outlier = (X_delta[V_str]>d_iqr ) 
-    if 1:    
+        outlier = (X_delta[V_str]>d_iqr )
+    if 1:
         # repeat with 1/2 shifted windows to avoid edges to be detected as outliers
         binL = X_.index[0]
         binU = X_.index[-1]+timedelta(seconds=Nmin*60)
@@ -95,18 +95,18 @@ def outliers_iqr_time_window(X,Nmin=60,minN=12,d_phys=0, d_iqr=1.5):
         if d_phys>0:
             outlier2 = ( (X_iqr[V_str]*X_delta[V_str])>d_phys) & (X_delta[V_str]>d_iqr )  | ( (X_delta[V_str]>d_phys ) & (X_iqr[V_str]==0) )
         else:
-            outlier2 = (X_delta[V_str]>d_iqr ) 
+            outlier2 = (X_delta[V_str]>d_iqr )
 
         outlier = outlier & outlier2
-    
+
     return outlier.values, np.squeeze(X_iqr.values), np.squeeze(X_delta.values)
 
 
-def APS_filter_sinlge_counts(APS):
+def APS_filter_single_counts(APS):
     # function to remove the intervals with the lowest APS counts
     # At large size bins we reach the APS digital resolution with lot of measurements showing the same low values
     # this function should be applied AFTER the APS has been resampled to the desired time resolution
-    # 
+    #
     #APS[(APS == 0).sum(axis=1)==len(APS.columns.values)]=np.nan # some rows are all zero -> set them to nan, appears no longer relevant
     #
     APS_RESOLUTION = np.nanmin(APS.values) # get the resolution of the APS by looking at the smallest count

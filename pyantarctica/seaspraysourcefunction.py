@@ -122,11 +122,11 @@ def sea_salt_settling_velocity(Dp, rho_p=2.2, RH=80., T=20., P=1013., hygroscopi
     rho_p = rho_sea_spary(Dp, RH, rho_p=rho_p, hygroscopic_growth=hygroscopic_growth)
     Dp = rdry2rRH(Dp, RH, hygroscopic_growth=hygroscopic_growth)
 
-    
+
     rho_p = rho_p * 100*100*100/1000 # g cm^-3 -> kg m^-3
     Dp = Dp*1E-6 # um -> m
 
-    
+
     Ccunn = 1 # need to parametrise base ond Dp, RH!
     dyn_visc = 0.000018 #kg m−1 s−1 dynamic viscosity of air
     g = 9.81 # kg m−1 s−2
@@ -185,7 +185,7 @@ def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=8
     #Dp_dry = APS.columns.astype('float').values # um
     #rho_dry = 2.017
     #RH = params[RH_str].values
-    
+
     if type(zeta) != np.ndarray:
         zeta = np.asarray([zeta])
     if type(U10) != np.ndarray:
@@ -205,7 +205,7 @@ def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=8
     vs = sea_salt_settling_velocity(Dp_dry, rho_p=rho_dry, RH=RH, T=20., P=1013., hygroscopic_growth=hygroscopic_growth)
     rho_p = rho_sea_spary(Dp_dry, RH=RH, rho_p=rho_dry, hygroscopic_growth=hygroscopic_growth) # rho_p [g cm^-3]
     Dp = rdry2rRH(Dp_dry, RH=RH, hygroscopic_growth=hygroscopic_growth) # Dp [um]
-    
+
     # convert to SI units
     rho_p = rho_p * 100*100*100/1000 # g cm^-3 -> kg m^-3
     Dp = Dp*1E-6 # um -> m
@@ -214,10 +214,10 @@ def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=8
     ustar = aceairsea.coare_u2ustar(U10, input_string='u2ustar', coare_version='coare3.5', TairC=T, z=10, zeta=0)
     ustar =   np.array([ustar])
     ustar = ustar.reshape(np.max(np.shape(ustar)),1)
-    
+
     T = T+273.15 # C-> K
     P = P*100 # hPa -> Pa
-    
+
     Ccunn = 1 # need to parametrise base ond Dp, RH!
     dyn_visc = 0.000018 #kg m−1 s−1 dynamic viscosity of air
     g = 9.81 # kg m−1 s−2
@@ -239,7 +239,7 @@ def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=8
 
     # Diffusivity
     Diffusivity = kBolz*T*Ccunn/3/np.pi/dyn_visc/Dp # Diffusivity of the aerosol in air
-    
+
     kappa = 0.4
     Pr = 0.72 # Prandtl number
     Sc = kin_visc/Diffusivity # Schmidt number
@@ -665,7 +665,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     WAVE_DATA = Path(WAVE_DATA)
     WAMOS_DATA = Path(WAMOS_DATA)
     IMU_DATA = Path(IMU_DATA)
-    
+
     FERRYBOX = Path(FERRYBOX)
     SATELLITE = Path(SATELLITE)
     SWI_DATA = Path(SWI_DATA)
@@ -705,13 +705,13 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     era5.index = era5.index-pd.Timedelta(2.5,'min') # adjust to beginning of 5min interval rule
     era5 = pd.merge(era5,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     era5.drop(columns=['VIS'], inplace=True)
-    
+
     satellite = dataset.read_standard_dataframe(SATELLITE, crop_legs=False)
-    
+
     satellite = dataset.resample_timeseries(satellite, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=60) # old resolution = 60min but time stamp irregular on odd seconds -> resample to 5min
     satellite = dataset.match2series(satellite,metdata) # match to params seris
     satellite = satellite.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
-       
+
     ferrybox = dataset.read_standard_dataframe(FERRYBOX, crop_legs=False)
     ferrybox = ferrybox.resample('5min' ).mean() # resample 5min
     ferrybox = dataset.match2series(ferrybox,metdata) # match to params seris
@@ -727,7 +727,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     # interplate accross the gaps in d-to-land which are due to missing gps.
     for var_str in ['d-to-land', 't-to-land']:
         params[var_str] = params[var_str].interpolate(method='linear', limit=200, limit_direction='both', axis=0)
-    
+
     params['RH'] = metdata['RH'] # relative humidity [%]
     params['TA'] = metdata['TA']+273.15 # air temperature [K] #90 5min data points are NaN & (u10~NaN and LSM==0)
     params['PA'] = metdata['PA'] # atmospheric pressure in hPa = mbar
@@ -735,11 +735,11 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     if 0: # interpolate over small gaps in the TA, RH
         for var_str in ['RH', 'TA']:
             params[var_str] = params[var_str].interpolate(method='linear', limit=4, limit_direction='both', axis=0)
-   
-    
+
+
     if SST_from in ['merge', 'ship', 'merge_ship_satellite', 'merge_ship_era5']:
         params['SST'] = ferrybox['temperature']+273.15
-        
+
         if SST_from in ['merge', 'merge_ship_satellite']:
             # fill large gaps with satellite SST
             FILLGAPS = (( np.isnan(ferrybox.temperature) & np.isnan(ferrybox.interpolate(method='linear', limit=12, limit_direction='both', axis=0)['temperature'])   ))
@@ -750,23 +750,23 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
             # in oder to avoid plenty of jumpy data we only fill gaps that are longer than 1hour=12*5min in either direction:
             FILLGAPS = (( np.isnan(ferrybox.temperature) & np.isnan(ferrybox.interpolate(method='linear', limit=12, limit_direction='both', axis=0)['temperature'])   ))
             params['SST'][FILLGAPS] = era5.sst[FILLGAPS]
-        
+
     elif SST_from in ['era5']:
         params['SST'] = (era5['sst'])
     else:
         print('wrong option for SST_from, use: ship, era5, or merge')
         return
-        
+
     if 1: # interpolate over 1hour gaps in the SST
         params['SST'] = params['SST'].interpolate(method='linear', limit=24, limit_direction='both', axis=0)
-        
+
     params['deltaT']=(params['TA']-params['SST']) # air sea temperature gradient [K]
 
     params['BLH']=era5['blh'] # boundary layer height [m]
 
     kin_visc_sea = aceairsea.kinematic_viscosity_sea((params['SST']-273.15),35)
     params['ustar'] = aceairsea.coare_u2ustar (params['u10'], input_string='u2ustar', coare_version='coare3.5', TairC=20.0, z=10.0, zeta=0.0)
-    
+
     # stable water isotopes
     swi = dataset.read_standard_dataframe(SWI_DATA,crop_legs=False)
     swi = dataset.resample_timeseries(swi, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='r', old_resolution=5)
@@ -805,7 +805,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     imu = imu.interpolate(axis=0, method='nearest', limit=3, limit_direction='both') # allo to fill the neigbourblock
 
 
-    if WAVE_from=='imu':   
+    if WAVE_from=='imu':
         params['total_hs']=imu['Hs (m)']
         params['total_tp']=imu['Tp (s)']
         #params['total_steep']=imu['Steepness (-)']
@@ -815,11 +815,11 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
 
     elif WAVE_from=='wamos':
         for var_str in ['total', 'wind_sea', 'swell']:
-            if var_str=='total': 
+            if var_str=='total':
                 wamos_str = 'Total'
-            elif var_str=='wind_sea': 
+            elif var_str=='wind_sea':
                 wamos_str = 'Wind Sea'
-            else: 
+            else:
                 wamos_str = 'Swell'
             params[var_str+'_hs']=wamos[wamos_str+' Hs (m)']
             params[var_str+'_tp']=wamos[wamos_str+' Tp (s)']
@@ -838,7 +838,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
         params[var_str+'_ReHs'] = params['ustar']*params[var_str+'_hs']/kin_visc_sea
         params[var_str+'_LenainMelville'] = np.power(params[var_str+'_hs'],1.25)*np.power(9.81,.5)*np.power(params[var_str+'_kp'],-0.25)/kin_visc_sea
 
-    
+
 
 
     if RETURN_EXPANSIONS:
@@ -914,13 +914,10 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
         if col not in list(['d-to-land', 't-to-land', 'mask_5min']):
             data_filt.loc[~keep_in,col] = np.nan
     data_filt = data_filt.drop('mask_5min',axis=1)
-    
+
     # if d-to-land, t-to-land were not in the data frame drop them again
     if d_to_land_FLAG:
         data_filt = data_filt.drop('d-to-land',axis=1)
     if t_to_land_FLAG:
         data_filt = data_filt.drop('t-to-land',axis=1)
     return data_filt, keep_criterion
-
-
-    

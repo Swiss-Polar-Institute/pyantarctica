@@ -398,7 +398,7 @@ def CV_smooth_weight_regression(data, labels, inds, opts):
                 minlo[count, 0] = loss[-1]
                 pars[count, :] = [p1,p2,kpar]
 
-                print(f"{count+1} / {iit}")
+                # print(f"{count+1} / {iit}")
                 # p1 {p1}, p2 {p2}, kpar {kpar}, loss {loss[-1]}, trerr {0.01 * np.sum(stats['tr_R2'])}, valerr {0.01 * np.sum(stats['va_R2'])}")
                 count += 1
 
@@ -516,7 +516,6 @@ def smooth_weight_ridge_regression(data, labels, inds, opts):#, ITERS=100, THRES
         y_hat[inds[:,ind_w] == 1, ind_w] = pred_tr_Y
 
         if np.any(inds[:,ind_w] == 2):
-
             val_X = X_Y.iloc[inds[:,ind_w] == 2, :-1]
             val_Y = X_Y.iloc[inds[:,ind_w] == 2, -1]
             pred_va_Y = np.dot(val_X,W[:,ind_w])
