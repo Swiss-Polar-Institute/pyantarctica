@@ -474,7 +474,9 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
         .. note:: The longitude lon_0 is at 6-o'clock, and the latitude circle boundinglat is tangent to the edge of the map at lon_0. Default value of lat_ts (latitude of true scale) is pole.
         .. note:: Latitude is in °N, longitude in is °E
     '''
-
+    from matplotlib.colors import ListedColormap
+    from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+    from matplotlib.path import Path as mpath
     gps = coordinates.copy()
     # print(values.describe())
 
@@ -499,10 +501,11 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     toplot = dataset.ts_aggregate_timebins(toplot, time_bin=resample_time, operations={'': np.nanmedian}, index_position='middle')
     toplot = toplot.dropna()
 
+    ortho = ccrs.SouthPolarStereo()#
 
-    ortho = ccrs.SouthPolarStereo()# ccrs.Orthographic(central_longitude=0, central_latitude=-90)
     # ortho = ccrs.Orthographic(central_longitude=0, central_latitude=-90)
     geo = ccrs.Geodetic()
+
     # ortho = ccrs.Orthographic(central_longitude=0, central_latitude=-90)
     # geo = ccrs.Geodetic()
     # prepare basemap
@@ -522,17 +525,20 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     ax.coastlines(linewidth=1.5)
     ax.add_feature(cfeature.LAND, facecolor=fillconts)
     ax.add_feature(cfeature.OCEAN, facecolor=fillsea)
-    ax.gridlines(color='black', linestyle='--', alpha=0.5)
+    # ax.gridlines(color='black', linestyle='--', alpha=0.5)
     #m.shadedrelief()
     # prepare colors
     # cmap = plt.cm.get_cmap('viridis')
-    if centercm:
-        th_ = -np.max((np.abs(min_va), max_va)), np.max((np.abs(min_va), max_va))
-    else:
-        th_ = min_va, max_va
+    if not hasattr(cmap,'shape'):
+        if centercm:
+            th_ = -np.max((np.abs(min_va), max_va)), np.max((np.abs(min_va), max_va))
+        else:
+            th_ = min_va, max_va
 
-    normalize = mpl.colors.Normalize( vmin=th_[0], vmax=th_[1])
-    colors = [cmap(normalize(value)) for value in toplot.iloc[:,-1]]
+        normalize = mpl.colors.Normalize(vmin=th_[0], vmax=th_[1])
+        cmap = [cmap(normalize(value)) for value in toplot.iloc[:,-1]]
+    else:
+        cmap = ListedColormap(cmap)
     # geo coord to plot coord
     # lon, lat = m(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values)
     # map boat samples with values
@@ -541,14 +547,49 @@ def visualize_stereo_map(coordinates, values, min_va, max_va, markersize=75, fil
     # else:
     #     norm=None
 
+    from cartopy.mpl.gridliner import LATITUDE_FORMATTER, LONGITUDE_FORMATTER
 
     if plottype == 'scatter':
         ax.plot(gps.iloc[:,1], gps.iloc[:,0], transform=geo, linewidth=1, color='black', zorder=1)
         ax.scatter(toplot.iloc[:,1].values,toplot.iloc[:,0].values, transform=geo, c=toplot.iloc[:,2].values, s=markersize, alpha=0.75, linewidth=0, label=labplot, cmap = cmap, zorder=2) # , norm=norm
+
+        # theta = np.linspace(0, 2*np.pi, 100)
+        # center, radius = [0.5, 0.5], 0.5
+        # verts = np.vstack([np.sin(theta), np.cos(theta)]).T
+        # circle = mpath(verts * radius + center)
+        # ax.set_boundary(circle, transform=ax.transAxes)
+
+        ax.gridlines(draw_labels=True, linewidth=0.5, color='gray', alpha=0.5, linestyle='-')#crs=ccrs.PlateCarree(),
+
+        # Define gridline locations and draw the lines using cartopy's built-in gridliner:
+        # xticks = [-110, -50, -40, -30, -20, -11, 0, 10, 20, 30, 40, 50]
+        # yticks = [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80]
+        # ax.gridlines(xlocs=xticks, ylocs=yticks)
+
+        # Label the end-points of the gridlines using the custom tick makers:
+        # ax.xaxis.set_major_formatter(LONGITUDE_FORMATTER)
+        # ax.yaxis.set_major_formatter(LATITUDE_FORMATTER)
+        # lambert_xticks(ax, xticks)
+        # lambert_yticks(ax, yticks)
+
+        # ax.set_xticks([0, 60, 120, 180, 240, 300, 360], crs=ccrs.PlateCarree())
+        # ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], crs=ccrs.PlateCarree())
+        # lon_formatter = LongitudeFormatter(zero_direction_label=True)
+        # lat_formatter = LatitudeFormatter()
+        # ax.xaxis.set_major_formatter(lon_formatter)
+        # ax.yaxis.set_major_formatter(lat_formatter)
+        # import matplotlib.ticker as mticker # grid lines
+        # gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
+        #               linewidth=0.5, color='gray', alpha=0.5, linestyle='-')
+        # gl.ylocator = mticker.FixedLocator(np.array([-180, 180, -90, -35]))
+        # gl.xlocator = mticker.FixedLocator(np.linspace(0,360,13,dtype=int))
+
+        # ax.gridlines(crs = ccrs.PlateCarree(),color='lightgrey', linestyle='-', draw_labels=True)
+
     elif plottype == 'plot':
         ax.plot(coordinates.iloc[:,1].values,coordinates.iloc[:,0].values,
             transform=ccrs.PlateCarree(),
-            color=colors,s=markersize, linewidth=0, label=labplot)
+            color=cmap,s=markersize, linewidth=0, label=labplot)
         # im = m.plot(lon,lat,color=colors,linewidth=markersize,label=labplot)
     else:
         print('unrecognized plot')
@@ -824,6 +865,7 @@ def interactive_map(v1, options):
 
     # + (gf.land * gf.coastline * track_map * point_map_v2).opts(title=v2)
     # )
+
 
 
 # from numpy import ma
