@@ -26,7 +26,15 @@ def r_div_r80(RH, option='Zieger2016_'):
         #r_div_r80[RH>98]=2 # limit to 98%?-> gf=2.
         r_div_r80[RH<50]=( (1-5*.12/45)+0.12/45*RH[RH<50])*0.5
         r_div_r80[RH<5]=1*0.5
-
+    if option == 'Lewis2006':
+        r_div_r80 = 0.5*(1.31*np.power(1-RH/100,-0.265)) # for 45 to 90%
+        r_div_r80[RH>90] = 0.5*(1.09*np.power(1-RH[RH>90]/100,-1/3)) # for 90 to 99.5%
+        r_div_r80[RH>99.5] = 0.5*(1.09*np.power(1-(RH[RH>99.5])/(RH[RH>99.5])*99.5/100,-1/3)) # limit to 99.5 for now
+        r_div_r80[RH<45]=0.5*(RH[RH<45]/45*(1.31*np.power(1-45/100,-0.265)  - 1) + 1 ) # linear from value at RH45% to RH0%
+#
+#gf_lewis_45to90 = 1.31*np.power(1-RH/100,-0.265)
+#gf_lewis_90to995 = 1.09*np.power(1-RH/100,-1/3)
+#zieger = (1.201*np.power((1-RH/100), -0.2397))
 
     return r_div_r80
 
@@ -632,8 +640,8 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     WAVE_DATA='../data/intermediate/17_waves/01_waves_recomputed.csv',
     WAMOS_DATA='../data/intermediate/17_waves/Updated_Wave_Info_ACE_Leg01234_parsed.csv',
     IMU_DATA='../data/intermediate/17_waves/WaveInfo_ACE_IMU_parsed.csv',
-    FERRYBOX='../data/intermediate/18_percipitation/ferrybox_parsed.csv',
-    SATELLITE='../data/intermediate/18_percipitation/satellite_parsed.csv',
+    FERRYBOX='../data/intermediate/18_precipitation/ferrybox_parsed.csv',
+    SATELLITE='../data/intermediate/18_precipitation/satellite_parsed.csv',
     SWI_DATA='../data/intermediate/11_meteo/ACE_watervapour_isotopes_SWI13_5min_parsed.csv',
     D_TO_LAND='../data/intermediate/0_shipdata/BOAT_GPS_distance_to_land_parsed.csv',
     T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv',
