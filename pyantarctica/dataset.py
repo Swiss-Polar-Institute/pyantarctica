@@ -773,7 +773,8 @@ def get_raw_param(VarNameLUT='u10', META_FILE = '../data/ASAID_DATA_OVERVIEW - S
     return var
 
 
-def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], META_FILE = '../data/ASAID_DATA_OVERVIEW - Sheet1.csv', INTERPOLATE_limit=0):
+def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], META_FILE = '../data/ASAID_DATA_OVERVIEW - Sheet1.csv', INTERPOLATE_limit=0,
+                     FILTER_MODEFITTING=True):
     """
         Function to read paramters for one LV experiment based on META_FILE
         All parameters are resampled to a common time stamp
@@ -823,6 +824,13 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         # use get_raw_param here, instead of dublicating code. It is a bit overkill of releoding META_FILE each time. Could change to handing META over to get_raw_param instead of the file name
         var = get_raw_param(VarNameLUT=VarNameLUT, META_FILE = META_FILE)
 
+        #### - FILTERING OF OUTLIERS / BELOW LOD VALUES ####
+        if FILTER_MODEFITTING:
+            if VarNameIntermediate in ['N_conc_mode1', 'N_conc_mode2', 'N_conc_mode3', 'N_conc_total_fitted']:
+                var=var[var>5] # remove any data with less than 5 particles per ccm (Threshold suggested by rob)
+        #### - - - - - - - - - - - - - -  - ###
+        
+        #### - TIME SERIES RESAMPLING TO GET DESIRED UNIFORM TEMPORAL RESOLUTION ####
         if VarNameIntermediate in ['CL1', 'CL2', 'CL3']:
             # NEED TO DECIDE WHAT TO DO WITH CL!!
             #var.at[var[VarNameIntermediate]==np.Inf, VarNameIntermediate] = 10000# set a high value for infinite cloud level
@@ -832,6 +840,8 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         else:
             var = resample_timeseries(var, time_bin=time_bin, how='mean', new_label_pos='c', new_label_parity='even', old_label_pos=timest_loc, old_resolution=Resolution, COMMENTS=False)
         var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
+        #### - - - - - - - - - - - - - -  - ###
+
 
         #### - add optional interpolation - ###
         if INTERPOLATE_limit>0:
