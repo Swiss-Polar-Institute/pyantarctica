@@ -773,8 +773,9 @@ def get_raw_param(VarNameLUT='u10', META_FILE = '../data/ASAID_DATA_OVERVIEW - S
     return var
 
 
-def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], META_FILE = '../data/ASAID_DATA_OVERVIEW - Sheet1.csv', INTERPOLATE_limit=0,
-                     FILTER_MODEFITTING=True):
+def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], META_FILE = '../data/ASAID_DATA_OVERVIEW - Sheet1.csv',
+                      INTERPOLATE_limit=0,
+                      FILTER_MODEFITTING=True):
     """
         Function to read paramters for one LV experiment based on META_FILE
         All parameters are resampled to a common time stamp
@@ -827,7 +828,7 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         #### - FILTERING OF OUTLIERS / BELOW LOD VALUES ####
         if FILTER_MODEFITTING:
             if VarNameIntermediate in ['N_conc_mode1', 'N_conc_mode2', 'N_conc_mode3', 'N_conc_total_fitted']:
-                var=var[var>5] # remove any data with less than 5 particles per ccm (Threshold suggested by rob)
+                var=var[var>2] # remove any data with less than 2 particles per ccm (Threshold 5 ccm suggested by rob)
         #### - - - - - - - - - - - - - -  - ###
         
         #### - TIME SERIES RESAMPLING TO GET DESIRED UNIFORM TEMPORAL RESOLUTION ####
