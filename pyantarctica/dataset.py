@@ -828,15 +828,26 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         #### - FILTERING OF OUTLIERS / BELOW LOD VALUES ####
         if FILTER_LOD_OUTLIERS:
             if VarNameIntermediate in ['N_conc_mode1', 'N_conc_mode2', 'N_conc_mode3', 'N_conc_total_fitted']:
-                var=var[var>2] # remove any data with less than 2 particles per ccm (Threshold 5 ccm suggested by rob, this way the gaps in the sea spray mode are less large, data look still ok to me)
+                var[var<2]=2 #2 particles per ccm
             if VarNameIntermediate in ['CO_ppb']:
-                var=var[var>.015] # cut out some low values
+                var[var<.015]=0.015 # to be confirmed # TBC
             if VarNameIntermediate in ['SO4']:
-                var=var[var>(.14)] # cut at detection limit (LOD=0.14).
+                var[var<(.14)]=0.14 #  detection limit (LOD=0.14).
             if VarNameIntermediate in ['Chloride']:
-                var=var[var>(.64/20)] # cut at 1/20 detection limit (LOD=0.64, really?). Cause there would nothing be left
+                var[var<(.64/20)]=(.64/20) # 1/20 detection limit (LOD=0.64, really?). Cause there would nothing be left. To be confirmed! # TBC
             if VarNameIntermediate in ['CL1', 'CL2', 'CL3']:
-                var=var[var>30] # remove cloude level below 30 meter
+                var[var<30]=30 # remove cloude level below 30 meter # TBC
+                
+            if VarNameIntermediate in ['precip_horizontal-p18']:
+                var[var<(1E-5)]=1E-5 # TBC
+            if VarNameIntermediate in ['precip_vertical_V_0.25-p18']:
+                var[var<(1E-7)]=1E-7 # TBC
+            if VarNameIntermediate in ['precip_vertical_V_1.00-p18']:
+                var[var<(1E-6)]=1E-6 # TBC
+                
+            if VarNameIntermediate in ['rain-rate-100to200m-p11', 'rain-rate-200to300m-p11']:
+                var[var<(1E-2)]=1E-2 # TBC
+            
         #### - - - - - - - - - - - - - -  - ###
         
         #### - TIME SERIES RESAMPLING TO GET DESIRED UNIFORM TEMPORAL RESOLUTION ####
