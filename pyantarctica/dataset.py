@@ -358,7 +358,7 @@ def generate_particle_data(data_folder='../data/', mode='all', data_output='./da
 
     '''
 
-    particles = pd.read_table(data_folder + 'intermediate/7_aerosols/03_filtered_particle_size_distribution_T' + str(filtering_parameter) + '.csv', sep = ',')
+    particles = pd.read_csv(data_folder + 'intermediate/7_aerosols/03_filtered_particle_size_distribution_T' + str(filtering_parameter) + '.csv', sep = ',')
     particles.set_index('timest_',inplace=True)
     particles.index = pd.to_datetime(particles.index,format='%Y-%m-%d %H:%M:%S')
     #print(particles.index)
@@ -381,7 +381,7 @@ def generate_particle_data(data_folder='../data/', mode='all', data_output='./da
             particles.to_csv(data_output + '/00_particles_' + mode + '.csv', sep=',', na_rep='')
         return particles
 
-    part_legend = pd.read_table(data_folder + 'raw/7_aerosols/04_diameterforfile_03.txt')
+    part_legend = pd.read_csv(data_folder + 'raw/7_aerosols/04_diameterforfile_03.txt')
 
     if mode.lower() == 'aggregated':
         part_agg = pd.DataFrame()
@@ -440,7 +440,7 @@ def read_standard_dataframe(data_folder, datetime_index_name='timest_', crop_leg
         :param crop_legs: boolean to specify whether to remove data outside leg 1 to leg 3
         :returns: dataframe containing the original data, leg-cropped (if option active)
     '''
-    data = pd.read_table(data_folder, na_values=' ',sep=',')
+    data = pd.read_csv(data_folder, na_values=' ',sep=',')
     data.set_index(datetime_index_name, inplace=True)
     data.index = pd.to_datetime(data.index, format='%Y-%m-%d %H:%M:%S')
 
@@ -749,7 +749,7 @@ def get_raw_param(VarNameLUT='u10', META_FILE = '../data/ASAID_DATA_OVERVIEW - S
         :returns: dataframe containing the time series
     """
     META_FILE = Path(META_FILE)
-    META = pd.read_table(META_FILE,sep=',')
+    META = pd.read_csv(META_FILE,sep=',')
 
     Proj_folder = META['Proj'][META['VarNameLUT']==VarNameLUT].values[0]
     FilenameIntermediate = META['FilenameIntermediate'][META['VarNameLUT']==VarNameLUT].values[0]+'_parsed.csv'
@@ -791,7 +791,7 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
     """
     META_FILE = Path(META_FILE)
 
-    META = pd.read_table(META_FILE,sep=',')
+    META = pd.read_csv(META_FILE,sep=',')
     if LV_param_set_Index==-1:
         LV_params = LV_params # use input parameter list
     elif LV_param_set_Index=='all':
