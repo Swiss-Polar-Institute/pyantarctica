@@ -775,7 +775,7 @@ def get_raw_param(VarNameLUT='u10', META_FILE = '../data/ASAID_DATA_OVERVIEW - S
 
 def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], META_FILE = '../data/ASAID_DATA_OVERVIEW - Sheet1.csv',
                       INTERPOLATE_limit=0,
-                      FILTER_MODEFITTING=True):
+                      FILTER_LOD_OUTLIERS=True):
     """
         Function to read paramters for one LV experiment based on META_FILE
         All parameters are resampled to a common time stamp
@@ -826,9 +826,17 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         var = get_raw_param(VarNameLUT=VarNameLUT, META_FILE = META_FILE)
 
         #### - FILTERING OF OUTLIERS / BELOW LOD VALUES ####
-        if FILTER_MODEFITTING:
+        if FILTER_LOD_OUTLIERS:
             if VarNameIntermediate in ['N_conc_mode1', 'N_conc_mode2', 'N_conc_mode3', 'N_conc_total_fitted']:
-                var=var[var>2] # remove any data with less than 2 particles per ccm (Threshold 5 ccm suggested by rob)
+                var=var[var>2] # remove any data with less than 2 particles per ccm (Threshold 5 ccm suggested by rob, this way the gaps in the sea spray mode are less large, data look still ok to me)
+            if VarNameIntermediate in ['CO_ppb']:
+                var=var[var>.015] # cut out some low values
+            if VarNameIntermediate in ['SO4']:
+                var=var[var>(.14)] # cut at detection limit (LOD=0.14).
+            if VarNameIntermediate in ['Chloride']:
+                var=var[var>(.64/20)] # cut at 1/20 detection limit (LOD=0.64, really?). Cause there would nothing be left
+            if VarNameIntermediate in ['CL1', 'CL2', 'CL3']:
+                var=var[var>30] # remove cloude level below 30 meter
         #### - - - - - - - - - - - - - -  - ###
         
         #### - TIME SERIES RESAMPLING TO GET DESIRED UNIFORM TEMPORAL RESOLUTION ####
