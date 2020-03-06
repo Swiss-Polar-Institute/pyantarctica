@@ -825,31 +825,7 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         # use get_raw_param here, instead of dublicating code. It is a bit overkill of releoding META_FILE each time. Could change to handing META over to get_raw_param instead of the file name
         var = get_raw_param(VarNameLUT=VarNameLUT, META_FILE = META_FILE)
 
-        #### - FILTERING OF OUTLIERS / BELOW LOD VALUES ####
-        if FILTER_LOD_OUTLIERS:
-            if VarNameIntermediate in ['N_conc_mode1', 'N_conc_mode2', 'N_conc_mode3', 'N_conc_total_fitted']:
-                var[var<2]=2 #2 particles per ccm
-            if VarNameIntermediate in ['CO_ppb']:
-                var[var<.015]=0.015 # to be confirmed # TBC
-            if VarNameIntermediate in ['SO4']:
-                var[var<(.14)]=0.14 #  detection limit (LOD=0.14).
-            if VarNameIntermediate in ['Chloride']:
-                var[var<(.64/20)]=(.64/20) # 1/20 detection limit (LOD=0.64, really?). Cause there would nothing be left. To be confirmed! # TBC
-            if VarNameIntermediate in ['CL1', 'CL2', 'CL3']:
-                var[var<30]=30 # remove cloude level below 30 meter # TBC
-                
-            if VarNameIntermediate in ['precip_horizontal-p18']:
-                var[var<(1E-5)]=1E-5 # TBC
-            if VarNameIntermediate in ['precip_vertical_V_0.25-p18']:
-                var[var<(1E-7)]=1E-7 # TBC
-            if VarNameIntermediate in ['precip_vertical_V_1.00-p18']:
-                var[var<(1E-6)]=1E-6 # TBC
-                
-            if VarNameIntermediate in ['rain-rate-100to200m-p11', 'rain-rate-200to300m-p11']:
-                var[var<(1E-2)]=1E-2 # TBC
-            
-        #### - - - - - - - - - - - - - -  - ###
-        
+     
         #### - TIME SERIES RESAMPLING TO GET DESIRED UNIFORM TEMPORAL RESOLUTION ####
         if VarNameIntermediate in ['CL1', 'CL2', 'CL3']:
             # NEED TO DECIDE WHAT TO DO WITH CL!!
@@ -862,6 +838,16 @@ def filter_parameters(time_bin = 60, LV_param_set_Index=1, LV_params=['u10'], ME
         var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
         #### - - - - - - - - - - - - - -  - ###
 
+        
+        #### - FILTERING OF OUTLIERS / BELOW LOD VALUES ####
+        LOD_SCALE = 1 # 1/np.sqrt(2) # suggested by Andrea Baccarini
+        # TODO : use np.random to generate random numbers e.g. between 0.5 and 1 to be multiplied with the LOD to fill the samples
+        if FILTER_LOD_OUTLIERS:
+            LOD = META['LOD applied'][META['VarNameLUT']==VarNameLUT].values[0]
+            if ~np.isnan(LOD):
+                var[var<LOD]=LOD*LOD_SCALE
+                
+        #### - - - - - - - - - - - - - -  - ###
 
         #### - add optional interpolation - ###
         if INTERPOLATE_limit>0:
