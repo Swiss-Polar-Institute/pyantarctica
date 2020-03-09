@@ -446,9 +446,7 @@ def generate_particle_data(
     if mode.lower() == "single_bins":
         if savedata:
             particles.to_csv(
-                aggregated_no_noise + "/03_particles_" + mode + ".csv",
-                sep=",",
-                na_rep="",
+                mode + "/03_particles_" + mode + ".csv", sep=",", na_rep="",
             )
         return particles
 
@@ -1036,13 +1034,10 @@ def filter_parameters(
         var = get_raw_param(VarNameLUT=VarNameLUT, META_FILE=META_FILE)
 
         #### - - - - - - - - - - - - - -  - ###
-        var += 1e-6
-        if np.any(var < 0):
-            print(f"{VarNameLUT}: {np.mean(var[var<0])}")
-            var = var + np.nanmin(var)
-
-        if ditype == "Log-Normal":
-            var = np.log(var)
+        # var += 1
+        # if np.any(var < 0):
+        #     print(f"{VarNameLUT}: {np.mean(var[var<0])}")
+        #     var = var + np.nanmin(var)
 
         #### - FILTERING OF OUTLIERS / BELOW LOD VALUES ####
         LOD_SCALE = 1  # 1/np.sqrt(2) # suggested by Andrea Baccarini
@@ -1051,6 +1046,15 @@ def filter_parameters(
             LOD = META["LOD applied"][META["VarNameLUT"] == VarNameLUT].values[0]
             if ~np.isnan(LOD):
                 var[var < LOD] = LOD * LOD_SCALE
+
+        if ditype == "Log-Normal":
+            var += 1
+            if np.any(var < 0):
+                print(f"{VarNameLUT}: {np.mean(var[var<0])}")
+                var = var + np.nanmin(var)
+
+            var = np.log(var)
+
         #### - - - - - - - - - - - - - -  - ###
 
         # print(len(var), VarNameLUT, ditype)
