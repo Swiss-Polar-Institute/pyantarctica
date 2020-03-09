@@ -1037,6 +1037,9 @@ def filter_parameters(
 
         #### - - - - - - - - - - - - - -  - ###
         var += 1e-6
+        if np.any(var < 0):
+            print(f"{VarNameLUT}: {np.mean(var[var<0])}")
+
         if ditype == "Log-Normal":
             var = np.log(var)
 
