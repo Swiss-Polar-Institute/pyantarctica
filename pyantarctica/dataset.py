@@ -1048,10 +1048,10 @@ def filter_parameters(
                 var[var < LOD] = LOD * LOD_SCALE
 
         if ditype == "Log-Normal":
-            var += 1
-            if np.any(var < 0):
-                print(f"{VarNameLUT}: {np.mean(var[var<0])}")
-                var = var + np.nanmin(var)
+            var[var == 0] = np.nan
+            # if np.any(var < 0):
+            #     print(f"{VarNameLUT}: {np.mean(var[var<0])}")
+            #     var = var + np.nanmin(var)
 
             var = np.log(var)
 
