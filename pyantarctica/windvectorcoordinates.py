@@ -3,32 +3,93 @@ import numpy as np
 
 # collection of useful functions to deal with wind vector data and GPS coordiates
 def ang180(x):
+    """
+        Function to mapp angular data over the interval [-180 +180)
+
+        :param x: data series
+        :returns: the data series mapped into [-180 +180)
+    """
     return ((x+180)%360)-180 # map any number into -180, 180 keeping the order the same
 
 def URVRship2WSRWDR(Urel,Vrel):
+    """
+        Function to calculate relative wind speed and relative wind direction [0, 360) from the relaive wind vector [U_s,V_s] in ships reference frame (right hand coordinate system)
+
+        :param Urel: relative wind speed along ships main axis
+        :param Vrel: relative wind speed perpendicular to the ships main axis
+
+        :returns: WSR: relative wind speed (absolute value)
+        :returns: WSR: relative wind direction [0, 360), where 0 denotes wind blowing against the ship and +90 wind comming from starbroard
+    """
     # this is for Urel,Vrel in ship coordinate system
     WSR = np.sqrt(np.square(Urel)+np.square(Vrel))
     WDR = (180-np.rad2deg(np.arctan2(Vrel,Urel) ) )%360 # 
     return WSR, WDR
 
 def UVrel2WSRWDR(Urel,Vrel,HEADING):
+    """
+        Function to calculate relative wind speed and relative wind direction [0, 360) from the relative wind vector [U_Earth,V_Earth] in Earth reference frame (right hand coordinate system)
+
+        :param Urel: relative wind speed in East direction
+        :param Vrel: relative wind speed in Northward direction
+        :param HEADING: ships heading [0, 360) clockwise from North
+
+        :returns: WSR: relative wind speed (absolute value)
+        :returns: WSR: relative wind direction [0, 360), where 0 denotes wind blowing against the ship and +90 wind comming from starbroard
+    """
     # this is for Urel,Vrel in earth coordinate system, the way they come out of UVtrue2UVrel!!!
     WSR = np.sqrt(np.square(Urel)+np.square(Vrel))
     WDR = (270-HEADING-np.rad2deg(np.arctan2(Vrel,Urel) ) )%360 # 
     return WSR, WDR
 
 def UVtrue2UVrel(U,V,velEast,velNorth):
-    # from U,V, HEADING and east north velocity calculate relative wind speed and direction
+    """
+        Function to calculate the relative wind vector from the vector combination of the true wind vector [U,V] and the ships velocity [V_Eeast,V_North]. All in Earth reference frame (right hand coordinate system)
+
+        :param U: true wind speed in East direction
+        :param V: true wind speed in North direction
+        :param velEast: ships velocity in East direction
+        :param velNorth: ships velocity in North direction
+
+        :returns: Urel: relative wind speed in East direction
+        :returns: Vrel: relative wind speed in Northward direction
+    """
     Urel = U-velEast
     Vrel = V-velNorth
     return Urel, Vrel
 
 def UVtrue2WSRWDR(U,V,HEADING,velEast,velNorth):
+    """
+        Function to calculate the relative wind speed and relative wind direction [0, 360) from the vector combination of the true wind vector [U,V] and the ships velocity [V_Eeast,V_North] (all in Earth reference frame), followed by a rotation by the ships HEADING to end up in the ships reference frame
+        (This is the invers of the True wind speed correction)
+
+        :param U: true wind speed in East direction
+        :param V: true wind speed in North direction
+        :param HEADING: ships heading [0, 360) clockwise from North
+        :param velEast: ships velocity in East direction
+        :param velNorth: ships velocity in North direction
+        
+        :returns: WSR: relative wind speed (absolute value)
+        :returns: WSR: relative wind direction [0, 360), where 0 denotes wind blowing against the ship and +90 wind comming from starbroard
+    """        
     Urel, Vrel = UVtrue2UVrel(U,V,velEast,velNorth)
     WSR, WDR = UVrel2WSRWDR(Urel,Vrel,HEADING)
     return WSR, WDR
 
 def WSRWDR2UVtrue(WSR,WDR,HEADING,velEast,velNorth):
+    """
+        True wind speed following Smith et al 1999
+        Function to calculate the true wind vector from the relative wind speed and relative wind direction [0, 360) the ships heading and the ships velocity [V_Eeast,V_North]
+
+        :param WSR: relative wind speed (absolute value)
+        :param WDR: relative wind direction [0, 360)
+        :param HEADING: ships heading [0, 360) clockwise from North
+        :param velEast: ships velocity in East direction
+        :param velNorth: ships velocity in North direction
+        
+        :returns: U: true wind speed in East direction
+        :returns: V: true wind speed in North direction
+    """    
     uA=WSR*np.cos(np.deg2rad(270-HEADING-WDR))
     vA=WSR*np.sin(np.deg2rad(270-HEADING-WDR))
     U = uA+velEast
@@ -36,17 +97,47 @@ def WSRWDR2UVtrue(WSR,WDR,HEADING,velEast,velNorth):
     return U, V
     
 def UVtrue2WSWD(U,V):
+    """
+        Function to calculate true wind speed and true wind direction [0, 360) from the true wind vector [U_Earth,V_Eearth] in Earth reference frame (right hand coordinate system)
+
+        :param U: true wind speed in East direction
+        :param V: true wind speed in North direction
+
+        :returns: WS: true wind speed (absolute value)
+        :returns: WD: true wind direction [0, 360), where 0 denotes wind blowing from North +90 wind comming from East
+    """
     WS = np.sqrt(np.square(U)+np.square(V))
     WD = (270 - np.rad2deg(np.arctan2(V, U)) )% 360
     return WS, WD
 
 def WSWD2UVtrue(WS,WD):
+    """
+        Function to calculate true wind vecotr from the true wind speed and true wind direction [0, 360)
+        
+        :param WS: true wind speed (absolute value)
+        :param WD: true wind direction [0, 360), where 0 denotes wind blowing from North +90 wind comming from East
+        
+        :returns: U: true wind speed in East direction
+        :returns: V: true wind speed in North direction        
+    """
     U=WS*np.cos(np.deg2rad(270-WD))
     V=WS*np.sin(np.deg2rad(270-WD))
     return U, V
 
 
 def WSWD2WSRWDR(WS,WD,HEADING,velEast,velNorth):
+    """
+        Function to calculate the relative wind speed and relative wind direction [0, 360) from true wind speed, true wind direction, ships heading and velocity vector
+        
+        :param WS: true wind speed (absolute value)
+        :param WD: true wind direction [0, 360), where 0 denotes wind blowing from North +90 wind comming from East
+        :param HEADING: ships heading [0, 360) clockwise from North
+        :param velEast: ships velocity in East direction
+        :param velNorth: ships velocity in North direction
+          
+        :returns: WSR: relative wind speed (absolute value)
+        :returns: WSR: relative wind direction [0, 360), where 0 denotes wind blowing against the ship and +90 wind comming from starbroard
+    """    
     U, V = WSWD2UVtrue(WS,WD)
     WSR, WDR = UVtrue2WSRWDR(U,V,HEADING,velEast,velNorth)
     return WSR, WDR
@@ -54,6 +145,24 @@ def WSWD2WSRWDR(WS,WD,HEADING,velEast,velNorth):
 
 # function to estimate how sensitive predicted relative wind speed and direction are on biased TRUE WIND input
 def WSRWDR_uncertainy(WSPD,WDIR,HEADING,velEast,velNorth,a_WSPD=1.1,d_WDIR=10):
+    """
+        Function to calculate the uncertainty of relative wind speed and relative wind direction that have been estimated from a true wind speed, true wind direction, ships heading, and velocity vector, where the true wind speed and direction are uncertain by a factor/angle
+        
+        :param WSPD: true wind speed (absolute value)
+        :param WDIR: true wind direction [0, 360), where 0 denotes wind blowing from North +90 wind comming from East
+        :param HEADING: ships heading [0, 360) clockwise from North
+        :param velEast: ships velocity in East direction
+        :param velNorth: ships velocity in North direction
+        :param a_WSPD: specified uncertainty in the true wind speed (use 1.1 to denote 10% uncertainty)
+        :param d_WDIR: specified uncertainty in the true wind direction [degrees]
+          
+        :returns: WSR_err: estimated uncertainty in the relative wind speed [m/s]
+        :returns: WSR_err: estimated uncertainty in the relative wind direction [degrees]
+        
+        See Appendix section B: From errors in the reference wind vector to errors in the expected relative wind speed and direction
+        in Landwehr et al. (2020) ``Using global reanalysis data to quantify and correct airflow distortion bias in shipborne wind speed measurements''
+        
+    """    
     WSR, WDR = WSWD2WSRWDR(WSPD,WDIR,HEADING,velEast,velNorth) # basline
     WSR_aup, WDR_aup = WSWD2WSRWDR(WSPD*a_WSPD,WDIR,HEADING,velEast,velNorth) # vary WSPD up by factor
     WSR_alo, WDR_alo = WSWD2WSRWDR(WSPD/a_WSPD,WDIR,HEADING,velEast,velNorth)# vary WSPD down by factor
@@ -86,6 +195,10 @@ def WSRWDR_uncertainy(WSPD,WDIR,HEADING,velEast,velNorth,a_WSPD=1.1,d_WDIR=10):
 
 # ACE specific functions ...
 def dirdiff(HEADING,Nmin,loffset):
+    """
+        Function to calculate the maximum difference of a [0, 360) direction during specified time averging intervals
+               
+    """
     HEADING_MAX=HEADING.resample(str(Nmin)+'T', loffset = loffset).max()
     HEADING_MIN=HEADING.resample(str(Nmin)+'T', loffset = loffset).min()
     HEADING = (HEADING-180)%360
