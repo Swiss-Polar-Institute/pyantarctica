@@ -961,6 +961,8 @@ def get_raw_param(
             Path("..", "data", "intermediate", Proj_folder, FilenameIntermediate)
         )[[VarNameIntermediate]]
     var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
+
+    var.sort_index(inplace=True)
     return var
 
 
@@ -1109,6 +1111,7 @@ def filter_parameters(
         # #### - - - - - - - - - - - - - -  - ###
 
         #### - add optional interpolation - ###
+
         if INTERPOLATE_limit > 0:
 
             if FilenameIntermediate in [
@@ -1153,5 +1156,6 @@ def filter_parameters(
             params = pd.merge(
                 params, var, left_index=True, right_index=True, how="outer"
             )
+
     return params
 
