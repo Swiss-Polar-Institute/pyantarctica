@@ -1034,7 +1034,9 @@ def filter_parameters(
         #
         # use get_raw_param here, instead of dublicating code. It is a bit overkill of releoding META_FILE each time. Could change to handing META over to get_raw_param instead of the file name
         var = get_raw_param(VarNameLUT=VarNameLUT, META_FILE=META_FILE)
-        var = var.replace({np.inf: 1.5 * np.nanmax(var.replace({np.inf: 0}))})
+        if VarNameIntermediate in ["CL1", "CL2", "CL3"]:
+            var = var.replace({np.inf: 1.5 * np.nanmax(var.replace({np.inf: 0}))})
+        # Add alert for other infinity values
 
         #### - - - - - - - - - - - - - -  - ###
         # var += 1
