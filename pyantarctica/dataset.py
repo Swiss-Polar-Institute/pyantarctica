@@ -1034,6 +1034,12 @@ def filter_parameters(
         #
         # use get_raw_param here, instead of dublicating code. It is a bit overkill of releoding META_FILE each time. Could change to handing META over to get_raw_param instead of the file name
         var = get_raw_param(VarNameLUT=VarNameLUT, META_FILE=META_FILE)
+        
+        if VarNameIntermediate in ["seaice"]:
+            # for sea ice interpolate only values, where the interpolation results to 0 values
+            # we don't interpolate accross the strech of missing data where the ship was parked at the Mertz glacier
+            var.at[( np.isnan(var[var.columns[0]]) &  (var[var.columns[0]].interpolate(direction='both')==0) ),  var.columns[0]] = 0
+        
         if VarNameIntermediate in ["CL1", "CL2", "CL3"]:
             var = var.replace({np.inf: 1.5 * np.nanmax(var.replace({np.inf: 0}))})
         # Add alert for other infinity values
@@ -1114,6 +1120,13 @@ def filter_parameters(
         # #### - - - - - - - - - - - - - -  - ###
 
         #### - add optional interpolation - ###
+        
+        if VarNameIntermediate in ["seaice"]:
+            # for sea ice interpolate only values, where the interpolation results to 0 values
+            # we don't interpolate accross the strech of missing data where the ship was parked at the Mertz glacier
+            var.at[( np.isnan(var[var.columns[0]]) &  (var[var.columns[0]].interpolate(direction='both')==0) ),  var.columns[0]] = 0
+        
+
 
         if INTERPOLATE_limit > 0:
 
