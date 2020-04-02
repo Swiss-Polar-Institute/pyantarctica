@@ -1034,6 +1034,7 @@ def filter_parameters(
         #
         # use get_raw_param here, instead of dublicating code. It is a bit overkill of releoding META_FILE each time. Could change to handing META over to get_raw_param instead of the file name
         var = get_raw_param(VarNameLUT=VarNameLUT, META_FILE=META_FILE)
+        var = var.replace({np.inf: 1.5 * np.nanmax(var.replace({np.inf: 0}))})
 
         #### - - - - - - - - - - - - - -  - ###
         # var += 1
@@ -1158,4 +1159,3 @@ def filter_parameters(
             )
 
     return params
-
