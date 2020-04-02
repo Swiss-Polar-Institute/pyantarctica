@@ -645,6 +645,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     SWI_DATA='../data/intermediate/11_meteo/ACE_watervapour_isotopes_SWI13_5min_parsed.csv',
     D_TO_LAND='../data/intermediate/0_shipdata/BOAT_GPS_distance_to_land_parsed.csv',
     T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv',
+    MERGED_SST = '../data/intermediate/18_precipitation/ace_merged_uw_sat_t_parsed.csv', # new data merged by Alex Haumann
     RETURN_EXPANSIONS=False):
 
     # loads parameters from various data sets and creates a joint 5min data set
@@ -724,6 +725,10 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     ferrybox = ferrybox.resample('5min' ).mean() # resample 5min
     ferrybox = dataset.match2series(ferrybox,metdata) # match to params seris
 
+    merged_sst = dataset.read_standard_dataframe(MERGED_SST, crop_legs=False)
+    merged_sst = merged_sst.resample('5min' ).mean() # resample 1min to 5min resloution
+    merged_sst = dataset.match2series(merged_sst,metdata) # match to params seris
+
 
     params = wind[['u10', 'uR_afc', 'vR_afc']].copy() # 10meter neutral wind speed [m/s] and relative wind vector
     params['WSR_afc'] = np.sqrt(np.square(params['uR_afc'])+np.square(params['vR_afc']))
@@ -745,28 +750,21 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
             params[var_str] = params[var_str].interpolate(method='nearest', limit=4, limit_direction='both', axis=0)
 
 
-    if SST_from in ['merge', 'ship', 'merge_ship_satellite', 'merge_ship_era5']:
-        params['SST'] = ferrybox['temperature']+273.15
-
-        if SST_from in ['merge', 'merge_ship_satellite']:
-            # fill large gaps with satellite SST
-            FILLGAPS = (( np.isnan(ferrybox.temperature) & np.isnan(ferrybox.interpolate(method='linear', limit=12, limit_direction='both', axis=0)['temperature'])   ))
-            params['SST'][FILLGAPS] = satellite.sst[FILLGAPS]+273.15
-        if SST_from in ['merge_ship_era5']:
-            # fill the large gaps with era5 sst (-273.15),
-            # there are local mismatches between era5 and ferrybox.temperature,
-            # in oder to avoid plenty of jumpy data we only fill gaps that are longer than 1hour=12*5min in either direction:
-            FILLGAPS = (( np.isnan(ferrybox.temperature) & np.isnan(ferrybox.interpolate(method='linear', limit=12, limit_direction='both', axis=0)['temperature'])   ))
-            params['SST'][FILLGAPS] = era5.sst[FILLGAPS]
+    if SST_from in ['merge', 'ship', 'merge_ship_satellite']:
+        #params['SST'] = ferrybox['temperature']+273.15
+        params['SST'] = merged_sst['Temperature [degC]']+273.15
+        if SST_from in ['ship']:
+            params.at[~(np.round(merged_sst['Flags (1-3)'])==1), 'SST']=np.NaN # remove all satellite and interpolated values
 
     elif SST_from in ['era5']:
         params['SST'] = (era5['sst'])
     else:
-        print('wrong option for SST_from, use: ship, era5, or merge')
+        print('wrong option for SST_from, use: ship, era5, or merge_ship_satellite')
         return
 
-    if 1: # interpolate over 1hour gaps in the SST
-        params['SST'] = params['SST'].interpolate(method='linear', limit=40, limit_direction='both', axis=0)
+    # no longer needed
+    #if 1: # interpolate over 1hour gaps in the SST
+    #    params['SST'] = params['SST'].interpolate(method='linear', limit=40, limit_direction='both', axis=0)
 
     params['deltaT']=(params['TA']-params['SST']) # air sea temperature gradient [K]
 
