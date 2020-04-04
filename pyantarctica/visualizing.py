@@ -1082,7 +1082,9 @@ def interactive_map(v1, options):
     vcol[vcol < min_] = min_
     vcol[vcol > max_] = max_
 
-    coordinates_raw = dataset.read_standard_dataframe(options["gps_file"])
+    coordinates_raw = dataset.read_standard_dataframe(options["gps_file"])[
+        ["latitude", "longitude"]
+    ]
 
     # mode_ = lambda x : stats.mode(x)[0]
     #  Deal with coordinates
