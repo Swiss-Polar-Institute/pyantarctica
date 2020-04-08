@@ -1035,6 +1035,9 @@ def filter_parameters(
         # use get_raw_param here, instead of dublicating code. It is a bit overkill of releoding META_FILE each time. Could change to handing META over to get_raw_param instead of the file name
         var = get_raw_param(VarNameLUT=VarNameLUT, META_FILE=META_FILE)
         
+        if VarNameIntermediate in ["depth_m"]:
+            var = -var # change to positive values which we can handle with the logarithm
+        
         if VarNameIntermediate in ["seaice"]:
             # for sea ice interpolate only values, where the interpolation results to 0 values
             # we don't interpolate accross the strech of missing data where the ship was parked at the Mertz glacier
