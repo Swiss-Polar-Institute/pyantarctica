@@ -553,18 +553,19 @@ def generate_particle_data(
 
 
 ##############################################################################################################
-def read_standard_dataframe(data_folder, datetime_index_name="timest_", crop_legs=True):
+def read_standard_dataframe(data_folder, datetime_index_name="timest_", crop_legs=True, date_time_format="%Y-%m-%d %H:%M:%S"):
     """
         Helper function to read a ``*_postprocessed.csv`` file, and automatically crop out leg 1 - leg 3, and set as datetime index a specific column (or defaults to the standard)
 
         :param data_folder: from where to read the ``*_postprocessed.csv`` datafile
         :param datetime_index_name: specify non-default datetime index column (= ``timest_``)
         :param crop_legs: boolean to specify whether to remove data outside leg 1 to leg 3
+        :param date_time_format: string to sepcify the date_time_format (added 2020.04.23 by SL)
         :returns: dataframe containing the original data, leg-cropped (if option active)
     """
     data = pd.read_csv(data_folder, na_values=" ", sep=",")
     data.set_index(datetime_index_name, inplace=True)
-    data.index = pd.to_datetime(data.index, format="%Y-%m-%d %H:%M:%S")
+    data.index = pd.to_datetime(data.index, format=date_time_format)
 
     if crop_legs:
         leg = add_legs_index(data)["leg"]

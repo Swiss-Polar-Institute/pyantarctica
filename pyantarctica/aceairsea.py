@@ -1,15 +1,12 @@
 # some usefull functions based on air-sea literature
 # I have coded these to my best knowledge, but I cannot quarantee for the content to be correct.
-# last reviewed by Sebastian Landwehr PSI 20.08.2018
-# uses the airsea toolbox of Filipe Fernandes [don't mix up with this one!]
+# last reviewed by Sebastian Landwehr PSI 27.03.2020
+# uses the airsea toolbox of Filipe Fernandes
 # - # pip install airsea
 # - # https://github.com/pyoceans/python-airsea
 # - # https://pypi.org/project/airsea/
-# new line added during merge request 2019-05-17 SL
 
 import numpy as np
-
-import pyantarctica.constants as constants
 
 def LMoninObukov_bulk(U10,SSHF,SLHF,STair):
     # Monin Obukov Length scale as function of

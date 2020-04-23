@@ -1,7 +1,9 @@
+# collection of useful functions to deal with wind vector data and GPS coordiates
+# last reviewed by Sebastian Landwehr PSI 27.03.2020
+
 import datetime
 import numpy as np
 
-# collection of useful functions to deal with wind vector data and GPS coordiates
 def ang180(x):
     """
         Function to mapp angular data over the interval [-180 +180)
@@ -197,6 +199,8 @@ def WSRWDR_uncertainy(WSPD,WDIR,HEADING,velEast,velNorth,a_WSPD=1.1,d_WDIR=10):
 def dirdiff(HEADING,Nmin,loffset):
     """
         Function to calculate the maximum difference of a [0, 360) direction during specified time averging intervals
+        
+        returns: HEADING_DIFF: time series of the maximal difference between the direction estimates during the specified averaging interval
                
     """
     HEADING_MAX=HEADING.resample(str(Nmin)+'T', loffset = loffset).max()
@@ -206,6 +210,64 @@ def dirdiff(HEADING,Nmin,loffset):
     HEADING_MIN_=HEADING.resample(str(Nmin)+'T', loffset = loffset).min()
     HEADING_DIFF = np.min([(HEADING_MAX-HEADING_MIN), (HEADING_MAX_-HEADING_MIN_)], axis=0)
     return HEADING_DIFF
+
+def resample_track_data(df_wind, Nmin=5,interval_center='odd', lon_flip_tollerance=0.0005):
+    # suggested input for lon_flip_tollerance:
+    #lon_flip_tollerance = 0.0005 # for Nmin=1min a value well aboved the normal difference of mean and median longitudes
+    #lon_flip_tollerance = 0.1 # for Nmin 5min to 1hour
+
+    wind_5min = df_wind.copy(); # make copy (may not be necessary here)
+
+    # average to 5min
+    if interval_center == 'odd':
+        loffset = datetime.timedelta(minutes=0.5*Nmin)
+    # adjust the loffset to get the timestamp into the center of the interval
+    # this leads to mean bins at MM:30
+    elif interval_center == 'even':
+        loffset = datetime.timedelta(minutes=0*Nmin)
+        wind_5min.index=wind_5min.index+datetime.timedelta(minutes=.5*Nmin);
+    else:
+        print('interval_center must be odd or even')
+        
+    # calculate max heading difference in degree (very linear with HEDING_STD)
+    HEADING_DIFF = dirdiff(wind_5min.HEADING.copy(),Nmin,loffset)
+
+    SOG = wind_5min.SOG.copy();
+    SOG_MAX=SOG.resample(str(Nmin)+'T', loffset = loffset).max()
+    SOG_MIN=SOG.resample(str(Nmin)+'T', loffset = loffset).min()
+    
+    # caclulate heading vecotor resampled
+    hdg_cos=( np.cos(np.deg2rad(wind_5min.HEADING)) ).resample(str(Nmin)+'T', loffset = loffset).mean() 
+    hdg_sin=( np.sin(np.deg2rad(wind_5min.HEADING)) ).resample(str(Nmin)+'T', loffset = loffset).mean() 
+
+    
+    #lon_median = wind_5min.longitude.copy();
+    lon_median=wind_5min['longitude'].resample(str(Nmin)+'T', loffset = loffset).median() # median of longitudes
+    # here we fix dateline issues of averaging longitudes around +/-180 degree
+
+    # now resample the main time series
+    wind_5min=wind_5min.resample(str(Nmin)+'T', loffset = loffset).mean() 
+
+   #wind_5min['longitude'][np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance]=lon_median[np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance]
+    wind_5min.at[(np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance), 'longitude']=lon_median[np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance]
+    
+    #wind_5min = wind_5min.assign(HEADING_DIFF=HEADING_DIFF)
+    #wind_5min = wind_5min.assign(SOG_DIFF=(SOG_MAX-SOG_MIN))
+    if 'HEADING_DIFF' in wind_5min.columns:
+        wind_5min['HEADING_DIFF']=HEADING_DIFF
+    else:
+        wind_5min = wind_5min.assign( HEADING_DIFF = HEADING_DIFF )
+    if 'SOG_DIFF' in wind_5min.columns:
+        wind_5min['SOG_DIFF']=(SOG_MAX-SOG_MIN)
+    else:
+        wind_5min = wind_5min.assign( SOG_DIFF=(SOG_MAX-SOG_MIN) )
+
+    wind_5min.COG = (90-np.rad2deg(np.arctan2(wind_5min.velNorth,wind_5min.velEast))) % 360 # recompute COG from averaged North/Easte velocities
+    wind_5min.HEADING = np.rad2deg(np.arctan2(hdg_sin, hdg_cos)) % 360 # recompute HEADING from average components
+    # recalcualte the speeds as vector average
+    wind_5min.SOG = np.sqrt( np.square(wind_5min.velNorth) + np.square(wind_5min.velEast) )
+
+    return wind_5min
 
 
 def resample_wind_data(df_wind, Nmin=5,interval_center='odd', lon_flip_tollerance=0.0005):
@@ -258,11 +320,16 @@ def resample_wind_data(df_wind, Nmin=5,interval_center='odd', lon_flip_tolleranc
 
    #wind_5min['longitude'][np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance]=lon_median[np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance]
     wind_5min.at[(np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance), 'longitude']=lon_median[np.abs(wind_5min.longitude-lon_median)>lon_flip_tollerance]
-
-    #wind_5min = wind_5min.assign(HEADING_DIFF=HEADING_DIFF)
-    #wind_5min = wind_5min.assign(SOG_DIFF=(SOG_MAX-SOG_MIN))
-    wind_5min.HEADING_DIFF=HEADING_DIFF
-    wind_5min.SOG_DIFF=(SOG_MAX-SOG_MIN)
+ 
+    if 'HEADING_DIFF' in wind_5min.columns:
+        wind_5min['HEADING_DIFF']=HEADING_DIFF
+    else:
+        wind_5min = wind_5min.assign( HEADING_DIFF = HEADING_DIFF )
+        
+    if 'SOG_DIFF' in wind_5min.columns:
+        wind_5min['SOG_DIFF']=(SOG_MAX-SOG_MIN)
+    else:
+        wind_5min = wind_5min.assign( SOG_DIFF=(SOG_MAX-SOG_MIN) )
     
     wind_5min = wind_5min.assign(WDR1_DIFF=WDR1_DIFF)
     wind_5min = wind_5min.assign(WDR2_DIFF=WDR2_DIFF)

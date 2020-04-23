@@ -635,7 +635,7 @@ def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_', LABELS=[]):
 
 def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', WAVE_from='imu',
     MET_DATA='../data/intermediate/0_shipdata/metdata_5min_parsed.csv',
-    ERA5_DATA='../../ecmwf-download/data/ecmwf-on-track/era5_ace_track_nearest.csv',
+    ERA5_DATA='../../ecmwf-download/data/ecmwf-on-track/era5-on-cruise-track-5min-legs0-4-nearest.csv',
     WIND_DATA='../data/intermediate/0_shipdata/u10_ship_5min_full_parsed.csv',
     WAVE_DATA='../data/intermediate/17_waves/01_waves_recomputed.csv',
     WAMOS_DATA='../data/intermediate/17_waves/Updated_Wave_Info_ACE_Leg01234_parsed.csv',
@@ -643,7 +643,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     FERRYBOX='../data/intermediate/18_precipitation/ferrybox_parsed.csv',
     SATELLITE='../data/intermediate/18_precipitation/satellite_parsed.csv',
     SWI_DATA='../data/intermediate/11_meteo/ACE_watervapour_isotopes_SWI13_5min_parsed.csv',
-    D_TO_LAND='../data/intermediate/0_shipdata/BOAT_GPS_distance_to_land_parsed.csv',
+    D_TO_LAND='../data/intermediate/0_shipdata/dist_to_land_incl_small_islands_parsed.csv',
     T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv',
     MERGED_SST = '../data/intermediate/18_precipitation/ace_merged_uw_sat_t_parsed.csv', # new data merged by Alex Haumann
     RETURN_EXPANSIONS=False):
@@ -698,32 +698,40 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     wind.drop(columns=['VIS'], inplace=True)
 
     d_to_land = dataset.read_standard_dataframe(D_TO_LAND, crop_legs=False)
-    d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
-    if (len(d_to_land.columns)>1): # if intermediate version is used the csv also contains lat/lon, need to drop these
-        d_to_land.drop(columns=['latitude', 'longitude'], inplace=True)
-
+    # Here we ensure timestamp on left.
+    # I assume the only possible cases are original 5-min timestamp on right, or center
+    if d_to_land.index[0].second==0:
+        d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
+    elif d_to_land.index[0].second==30:
+        d_to_land.index = d_to_land.index-pd.Timedelta(2.5,'min')
+    if 'latitude' in d_to_land.columns: # if intermediate version is used the csv also contains lat/lon, need to drop these
+        d_to_land.drop(columns=['latitude'], inplace=True)
+    if 'longitude' in d_to_land.columns: # if intermediate version is used the csv also contains lat/lon, need to drop these
+        d_to_land.drop(columns=['longitude'], inplace=True)
+        
     t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
     t_to_land.index = t_to_land.index-pd.Timedelta(5,'min')
     t_to_land = pd.merge(t_to_land[['hours_till_land']],metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     t_to_land.drop(columns=['VIS'], inplace=True) # drop the unnecessary column we got from merging
     t_to_land = t_to_land.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
 
-    era5 = dataset.read_standard_dataframe(ERA5_DATA, crop_legs=False)
+    era5 = dataset.read_standard_dataframe(ERA5_DATA, datetime_index_name="date_time", crop_legs=False, date_time_format="%Y-%m-%dT%H:%M:%S")
     if (str(era5.index.tzinfo)=='None')==False:
         era5.set_index(era5.index.tz_convert(None), inplace=True) # remove TZ info
     era5.index = era5.index-pd.Timedelta(2.5,'min') # adjust to beginning of 5min interval rule
     era5 = pd.merge(era5,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     era5.drop(columns=['VIS'], inplace=True)
 
-    satellite = dataset.read_standard_dataframe(SATELLITE, crop_legs=False)
+    if False: # to be removed outdataed
+        satellite = dataset.read_standard_dataframe(SATELLITE, crop_legs=False)
 
-    satellite = dataset.resample_timeseries(satellite, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=60) # old resolution = 60min but time stamp irregular on odd seconds -> resample to 5min
-    satellite = dataset.match2series(satellite,metdata) # match to params seris
-    satellite = satellite.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
+        satellite = dataset.resample_timeseries(satellite, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=60) # old resolution = 60min but time stamp irregular on odd seconds -> resample to 5min
+        satellite = dataset.match2series(satellite,metdata) # match to params seris
+        satellite = satellite.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
 
-    ferrybox = dataset.read_standard_dataframe(FERRYBOX, crop_legs=False)
-    ferrybox = ferrybox.resample('5min' ).mean() # resample 5min
-    ferrybox = dataset.match2series(ferrybox,metdata) # match to params seris
+        ferrybox = dataset.read_standard_dataframe(FERRYBOX, crop_legs=False)
+        ferrybox = ferrybox.resample('5min' ).mean() # resample 5min
+        ferrybox = dataset.match2series(ferrybox,metdata) # match to params seris
 
     merged_sst = dataset.read_standard_dataframe(MERGED_SST, crop_legs=False)
     merged_sst = merged_sst.resample('5min' ).mean() # resample 1min to 5min resloution
@@ -865,7 +873,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
 
     return params
 
-def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='../data/intermediate/0_shipdata/BOAT_GPS_distance_to_land_parsed.csv', T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv', MASK= '../data/intermediate/7_aerosols/mask_1_5_10min++_parsed.csv'):
+def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='../data/intermediate/0_shipdata/dist_to_land_incl_small_islands_parsed.csv', T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv', MASK= '../data/intermediate/7_aerosols/mask_1_5_10min++_parsed.csv'):
     """
         filters parameters based on `time to land`, `distance to land` (either already contained or added to data) and a binary mask (1=keep)
         returns the filetered dataframe and the boolean array of VALID data points.
@@ -882,7 +890,12 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
     if 'd-to-land' not in data.columns.tolist():
         d_to_land_FLAG = True
         d_to_land = dataset.read_standard_dataframe(D_TO_LAND, crop_legs=False)
-        d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
+        # Here we ensure timestamp on left.
+        # I assume the only possible cases are original 5-min timestamp on right, or center
+        if d_to_land.index[0].second==0:
+            d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
+        elif d_to_land.index[0].second==30:
+            d_to_land.index = d_to_land.index-pd.Timedelta(2.5,'min')
         #data['d-to-land'] = d_to_land this does not work
         data = data.merge(d_to_land[['distance']],left_index = True, right_index=True, how='left')
         data.rename(columns={"distance": "d-to-land"}, inplace=True)
@@ -893,7 +906,7 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
     if 't-to-land' not in data.columns.tolist():
         t_to_land_FLAG = True
         t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
-        t_to_land.index = t_to_land.index-pd.Timedelta(5,'min')
+        t_to_land.index = t_to_land.index-pd.Timedelta(5,'min') # the original time stamp is on the right
         # here we first merge with data to cover the same range of 5min samples
         # then cause t_to_land is a 1hr time series we need to interpolate over the gaps.
         data = data.merge(t_to_land[['hours_till_land']],left_index = True, right_index=True, how='left')
