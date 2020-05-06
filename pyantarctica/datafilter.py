@@ -3,6 +3,23 @@ import pandas as pd
 
 from datetime import datetime, timedelta
 
+def outliers_iqr_noise(ys, noise):
+    """
+        Function to detect outliers based on the inter quartile range criterion but accounting for digital noise
+
+        :param ys: some kind of array
+        :param noise: float value (noise leve in units of ys) this is to avoid massive detection of false outliers if the true signal is constant and the random noise level exceeds the IQR
+        :returns: list of indecees of data points that exceed the IQR by more then 1.5*IQR AND more than the 'noise level' 
+    """
+    
+    quartile_1, quartile_3 = np.percentile(ys, [25, 75])
+    iqr = quartile_3 - quartile_1
+    iqr = np.max([iqr, noise/1.5])
+    lower_bound = quartile_1 - (iqr * 1.5) # was 1.5
+    upper_bound = quartile_3 + (iqr * 1.5) # was 1.5
+    outliers = np.where((ys > upper_bound) | (ys < lower_bound))
+    return outliers
+
 def outliers_iqr_score(ys):
     """
         Function to identification of outliers based on the IQR.
