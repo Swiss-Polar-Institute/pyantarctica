@@ -1,24 +1,51 @@
-# some usefull functions based on air-sea literature
-# I have coded these to my best knowledge, but I cannot quarantee for the content to be correct.
-# last reviewed by Sebastian Landwehr PSI 27.03.2020
-# uses the airsea toolbox of Filipe Fernandes
+# *** aceairsea.py ***
+#
+# a collection of useful functions based on air-sea literature
+# written by Sebastian Landwehr^{1,2} for the ACE-DATA/ASAID project (PI Julia Schmale^{1,2})
+# {1} Paul Scherrer Institute, Laboratory of Atmospheric Chemistry, Villigen, Switzerland
+# {2} Extreme Environments Research Laboratory,  École Polytechnique Fédérale de Lausanne, School of Architecture, Civil and Environmental Engineering, Lausanne, Switzerland
+#
+# the function make use of the airsea toolbox of Filipe Fernandes
 # - # pip install airsea
 # - # https://github.com/pyoceans/python-airsea
 # - # https://pypi.org/project/airsea/
+#
+# Copyright 2017-2018 - Swiss Data Science Center (SDSC)
+# A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
+# Eidgenössische Technische Hochschule Zürich (ETHZ).
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import numpy as np
+import airsea
 
-def LMoninObukov_bulk(U10,SSHF,SLHF,STair):
-    # Monin Obukov Length scale as function of
-    # U10 = 10 meter neutral wind speed
-    # SSHF = surface sensible heat flux [W/m2]
-    # SLHF = surface latent heat flux [W/m2]
-    # STair = surface air temperature [C]
-    
+def LMoninObukov_bulk(U10N,SSHF,SLHF,STair):
+    """
+        Function to Monin Obukov Length scale as function of bulk heat fluxes, neutral wind speed and air temperature
+
+        :param x: data series
+        :param U10N: 10 meter neutral wind speed
+        :param SSHF: surface sensible heat flux [W/m2]
+        :param SLHF: surface latent heat flux [W/m2]
+        :param STair: surface air temperature [C]
+        
+        :returns: LMO: Monin Obukov Length scale [m]
+    """
+  
     import airsea # 
 
-    if type(U10) != np.ndarray:
-        U10 = np.array([U10])
+    if type(U10N) != np.ndarray:
+        U10N = np.array([U10N])
     if type(SSHF) != np.ndarray:
         SSHF = np.array([SSHF])
     if type(SLHF) != np.ndarray:
@@ -36,11 +63,19 @@ def LMoninObukov_bulk(U10,SSHF,SLHF,STair):
     wq = SLHF/rho_air/Levap
     
     B0 = grav*(wt/(STair+airsea.constants.CtoK) + 0.61*wq) # surface buoyancy flux
-    ustar = coare_u2ustar (U10, input_string='u2ustar', coare_version='coare3.5', TairC=STair, z=10, zeta=0)
+    ustar = coare_u2ustar (U10N, input_string='u2ustar', coare_version='coare3.5', TairC=STair, z=10, zeta=0)
     LMO = -(ustar*ustar*ustar)/vKarman/B0 # Monin Obukove Length scale
     return np.squeeze(LMO)
 
 def PHIu(zeta, option='Hogstroem_1988'):
+    """
+        Nondimensional stability function PHIu(zeta=z/L) for wind speed
+
+        :param zeta: data series of z/L
+        :param option: option to specify which literature functionality to used options = ['Hogstroem_1988']
+                
+        :returns: PHIu: Nondimensional stability function
+    """
     zeta = np.asarray([zeta])
     isnan = np.isnan(zeta)
     zeta[isnan]=0
@@ -57,6 +92,14 @@ def PHIu(zeta, option='Hogstroem_1988'):
     return np.squeeze(phi)
 
 def PHIh(zeta, option='Hogstroem_1988'):
+    """
+        Nondimensional stability function PHIu(zeta=z/L) for scalars e.g. temperature/humidity
+
+        :param zeta: data series of z/L
+        :param option: option to specify which literature functionality to used options = ['Hogstroem_1988']
+                
+        :returns: PHIh: Nondimensional stability function
+    """
     import numpy as np
     zeta = np.asarray([zeta])
     isnan = np.isnan(zeta)
@@ -74,6 +117,14 @@ def PHIh(zeta, option='Hogstroem_1988'):
     return np.squeeze(phi)
 
 def PSIh(zeta, option='Brandt_2002'):
+    """
+        PSIh(zeta=z/L) is the integral of the ondimensional stability function PHIh(zeta=z/L) for scalars e.g. temperature/humidity
+
+        :param zeta: data series of z/L
+        :param option: option to specify which literature functionality to used options = ['Brandt_2002']
+                
+        :returns: PSIh: Nondimensional stability function
+    """
     import numpy as np
     zeta = np.asarray([zeta])
     isnan = np.isnan(zeta)
@@ -91,19 +142,17 @@ def PSIh(zeta, option='Brandt_2002'):
     return np.squeeze(psi)
 
 def PSIu(zeta, option='Fairall_1996'):
-    #stability correction function for modifying the logarithmic wind speed profiles based on atmospheric stability
-    # use e.g. for: u(z)=u*/k[log(z/z0)-PSIu(z/L)]
-    #
-    # PSIu is integral of the semiempirical function PHIu
-    # PSIu(z/L)=INT_z0^z[1-PHI_u(z/L)]d(z/L)/(z/L)
-    # several forms of PHIu and PSIu are published and will be added as options
-    # default = 'Dyer_Hicks_1970'
+    """
+        PSIu(zeta=z/L) is the integral of the ondimensional stability function PHIu(zeta=z/L) for scalars e.g. temperature/humidity
+
+        :param zeta: data series of z/L
+        :param option: option to specify which literature functionality to used options = [Dyer_Hicks_1970, 'Fairall_1996']
+                
+        :returns: PSIh: Nondimensional stability function
+    """
     
     import numpy as np
-    # zeta=z/L 
-    # with L = -u*^3/vkarman/(g<wT>/T+0.61g<wq>)
-    #x=np.sqrt(np.sqrt(1-15*zeta)); #sqrt(sqrt) instead of ^.25
-    
+        
     zeta = np.asarray([zeta])
     isnan = np.isnan(zeta)
     zeta[isnan]=0
@@ -132,19 +181,25 @@ def PSIu(zeta, option='Fairall_1996'):
 
 
 def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20.0, z=10.0, zeta=0.0): 
-    # function coare_u2ustar (u,coare_direction,coare_version) 
-    # uses wind speed dependend drag coefficient to iteratively convert between u* and uz
-    #
-    # the input is procesed dependend on the input_string
-    # for input_string=='u2ustar': coare_u2ustar converts u(z)(neutral conditions assumed)->u*
-    # for input_string=='ustar2u': coare_u2ustar converts u*->u(z)(neutral conditions assumed)
-    #
-    # coare_version defines which drag coefficient is used for the conversion
-    # coare_version='coare3.5' use wind speed dependend charnock coefficient coare version 3.5 Edson et al. 2013
-    # coare_version='coare3.0' use wind speed dependend charnock coefficient coare version 3.0 Fairall et al. 2003
-    # for citing this code please refere to:  
-    # https://www.atmos-chem-phys.net/18/4297/2018/ equation (4),(5), and (6)
-    # Sebastian Landwehr, PSI 2018
+    """
+        The function coare_u2ustar uses the wind speed dependend drag coefficient to iteratively convert between u* and uz
+        for details and as reference please see https://www.atmos-chem-phys.net/18/4297/2018/ equation (4),(5), and (6)
+        
+        :param u: input velocity scale either u* or u(z) (the way it is processed depends on input_string).
+        :param input_string: either 'u2ustar' or 'ustar2u'
+            for input_string=='u2ustar': coare_u2ustar converts u(z)->u*
+            for input_string=='ustar2u': coare_u2ustar converts u*->u(z)
+        : param coare_version: defines the neutral drag coefficient. Valid input in ['coare3.0', 'coare3.5']
+            coare_version='coare3.5' use wind speed dependend charnock coefficient coare version 3.5 Edson et al. 2013
+            coare_version='coare3.0' use wind speed dependend charnock coefficient coare version 3.0 Fairall et al. 2003
+        : param TairC: air temperature in degree C (has neglegible influence on the results)
+        : param z: measurement height in meter
+        : param zeta: zeta=z/L nondimensional stability parameter
+        
+        :returns: u: ouput velocity scale either u* or u(z) depending on the param input_string
+        
+    """
+    
     import numpy as np
     import airsea # airsea toolbox of Filipe Fernandes [don't mix up with this one!]
 
@@ -158,7 +213,6 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
         z = np.asarray([z])
     if type(zeta) != np.ndarray:
         zeta = np.asarray([zeta])
-
 
     import numpy as np
     if input_string == 'ustar2u':
@@ -220,10 +274,16 @@ def coare_u2ustar (u, input_string='u2ustar', coare_version='coare3.5', TairC=20
 
 # some sea water properties
 def roh_sea(SST,SSS):
-    # SST in C!
-    # SSS in g/kg
-    # https://www.tandfonline.com/doi/abs/10.5004/dwt.2010.1079
-    # sea water density at atm pressure
+    """
+        Sea water density at standard atmospheric pressure (1 amt) as function of sea surface temperature and salinity
+        Refrence: https://www.tandfonline.com/doi/abs/10.5004/dwt.2010.1079
+
+        :param SST: sea surface temperature in [degree Celsius]
+        :param SSS: sea surface salinity in [g/kg]
+                
+        :returns: rho_sea: Sea water density at standard atmospheric pressure (1 amt) in [kg/m3]
+    """
+
     t=SST
     S=SSS/1000
     a1 = 9.999*1E2
@@ -242,6 +302,15 @@ def roh_sea(SST,SSS):
     return rho_sea # kg/m3
 
 def dynamic_viscosity_sea(SST,SSS):
+    """
+        Dynamic viscosity of sea water as function of sea surface temperature and salinity
+        Refrence: https://www.tandfonline.com/doi/abs/10.5004/dwt.2010.1079
+
+        :param SST: sea surface temperature in [degree Celsius]
+        :param SSS: sea surface salinity in [g/kg]
+                
+        :returns: musw: Dynamic viscosity of sea water in [kg/m/s]
+    """
     t=SST
     S=SSS/1000 # g/kg -> kg/kg
     #@ 5C @ 35PSU
@@ -262,6 +331,16 @@ def dynamic_viscosity_sea(SST,SSS):
     return musw # [kg/m/s]
 
 def kinematic_viscosity_sea(SST,SSS):
+    """
+        Kinematic viscosity of sea water as function of sea surface temperature and salinity
+        Refrence: https://www.tandfonline.com/doi/abs/10.5004/dwt.2010.1079
+
+        :param SST: sea surface temperature in [degree Celsius]
+        :param SSS: sea surface salinity in [g/kg]
+                
+        :returns: nusw: kinematic viscosity of sea water in [m2/s]
+    """
+    
     roh_sw = roh_sea(SST,SSS)
     musw = dynamic_viscosity_sea(SST,SSS)
     nusw = musw/roh_sw
@@ -269,6 +348,15 @@ def kinematic_viscosity_sea(SST,SSS):
 
 
 def wet_bulb_temperature(TA,RH):
+    """
+        Wet bulb temperature as function of air temperature and relative humidty
+        Refrence: https://journals.ametsoc.org/doi/full/10.1175/JAMC-D-11-0143.1: Roland Stull "Wet-Bulb Temperature from Relative Humidity and Air Temperature"
+
+        :param TA: air temparature [degree Celsius]
+        :param RH: relative humidity [%]
+                
+        :returns: TW: wet bulb temperature [degree Celsius]
+    """
     # https://journals.ametsoc.org/doi/full/10.1175/JAMC-D-11-0143.1
     # Roland Stull "Wet-Bulb Temperature from Relative Humidity and Air Temperature"
 
@@ -277,12 +365,16 @@ def wet_bulb_temperature(TA,RH):
     return TW
 
 def water_vapour_saturation_pressure(TA,PA,SSS=35):
-    # TA Celsius,
-    # PA hPa (1hecto Pa = 1 mbar = 0.1*1kilo Pa)
-    # SSS PSU
-    # returns e_sat in hPa
+    """
+        Vapor Pressure and Enhancement as function of air temperature and atmospheric pressure and sea water salinity
+        Refrence: Arden L. Buck, New Equations for Computing Vapor Pressure and Enhancement Factor, Journal of Applied Meterology, December 1981, Volume 20, Page 1529.
+
+        :param TA: air temparature [degree Celsius]
+        :param PA: atmospheric pressure [hPa]
+        :param SSS: sea surface salinity in [PSU]
+                
+        :returns: e_sat: saturation pressure of water vapour [hPa]
+    """
     e_sat = (6.1121)*(1.0007 + 3.46E-6*PA)*np.exp( 17.502*TA/(240.97+TA))
-    # Arden L. Buck, New Equations for Computing Vapor Pressure and Enhancement
-    # Factor, Journal of Applied Meterology, December 1981, Volume 20, Page 1529.
     e_sat = e_sat*(1 - 0.000537*SSS)
     return e_sat

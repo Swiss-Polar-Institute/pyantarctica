@@ -1,4 +1,26 @@
-# some functions needed in the sea spray source function project
+# *** seaspraysourcefunction.py ***
+# a collection of useful functions for dealing with sea spray data
+#
+# written by Sebastian Landwehr^{1,2} for the ACE-DATA/ASAID project (PI Julia Schmale^{1,2})
+# {1} Paul Scherrer Institute, Laboratory of Atmospheric Chemistry, Villigen, Switzerland
+# {2} Extreme Environments Research Laboratory,  École Polytechnique Fédérale de Lausanne, School of Architecture, Civil and Environmental Engineering, Lausanne, Switzerland
+#
+# Copyright 2017-2018 - Swiss Data Science Center (SDSC)
+# A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
+# Eidgenössische Technische Hochschule Zürich (ETHZ).
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -635,7 +657,7 @@ def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_', LABELS=[]):
 
 def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', WAVE_from='imu',
     MET_DATA='../data/intermediate/0_shipdata/metdata_5min_parsed.csv',
-    ERA5_DATA='../../ecmwf-download/data/ecmwf-on-track/era5-on-cruise-track-5min-legs0-4-nearest.csv',
+    ERA5_DATA='../../ecmwf-interpolation-to-cruise-track/data/ecmwf-on-track/era5-on-cruise-track-5min-legs0-4-nearest.csv',
     WIND_DATA='../data/intermediate/0_shipdata/u10_ship_5min_full_parsed.csv',
     WAVE_DATA='../data/intermediate/17_waves/01_waves_recomputed.csv',
     WAMOS_DATA='../data/intermediate/17_waves/Updated_Wave_Info_ACE_Leg01234_parsed.csv',
@@ -716,6 +738,43 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     t_to_land = t_to_land.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
 
     era5 = dataset.read_standard_dataframe(ERA5_DATA, datetime_index_name="date_time", crop_legs=False, date_time_format="%Y-%m-%dT%H:%M:%S")
+    if 'blh' not in era5.columns: # a fix for the changed variable names
+        era5.rename(columns={
+            '10m_u_component_of_neutral_wind':'u10n',
+            '10m_v_component_of_neutral_wind':'v10n',
+            '10m_u_component_of_wind':'u10',
+            '10m_v_component_of_wind':'v10',
+            'air_density_over_the_oceans':'p140209',
+            '2m_dewpoint_temperature':'d2m',
+            '2m_temperature':'t2m',
+            'boundary_layer_height':'blh',
+            'cloud_base_height':'cbh',
+            'convective_precipitation':'cp',
+            'convective_snowfall':'csf',
+            'friction_velocity':'zust',
+            'high_cloud_cover':'hcc',
+            'land_sea_mask':'lsm',
+            'large_scale_precipitation':'lsp',
+            'large_scale_snowfall':'lsf',
+            'low_cloud_cover':'lcc',
+            #'mdts':'mean_direction_of_total_swell',
+            #'mdww':'mean_direction_of_wind_waves',
+            #'msqs':'mean_square_slope_of_waves',
+            'mean_surface_latent_heat_flux':'mslhf',
+            'mean_surface_sensible_heat_flux':'msshf',
+            #'mcc':'medium_cloud_cover',
+            #'pp1d':'peak_wave_period',
+            #'tmax':'period_corresponding_to_maximum_individual_wave_height',
+            'sea_ice_cover':'siconc',
+            'sea_surface_temperature':'sst',
+            #'shts':'significant_height_of_total_swell',
+            #'shww':'significant_height_of_wind_waves',
+            'skin_temperature':'skt',
+            #'tcc':'total_cloud_cover',
+            #'tciw':'total_column_cloud_ice_water',
+            #'tclw':'total_column_cloud_liquid_water'
+        }, inplace=True)
+    
     if (str(era5.index.tzinfo)=='None')==False:
         era5.set_index(era5.index.tz_convert(None), inplace=True) # remove TZ info
     era5.index = era5.index-pd.Timedelta(2.5,'min') # adjust to beginning of 5min interval rule

@@ -1,3 +1,25 @@
+# *** datafilter.py ***
+# a collection of useful functions to filter spikes out of data
+# written by Sebastian Landwehr^{1,2} for the ACE-DATA/ASAID project (PI Julia Schmale^{1,2})
+# {1} Paul Scherrer Institute, Laboratory of Atmospheric Chemistry, Villigen, Switzerland
+# {2} Extreme Environments Research Laboratory,  École Polytechnique Fédérale de Lausanne, School of Architecture, Civil and Environmental Engineering, Lausanne, Switzerland
+#
+# Copyright 2017-2018 - Swiss Data Science Center (SDSC)
+# A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
+# Eidgenössische Technische Hochschule Zürich (ETHZ).
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import numpy as np
 import pandas as pd
 
@@ -120,10 +142,17 @@ def outliers_iqr_time_window(X,Nmin=60,minN=12,d_phys=0, d_iqr=1.5):
 
 
 def APS_filter_single_counts(APS):
-    # function to remove the intervals with the lowest APS counts
-    # At large size bins we reach the APS digital resolution with lot of measurements showing the same low values
-    # this function should be applied AFTER the APS has been resampled to the desired time resolution
-    #
+    """
+        Function to remove the intervals with the lowest APS counts.
+        At large size bins we reach the APS digital resolution with lot of measurements showing the same low values.
+        This function should be applied AFTER the APS has been resampled to the desired time resolution
+
+        :param APS: data frame with the APS size spectra
+        
+        :returns: APS: data frame with the APS size spectra but low counts removed
+
+    """
+
     #APS[(APS == 0).sum(axis=1)==len(APS.columns.values)]=np.nan # some rows are all zero -> set them to nan, appears no longer relevant
     #
     APS_RESOLUTION = np.nanmin(APS.values) # get the resolution of the APS by looking at the smallest count
