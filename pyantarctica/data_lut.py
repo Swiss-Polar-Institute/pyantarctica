@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 import pyantarctica.dataset as dataset
 
+# Class hanlding the creation of file pointers locally. Likely not needed as all the ACE dataset can now be imported from Zenodo directly.
 class Varlut:
 
     def __init__(self, table_address, root_folder='.'):
