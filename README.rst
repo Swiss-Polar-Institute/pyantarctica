@@ -11,13 +11,16 @@ Usage
 .. code-block:: python
 
     import pyantarctica
-    import pyantarctica.dataset as data
-    import pyantarctica.modeling as mod
-    import pyantarctica.visualizing as viz
+    from pyantarctica import aiceairsea 
+    from pyantarctica import datafilter
+    from pyantarctica import dataset
+    from pyantarctica import visualizing
+    from pyantarctica import windvectorcoordinates
+
 
 Every notebook in the ACE-DATA data science project repository provides relatively simple (hopefully) and straightforward examples and scripts to run steps in the ASAID project analysis pipeline.
 
-See e.g. data preparation scrips ``PROJ_XX_DataPreparation.ipynb`` where XX is the subproject number.
+See scripts released with publications
 
 Setup
 *****
@@ -41,8 +44,8 @@ From source:
 
     $ cd YOUR_PROJECT_FOLDER
     $ mkdir src && cd src
-    $ git clone ./src
-    $ pip install src
+    $ git clone git+git@github.com:Swiss-Polar-Institute/pyantarctica.git
+    $ pip install ./pyantarctica
 
 From the Swiss Polar Institute Github Repository https://github.com/Swiss-Polar-Institute/pyantarctica :
 
