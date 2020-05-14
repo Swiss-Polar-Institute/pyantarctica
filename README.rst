@@ -11,13 +11,16 @@ Usage
 .. code-block:: python
 
     import pyantarctica
-    import pyantarctica.dataset as data
-    import pyantarctica.modeling as mod
-    import pyantarctica.visualizing as viz
+    from pyantarctica import aiceairsea 
+    from pyantarctica import datafilter
+    from pyantarctica import dataset
+    from pyantarctica import visualizing
+    from pyantarctica import windvectorcoordinates
+
 
 Every notebook in the ACE-DATA data science project repository provides relatively simple (hopefully) and straightforward examples and scripts to run steps in the ASAID project analysis pipeline.
 
-See e.g. data preparation scrips ``PROJ_XX_DataPreparation.ipynb`` where XX is the subproject number.
+See scripts released with publications
 
 Setup
 *****
@@ -28,10 +31,12 @@ If you are using conda, first set up a conda environment:
 
 .. code-block:: console
 
-    $ conda create --name ace-data python=3
+    $ conda create --name ace-data python=3.6
     $ conda activate ace-data
 
-To install the pyanctarctica package, run (base 0.1.0 is on PyPI)
+Install the pyanctarctica package
+*********************************
+
 
 From source:
 
@@ -39,42 +44,29 @@ From source:
 
     $ cd YOUR_PROJECT_FOLDER
     $ mkdir src && cd src
-    $ git clone ./src
-    $ pip install src
+    $ git clone git+git@github.com:Swiss-Polar-Institute/pyantarctica.git
+    $ pip install ./pyantarctica
 
-From the gitlab repo  `gitlab.datascience.ch/ACE-ASAID/pyanctarctica.git <https://gitlab.datascience.ch/ACE-ASAID/pyantarctica>`_:
-
-.. code-block:: console
-
-    $ pip install -e git+git@gitlab.datascience.ch:ACE-ASAID/pyantarctica.git
-
-From the PyPI repos:
+From the Swiss Polar Institute Github Repository https://github.com/Swiss-Polar-Institute/pyantarctica :
 
 .. code-block:: console
 
-    $ pip install pyantarctica
+    $ pip install -e git+git@github.com:Swiss-Polar-Institute/pyantarctica.git
 
 Documentation
 *************
 
-Read the documentation `here <./docs/build/index.html>`_!
-
-Release process
-***************
-
-1. Update version in `setup.py`, commit and tag.
-2. Run `rm -rf dist && python setup.py sdist bdist_wheel && twine upload dist/*`
-3. Change the bump of the version to development (`X.Y.Z+1.devYYYYMMDD`)
+Can be built with `sphinx`
 
 Compatibility
 **************
 
-Python 3 preferred, but not required.
+Python 3.3 preferred, but not required. Only tested with python >= 3
 
 License
 *******
 
-Copyright 2017-2018 - Swiss Data Science Center (SDSC)
+Copyright 2017-2018 - Swiss Data Science Center (SDSC) and ACE-DATA/ASAID Project consortium. 
 
 A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and Eidgenössische Technische Hochschule Zürich (ETHZ).
 
@@ -94,17 +86,4 @@ Authors
 Requirements
 ************
 
-(Does not include sub-package dependencies)
-
-.. code-block:: console
-
-    pyantarctica
-    ~~Cartopy==0.16.0~~
-    ~~GPy==1.9.2~~
-    matplotlib==2.2.2
-    numpy==1.14.5
-    pandas==0.23.0
-    papermill==0.12.6
-    pickleshare==0.7.4
-    scikit-learn==0.19.1
-    scipy==1.1.0
+see `setup.py`

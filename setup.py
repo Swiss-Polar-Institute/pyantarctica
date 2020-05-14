@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2017-2018 - Swiss Data Science Center (SDSC)
+# Copyright 2017-2018 - Swiss Data Science Center (SDSC) and ACE-DATA/ASAID Project consortium. 
 # A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
-# Eidgenössische Technische Hochschule Zürich (ETHZ).
+# Eidgenössische Technische Hochschule Zürich (ETHZ). Written within the scope 
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,15 +23,16 @@ from setuptools import find_packages, setup
 # 'Cartopy==0.16.0',
 
 install_requires = []
-# 'matplotlib,
-# 'numpy',
-# 'pandas==0.23.0',
-# 'pickleshare',
-# 'scikit-learn',
-# 'holoviews',
-# 'geoviews',
-# 'bokeh'
-# ]
+'matplotlib,
+'numpy',
+'pandas==0.23.0',
+'holoviews',
+'cartopy',
+'geoviews',
+'bokeh', 
+'airsea',
+'pathlib'
+]
 
 tests_require = []
 
@@ -39,11 +40,11 @@ extras_require = {}
 
 setup(
     name="pyantarctica",
-    version="0.1.3.1",
+    version="0.1.0",
     license="Apache License 2.0",
     url="",
 
-    author="Michele Volpi, Swiss Data Science Center (SDSC)",
+    author="Michele Volpi, Swiss Data Science Center (SDSC, ETHZ and EPFL); Sebastian Landwehr (Extreme Environments Research Laboratory, EPFL)",
     author_email="michele.volpi@datascience.ch",
 
     description="Umbrella package for ACE-DATA ASAID (sub-)project(s).",

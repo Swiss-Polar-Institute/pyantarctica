@@ -1,18 +1,7 @@
-# *** aceairsea.py ***
 #
-# a collection of useful functions based on air-sea literature
-# written by Sebastian Landwehr^{1,2} for the ACE-DATA/ASAID project (PI Julia Schmale^{1,2})
-# {1} Paul Scherrer Institute, Laboratory of Atmospheric Chemistry, Villigen, Switzerland
-# {2} Extreme Environments Research Laboratory,  École Polytechnique Fédérale de Lausanne, School of Architecture, Civil and Environmental Engineering, Lausanne, Switzerland
-#
-# the function make use of the airsea toolbox of Filipe Fernandes
-# - # pip install airsea
-# - # https://github.com/pyoceans/python-airsea
-# - # https://pypi.org/project/airsea/
-#
-# Copyright 2017-2018 - Swiss Data Science Center (SDSC)
+# Copyright 2017-2018 - Swiss Data Science Center (SDSC) and ACE-DATA/ASAID Project consortium. 
 # A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
-# Eidgenössische Technische Hochschule Zürich (ETHZ).
+# Eidgenössische Technische Hochschule Zürich (ETHZ). Written within the scope 
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
