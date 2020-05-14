@@ -24,10 +24,14 @@ import pyantarctica.datafilter as datafilter
 
 
 def r_div_r80(RH, option='Zieger2016_'):
-    # hygroscopic growth factor
-    # (below RH=75% this is valid only for decreasing RH)!
-    # THIS NEGLECTS THE KELVIN EFFECT!
-    # But the difference should be really small
+    """
+        Function to calculate the hygroscopic growth factor as function of RH (negrelcting the Kelvin effect)
+        (below RH=75% this is valid only for decreasing RH)
+
+        :param RH: relative humidity [%]
+        :param option: string to define the literature function to use out of ['Lewis2004', 'Zieger2016_', 'Lewis2006']
+        :returns: r_div_r80: the hygroscopic growth factor as ratio of r(RH)/r(80)
+    """
 
     RH=RH.copy(); RH[RH>99]=99; #
     if option == 'Lewis2004':
@@ -55,8 +59,16 @@ def r_div_r80(RH, option='Zieger2016_'):
     return r_div_r80
 
 def rdry2rRH(Dp, RH, hygroscopic_growth='Zieger2016_'):
-    # convert try diameter/radius to expected diameter/radius at RH[%]
-    # rRH/rDry = (rRH/r80)*(r80/rDry) = (rRH/r80)*2
+    """
+        Function to convert dry diameter/radius to expected diameter/radius at a given RH[%]
+        rRH/rDry = (rRH/r80)*(r80/rDry) = (rRH/r80)*2
+
+        :param Dp: dry aerosol diameter/radius
+        :param RH: relative humidity [%]
+        :param hygroscopic_growth: string to define the literature function to use with the function r_div_r80(RH, option), has to be out of ['Lewis2004', 'Zieger2016_', 'Lewis2006']
+        :returns: DpRH: the diameter/radius expected at the given RH
+    """
+    
     if type(RH) != np.ndarray:
         RH = np.asarray([RH])
     RH = RH.reshape(len(RH),1)
@@ -82,6 +94,17 @@ def rdry2rRH(Dp, RH, hygroscopic_growth='Zieger2016_'):
     return DpRH
 
 def rho_sea_spary(Dp_dry, RH, rho_p=2.2, hygroscopic_growth='Zieger2016_'):
+    """
+        Function to calcualte the density of sea spray aerosol at a given RH[%]
+
+        :param Dp_dry: dry sea salt aerosol diameter [um]
+        :param RH: relative humidity [%]
+        :param rho_p: density of dry sea salt [g cm^-3]
+        :param hygroscopic_growth: string to define the literature function to use with the function r_div_r80(RH, option), has to be out of ['Lewis2004', 'Zieger2016_', 'Lewis2006']
+        
+        :returns: rho_ss: the density of sea spray aerosol at the given RH
+    """
+        
     if type(RH) != np.ndarray:
         RH = np.asarray([RH])
     RH = RH.reshape(len(RH),1)
@@ -112,7 +135,19 @@ def rho_sea_spary(Dp_dry, RH, rho_p=2.2, hygroscopic_growth='Zieger2016_'):
     return rho_ss
 
 def sea_salt_settling_velocity(Dp, rho_p=2.2, RH=80., T=20., P=1013., hygroscopic_growth='Zieger2016_'):
+    """
+        Function to calcualte the settling velocity of sea spray aerosol at a given RH[%]
 
+        :param Dp: dry sea salt aerosol diameter [um]
+        :param rho_p: density of dry sea salt [g cm^-3]
+        :param RH: relative humidity [%]
+        :param T: air temperature [C]
+        :param P: atmospheric pressure [hPa]
+        :param hygroscopic_growth: string to define the literature function to use with the function r_div_r80(RH, option), has to be out of ['Lewis2004', 'Zieger2016_', 'Lewis2006']
+        
+        :returns: vs: the settling velocity of sea spray aerosol at the given aerosol diameter and RH
+    """
+    
     # Required input:
     # Dp = aerosol diameter [um] as (n,) numpy.array with n>=1
     # rho_p = aerosol density g cm^-3
@@ -182,7 +217,22 @@ def sea_salt_settling_velocity(Dp, rho_p=2.2, RH=80., T=20., P=1013., hygroscopi
     return vs
 
 def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=80., T=20., P=1013., zeta=0., model='giardina_2018', hygroscopic_growth='Zieger2016_'):
+    """
+        Function to calcualte the deposition velocity of sea spray aerosol under ambient conditions (accounts for hygroscopic growth)
 
+        :param Dp_dry: dry sea salt aerosol diameter [um]
+        :param rho_dry: density of dry sea salt [g cm^-3]
+        :param h_ref: reference height [m]
+        :param U10: 10-meter neutral wind speed [m/s]
+        :param RH: relative humidity [%]
+        :param T: air temperature [C]
+        :param P: atmospheric pressure [hPa]
+        :param zeta: atmospheric stability parameter zeta=z/L [Dimensionless]
+        :param model: string to define the literature functions for the deposition velocity model. has to be out of ['giardina_2018']
+        :param hygroscopic_growth: string to define the literature function to use with the function r_div_r80(RH, option), has to be out of ['Lewis2004', 'Zieger2016_', 'Lewis2006']
+        
+        :returns: vd: the growthfactor corrected deposition velocity of sea spray aerosol at the given dry aerosol diameter and atmospheric parameters (RH,U10,...)
+    """
 #if 1:
     # Required input:
     # Dp = aerosol diameter [um] as (n,) numpy.array with n>=1
@@ -301,7 +351,20 @@ def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=8
     return vd
 
 def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20., P=1013., zeta=0., model='giardina_2018'):
+    """
+        Function to calcualte the deposition velocity of aerosol at a fixed density and diameter
 
+        :param Dp: aerosol diameter [um]
+        :param rho_dry: aerosol density [g cm^-3]
+        :param h_ref: reference height [m]
+        :param U10: 10-meter neutral wind speed [m/s]
+        :param T: air temperature [C]
+        :param P: atmospheric pressure [hPa]
+        :param zeta: atmospheric stability parameter zeta=z/L [Dimensionless]
+        :param model: string to define the literature functions for the deposition velocity model. has to be out of ['giardina_2018']
+        
+        :returns: vd: the deposition velocity of the aerosol at the given aerosol diameter and atmospheric parameters (U10,...)
+    """
 #if 1:
     # Required input:
     # Dp = aerosol diameter [um] as (n,) numpy.array with n>=1
@@ -442,21 +505,49 @@ def deposition_velocity(Dp, rho_p=2.2, h_ref=15., U10=10., T=20., P=1013., zeta=
 
 
 def dFdlogD_to_dFdD(dFdlogr80,r80):
+    """
+        Function to convert aerosol flux from dF/dlog(r) to dF/dr
+
+        :param dFdlogr80: number Flux per logrithmic increment of r80
+        :param r80: aerosol radius
+        
+        :returns: dFdr80: the aerosol number flux per radius increment
+    """
     dFdr80 = dFdlogr80/r80*np.log10(np.exp(1))
     return dFdr80
 
 def dFdD_to_dFdlogD(dFdr80,r80):
+    """
+        Function to convert aerosol flux from dF/dr to dF/dlog(r)
+
+        :param dFdr80: number Flux per increment of r80
+        :param r80: aerosol radius
+        
+        :returns: dFdlogr80: the aerosol number flux per logrithmic increment of r80
+    """
     dFdlogr80 = dFdr80*r80/np.log10(np.exp(1))
     return dFdlogr80
 
 
 
 def sssf(sssf_str, r80, U10, SST=[], Re=[]):
+    """
+        Literature parametrisations of the sea spray source flux dF/dr and the total number flux FN at given forcing parameters
+
+        :param sssf_str: Keey word for the parametrisation.
+        :param r80: vector of aerosol radii at 80%RH [um] (n,) numpy.array with n>=2
+        :param U10: vector of wind speeds [m/s] (m,) numpy.array with m>=1
+        :param SST: vector of sea surface temperature [Celsius] (m,) numpy.array with m>=1
+        :param Re: vector of Reynolds number [-] (m,) numpy.array with m>=1
+
+        :returns: dFdr80: [#/m^2/s/um] production number flux per size bin as numpy.array (m,n) or (n,) if m=1
+        :returns: FN: [#/m^2/s] production number flux integrated over range of the r80 provided (r80[0] to r80[-1]) as numpy.array (m,)
+    """
     # sssf(sssf_str, r80, U10, SST, Re):
     #
     # Required input:
     # sssf_str = string denoting the sssf parametrisation to be used
-    # r80 = aerosol diameter [um] at 80%RH (r80=2dry=0.5r_formation, based on L&S 2004) as (n,) numpy.array with n>=2
+    # r80 = aerosol radius [um] at 80%RH (r80=2dry=0.5r_formation, based on L&S 2004) as (n,) numpy.array with n>=2
     # U10 = wind speed [m/s] referenced to 10m, neutral stability as (m,) numpy.array with m>=1
     #
     # Optional Inputs (required for some sssf-parametrisations):
@@ -562,11 +653,23 @@ def sssf(sssf_str, r80, U10, SST=[], Re=[]):
     return dFdr80, FN
 
 def aps_DlowDhigh_to_range(Dca_l,Dca_h,RESOLUTION=1/32):
+    """
+        Function no longer used?
+    """
     Dca_l = np.power(10,np.log10(Dca_l)-RESOLUTION/2) # 1/2 logarithmic step down
     Dca_h = np.power(10,np.log10(Dca_h)+RESOLUTION/2) # 1/2 logarithmic step up
     return np.array([Dca_l, Dca_h])
 
 def aps_D_to_Dphys(Dca, rhop=2.017, chic=1.08):
+    """
+        Function to convert the aerodynamic aerosol diameter to the volumne equivalent diameter (for continous flow regime only!)
+
+        :param Dca: aerodynamic diameter [um]
+        :param rhop: aerosol density [g/cm3]
+        :param chic: aerodynamic shape factor
+        
+        :returns: Dve: the aerosol volume equivalent diameter
+    """
     # converts APS aerodynamic diamter into physical diameter
     # assume continous flow regime => cunningham slip factors ~1
     # ρ0 = 1g/cm^3
@@ -580,6 +683,16 @@ def aps_D_to_Dphys(Dca, rhop=2.017, chic=1.08):
 
 
 def aps_D_to_r80(Dca, rhop=2.017, chic=1.08, gf=2):
+    """
+        Function to convert the dry aerodynamic aerosol diameter to the radius at RH=80% (r80) (for continous flow regime only!)
+
+        :param Dca: dry aerodynamic diameter [um]
+        :param rhop: aerosol density [g/cm3]
+        :param chic: aerodynamic shape factor
+        :param gf: hygroscopic growthfactor
+        
+        :returns: r80: the aerosol radius at RH=80%  [um]
+    """
     # assume continous flow regime => cunningham slip factors ~1
     # ρ0 = 1g/cm^3
     # ρp = 2.2g/cm^3 (sea salt) -> changed to 2.017 g/cm3 (Ziegler 2017)
@@ -592,6 +705,17 @@ def aps_D_to_r80(Dca, rhop=2.017, chic=1.08, gf=2):
     return r80
 
 def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_', LABELS=[]):
+    """
+        Function to integrate aerosol size spectra to aerosol number concentrations over specified size ranges
+
+        :param APS: dataframe with column = Aerosol dyameter in [um] and data = dN/dlogDp
+        :param AGG_WINDOWS: array of lower and upper edge of the aggreagtion windows [um]
+        :param label_prefix: string ot be added to the output column headers
+        :param LABELS: option to provide custom labels for the output column headers, otherwise the size ranges are provided
+        
+        :returns: aps_agg: dataframe of integrated number concentrations
+        :returns: aps_agg_meta: data frame provding the size ranges
+    """
     # FOR NOW I ASSUME THAT:
     # diameters given is center diameters of the logarithmic intervals, this would make sense cause:
     #1/(np.log10(0.523)-np.log10(0.542)) #-> 64
@@ -663,7 +787,13 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv',
     MERGED_SST = '../data/intermediate/18_precipitation/ace_merged_uw_sat_t_parsed.csv', # new data merged by Alex Haumann
     RETURN_EXPANSIONS=False):
-    
+    """
+        Custom function to aling ACE data at 5 minute resolution (under development)
+
+        :params: choice of the data folders and options to chose between datasets
+        
+        :returns: params = a dataframe of allinged time series at 5min resolution time stamp label on the left
+    """
     # list of output parameter
     #['u10', 'uR_afc', 'vR_afc', 'WSR_afc', 'WDR_afc', 'visibility',
     #   'd-to-land', 't-to-land', 'RH', 'TA', 'PA', 'SST', 'deltaT', 'BLH',
