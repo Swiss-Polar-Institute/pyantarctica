@@ -657,11 +657,11 @@ def aps_aggregate(APS,AGG_WINDOWS, label_prefix='APS_', LABELS=[]):
 
 def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', WAVE_from='imu',
     MET_DATA='../data/intermediate/0_shipdata/metdata_5min_parsed.csv',
-    ERA5_DATA='../../ecmwf-interpolation-to-cruise-track/data/ecmwf-on-track/era5-on-cruise-track-5min-legs0-4-nearest.csv',
+    ERA5_DATA='../../ecmwf-interpolation-to-cruise-track/data/ecmwf-era5-interpolated-to-cruise-track/era5-on-cruise-track-5min-legs0-4-nearest.csv',
     WIND_DATA='../data/intermediate/0_shipdata/u10_ship_5min_full_parsed.csv',
-    WAVE_DATA='../data/intermediate/17_waves/01_waves_recomputed.csv',
-    WAMOS_DATA='../data/intermediate/17_waves/Updated_Wave_Info_ACE_Leg01234_parsed.csv',
-    IMU_DATA='../data/intermediate/17_waves/WaveInfo_ACE_IMU_parsed.csv',
+    WAVE_DATA='../data/intermediate/17_waves/01_waves_recomputed.csv', # this is no longer used
+    WAMOS_DATA='../data/intermediate/17_waves/WaMoS_FinalData_parsed.csv', # latest file 12.5.2020
+    IMU_DATA='../data/intermediate/17_waves/IMU_FinalData_parsed.csv', # latest file 12.5.2020
     FERRYBOX='../data/intermediate/18_precipitation/ferrybox_parsed.csv',
     SATELLITE='../data/intermediate/18_precipitation/satellite_parsed.csv',
     SWI_DATA='../data/intermediate/11_meteo/ACE_watervapour_isotopes_SWI13_5min_parsed.csv',
@@ -669,6 +669,16 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     T_TO_LAND='../data/intermediate/7_aerosols/hours_till_land_parsed.csv',
     MERGED_SST = '../data/intermediate/18_precipitation/ace_merged_uw_sat_t_parsed.csv', # new data merged by Alex Haumann
     RETURN_EXPANSIONS=False):
+    
+    # list of output parameter
+    #['u10', 'uR_afc', 'vR_afc', 'WSR_afc', 'WDR_afc', 'visibility',
+    #   'd-to-land', 't-to-land', 'RH', 'TA', 'PA', 'SST', 'deltaT', 'BLH',
+    #   'ustar', 'd18O', 'd2H', 'dexc', 'total_age', 'total_hs', 'total_steep',
+    #   'total_tp', 'wind_sea_age', 'wind_sea_hs', 'wind_sea_steep',
+    #   'wind_sea_tp', 'swell_hs', 'swell_tp', 'total_kp', 'total_ReHs',
+    #   'total_LenainMelville', 'wind_sea_kp', 'wind_sea_ReHs',
+    #   'wind_sea_LenainMelville', 'swell_kp', 'swell_steep', 'swell_age',
+    #   'swell_ReHs', 'swell_LenainMelville']
 
     # loads parameters from various data sets and creates a joint 5min data set
     # the 5min time stamp label resides on the LEFT (start) of the 5min interval
@@ -679,17 +689,21 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     # sst_from='era5' : use era5 sst
     # sst_from='ship' : use ferrybox temperature (+273.15 to convert to Kelvin)
     # sst_from='merge', 'merge_ship_satellite': merge satellite and ferrybox temperature
-    # sst_from='merge_ship_era5': merge era5 and ferrybox temperature
+    # sst_from='merge_ship_satellite': merge era5 and ferrybox temperature
     #
     # TA_from='ship'  : use metdata 'TA' (+273.15 to convert to Kelvin)
     #
     # WAVE_from='imu' : use IMU for total sea, wind and swell are set to NaN
     # WAVE_from='wamos' : use Wamos data, total, wind and swell separately
-    # I would not trust air temperature from the Mode
+    # 
     #
 
     MET_DATA  = Path(MET_DATA)
     ERA5_DATA = Path(ERA5_DATA)
+    if ERA5_DATA==Path('../../ecmwf-interpolation-to-cruise-track/data/ecmwf-on-track/era5-on-cruise-track-5min-legs0-4-nearest.csv'):
+        print('You are using the wrong era5 file path!')
+        ERA5_DATA==Path('../../ecmwf-interpolation-to-cruise-track/data/ecmwf-era5-interpolated-to-cruise-track/era5-on-cruise-track-5min-legs0-4-nearest.csv')
+    
     # era5 linear, provides NaN if one of neighboring fields is land (lsm=1)
     # era5 nearest, provides NaN if the nearest fields is land (lsm=1)
     WIND_DATA = Path(WIND_DATA)
@@ -781,17 +795,6 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     era5 = pd.merge(era5,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     era5.drop(columns=['VIS'], inplace=True)
 
-    if False: # to be removed outdataed
-        satellite = dataset.read_standard_dataframe(SATELLITE, crop_legs=False)
-
-        satellite = dataset.resample_timeseries(satellite, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=60) # old resolution = 60min but time stamp irregular on odd seconds -> resample to 5min
-        satellite = dataset.match2series(satellite,metdata) # match to params seris
-        satellite = satellite.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
-
-        ferrybox = dataset.read_standard_dataframe(FERRYBOX, crop_legs=False)
-        ferrybox = ferrybox.resample('5min' ).mean() # resample 5min
-        ferrybox = dataset.match2series(ferrybox,metdata) # match to params seris
-
     merged_sst = dataset.read_standard_dataframe(MERGED_SST, crop_legs=False)
     merged_sst = merged_sst.resample('5min' ).mean() # resample 1min to 5min resloution
     merged_sst = dataset.match2series(merged_sst,metdata) # match to params seris
@@ -829,10 +832,6 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
         print('wrong option for SST_from, use: ship, era5, or merge_ship_satellite')
         return
 
-    # no longer needed
-    #if 1: # interpolate over 1hour gaps in the SST
-    #    params['SST'] = params['SST'].interpolate(method='linear', limit=40, limit_direction='both', axis=0)
-
     params['deltaT']=(params['TA']-params['SST']) # air sea temperature gradient [K]
 
     params['BLH']=era5['blh'] # boundary layer height [m]
@@ -851,53 +850,94 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
             params[var_str] = params[var_str].interpolate(method='nearest', limit=4, limit_direction='both', axis=0)
     # Wave derived parms:
 
-    # wave time stamp already on left
-    wave = dataset.read_standard_dataframe(WAVE_DATA)
-    wave = pd.merge(wave,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
-    wave.drop(columns=['VIS'], inplace=True)
-    #
-    # define if to rename wave variables when writing to params or not!!!
-    # params['what you like']=wave['wind_sea_hs']
-    for var_str in ['total_age', 'total_hs', 'total_steep','total_tp',
-                    'wind_sea_age', 'wind_sea_hs', 'wind_sea_steep', 'wind_sea_tp',
-                    ]:
-        params[var_str]=wave[var_str]
-
-    wamos = dataset.read_standard_dataframe(WAMOS_DATA)
-    wamos = wamos.resample('5min' ).mean() # resample to 5min
-
-    imu = dataset.read_standard_dataframe(IMU_DATA)
-    # remove Hs spikes and Tp data out of range
-    X_out, _, _ = datafilter.outliers_iqr_time_window(imu[['Hs (m)']].copy(),Nmin=6*60,minN=7,d_phys=0.5, d_iqr=1.5) # perfect for Hs
-    Tp_out = ((imu['Tp (s)']<4.5)| (imu['Tp (s)']>14))
-    for var_str in imu.columns:
-        imu.at[X_out,var_str]=np.NaN
-        imu.at[Tp_out,var_str]=np.NaN
-
-    imu = dataset.resample_timeseries(imu, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=20) # old resolution = 20min but time stamp irregular on odd seconds -> resample to 5min
-    imu = dataset.match2series(imu,params) # match to params seris
-    #imu = imu.interpolate(axis=0, method='nearest', limit=2, limit_direction='both') # fill in nearest 2 5min blocks with the same 20min data
-    imu = imu.interpolate(axis=0, method='nearest', limit=3, limit_direction='both') # allo to fill the neigbourblock
-
+    if False:
+        # no need to use this data, we overwrite it anyways
+        wave = dataset.read_standard_dataframe(WAVE_DATA)
+        # wave time stamp already on left
+        wave = pd.merge(wave,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
+        wave.drop(columns=['VIS'], inplace=True)
+        #
+        for var_str in ['total_age', 'total_hs', 'total_steep','total_tp',
+                        'wind_sea_age', 'wind_sea_hs', 'wind_sea_steep', 'wind_sea_tp',
+                        ]:
+            params[var_str]=wave[var_str]
+    else:
+        for var_str in ['total_age', 'total_hs', 'total_steep','total_tp',
+                        'wind_sea_age', 'wind_sea_hs', 'wind_sea_steep', 'wind_sea_tp',
+                        ]:
+            params[var_str]=np.nan
+    
 
     if WAVE_from=='imu':
-        params['total_hs']=imu['Hs (m)']
-        params['total_tp']=imu['Tp (s)']
-        #params['total_steep']=imu['Steepness (-)']
-        for var_str in ['wind_sea', 'swell']:
-            params[var_str+'_hs']=imu['Hs (m)']*np.NaN
-            params[var_str+'_tp']=imu['Hs (m)']*np.NaN
+        imu = dataset.read_standard_dataframe(IMU_DATA)
+    
+        if IMU_DATA==Path('../data/intermediate/17_waves/WaveInfo_ACE_IMU_parsed.csv'):
+            # catching of the old version, to be removed!
+            print('Warning! you are using an old IMU file! Please change to IMU_FinalData')
+            
+            # remove Hs spikes and Tp data out of range
+            X_out, _, _ = datafilter.outliers_iqr_time_window(imu[['Hs (m)']].copy(),Nmin=6*60,minN=7,d_phys=0.5, d_iqr=1.5) # perfect for Hs
+            Tp_out = ((imu['Tp (s)']<4.5)| (imu['Tp (s)']>14))
+            for var_str in imu.columns:
+                imu.at[X_out,var_str]=np.NaN
+                imu.at[Tp_out,var_str]=np.NaN
 
+            imu = dataset.resample_timeseries(imu, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=20) # old resolution = 20min but time stamp irregular on odd seconds -> resample to 5min
+            imu = dataset.match2series(imu,params) # match to params seris
+            #imu = imu.interpolate(axis=0, method='nearest', limit=2, limit_direction='both') # fill in nearest 2 5min blocks with the same 20min data
+            imu = imu.interpolate(axis=0, method='nearest', limit=3, limit_direction='both') # allo to fill the neigbourblock
+
+            params['total_hs']=imu['Hs (m)']
+            params['total_tp']=imu['Tp (s)']
+            #params['total_steep']=imu['Steepness (-)']
+            for var_str in ['wind_sea', 'swell']:
+                params[var_str+'_hs']=imu['Hs (m)']*np.NaN
+                params[var_str+'_tp']=imu['Hs (m)']*np.NaN
+                
+                
+        elif IMU_DATA==Path('../data/intermediate/17_waves/IMU_FinalData_parsed.csv'):
+            # use the new imu file
+            imu = dataset.resample_timeseries(imu, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=5) # old resolution = 5min but time stamp irregular on odd seconds -> resample to 5min
+            imu = dataset.match2series(imu,params) # match to params seris
+            
+            params['total_hs']=imu['Hs']
+            params['total_tp']=imu['Tp']
+            for var_str in ['wind_sea', 'swell']:
+                params[var_str+'_hs']=imu['Hs']*np.NaN
+                params[var_str+'_tp']=imu['Hs']*np.NaN
+        else:
+            print('unknown IMU file???')
+            
+            
     elif WAVE_from=='wamos':
-        for var_str in ['total', 'wind_sea', 'swell']:
-            if var_str=='total':
-                wamos_str = 'Total'
-            elif var_str=='wind_sea':
-                wamos_str = 'Wind Sea'
-            else:
-                wamos_str = 'Swell'
-            params[var_str+'_hs']=wamos[wamos_str+' Hs (m)']
-            params[var_str+'_tp']=wamos[wamos_str+' Tp (s)']
+        wamos = dataset.read_standard_dataframe(WAMOS_DATA)
+        wamos = wamos.resample('5min').mean() # resample to 5min with time stamp on the left
+
+    
+        if WAMOS_DATA==PATH('../data/intermediate/17_waves/Updated_Wave_Info_ACE_Leg01234_parsed.csv'):
+            print('Warning! you are using an old WaMoS file! Please change to WaMoS_FinalData')
+            for var_str in ['total', 'wind_sea', 'swell']:
+                if var_str=='total':
+                    wamos_str = 'Total'
+                elif var_str=='wind_sea':
+                    wamos_str = 'Wind Sea'
+                else:
+                    wamos_str = 'Swell'
+                params[var_str+'_hs']=wamos[wamos_str+' Hs (m)']
+                params[var_str+'_tp']=wamos[wamos_str+' Tp (s)']
+        elif WAMOS_DATA==PATH('../data/intermediate/17_waves/WaMoS_FinalData_parsed.csv'):
+            # use the new wamos file
+            for var_str in ['total', 'wind_sea', 'swell']:
+                if var_str=='total':
+                    wamos_str = ''
+                elif var_str=='wind_sea':
+                    wamos_str = 'w'
+                else:
+                    wamos_str = 's'
+                params[var_str+'_hs']=wamos[wamos_str+'Hs']
+                params[var_str+'_tp']=wamos[wamos_str+'Tp']
+        else:
+            print('unknown WaMoS file???')
     # recomputation of parameters
     # steepness, ReHs, LenainMelville, all from Tp and Hs
     # Wave number: kp=(2*pi/tp)^2/9.81
