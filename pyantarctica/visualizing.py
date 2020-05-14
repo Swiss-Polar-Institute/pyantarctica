@@ -683,7 +683,7 @@ def visualize_stereo_map(
 
     # ortho = ccrs.Orthographic(central_longitude=0, central_latitude=-90)
     geo = ccrs.Geodetic()
-
+    geo_scatter = ccrs.PlateCarree() # SL > added this to faciliate the scatter plot for Cartopy==0.18.0 
     # ortho = ccrs.Orthographic(central_longitude=0, central_latitude=-90)
     # geo = ccrs.Geodetic()
     # prepare basemap
@@ -742,7 +742,7 @@ def visualize_stereo_map(
         ax.scatter(
             toplot.iloc[:, 1].values,
             toplot.iloc[:, 0].values,
-            transform=geo,
+            transform=geo_scatter, # geo, # SL > changed here this to faciliate the scatter plot for Cartopy==0.18.0
             c=toplot.iloc[:, 2].values,
             s=markersize,
             alpha=0.75,
