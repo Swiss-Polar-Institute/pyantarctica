@@ -992,7 +992,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
             params[var_str]=np.nan
     
 
-    if WAVE_from=='imu':
+    if WAVE_from in ['imu', 'combined']:
         imu = dataset.read_standard_dataframe(IMU_DATA)
     
         if IMU_DATA==Path('../data/intermediate/17_waves/WaveInfo_ACE_IMU_parsed.csv'):
@@ -1023,7 +1023,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
             # use the new imu file
             imu = dataset.resample_timeseries(imu, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=5) # old resolution = 5min but time stamp irregular on odd seconds -> resample to 5min
             imu = dataset.match2series(imu,params) # match to params seris
-            
+            #imu = imu.interpolate(axis=0, method='nearest', limit=1, limit_direction='both') # fill in nearest empty 5min block with same data
             params['total_hs']=imu['Hs']
             params['total_tp']=imu['Tp']
             for var_str in ['wind_sea', 'swell']:
@@ -1033,12 +1033,12 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
             print('unknown IMU file???')
             
             
-    elif WAVE_from=='wamos':
+    if WAVE_from in ['wamos', 'combined']:
         wamos = dataset.read_standard_dataframe(WAMOS_DATA)
         wamos = wamos.resample('5min').mean() # resample to 5min with time stamp on the left
-
+        wamos = dataset.match2series(wamos,params)
     
-        if WAMOS_DATA==PATH('../data/intermediate/17_waves/Updated_Wave_Info_ACE_Leg01234_parsed.csv'):
+        if WAMOS_DATA==Path('../data/intermediate/17_waves/Updated_Wave_Info_ACE_Leg01234_parsed.csv'):
             print('Warning! you are using an old WaMoS file! Please change to WaMoS_FinalData')
             for var_str in ['total', 'wind_sea', 'swell']:
                 if var_str=='total':
@@ -1049,7 +1049,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
                     wamos_str = 'Swell'
                 params[var_str+'_hs']=wamos[wamos_str+' Hs (m)']
                 params[var_str+'_tp']=wamos[wamos_str+' Tp (s)']
-        elif WAMOS_DATA==PATH('../data/intermediate/17_waves/WaMoS_FinalData_parsed.csv'):
+        elif WAMOS_DATA==Path('../data/intermediate/17_waves/WaMoS_FinalData_parsed.csv'):
             # use the new wamos file
             for var_str in ['total', 'wind_sea', 'swell']:
                 if var_str=='total':
@@ -1058,8 +1058,13 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
                     wamos_str = 'w'
                 else:
                     wamos_str = 's'
-                params[var_str+'_hs']=wamos[wamos_str+'Hs']
-                params[var_str+'_tp']=wamos[wamos_str+'Tp']
+                if WAVE_from in ['wamos']:
+                    params[var_str+'_hs']=wamos[wamos_str+'Hs']
+                    params[var_str+'_tp']=wamos[wamos_str+'Tp']
+                if WAVE_from in ['combined']:
+                    params[var_str+'_hs'][(~np.isnan(wamos[wamos_str+'Hs'].values))]=wamos[wamos_str+'Hs'][(~np.isnan(wamos[wamos_str+'Hs'].values))]
+                    
+                    params[var_str+'_tp'][(~np.isnan(wamos[wamos_str+'Tp'].values))]=wamos[wamos_str+'Tp'][(~np.isnan(wamos[wamos_str+'Tp'].values))]
         else:
             print('unknown WaMoS file???')
     # recomputation of parameters
