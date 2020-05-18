@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright 2017-2018 - Swiss Data Science Center (SDSC) and ACE-DATA/ASAID Project consortium. 
+# Copyright 2017-2018 - Swiss Data Science Center (SDSC) and ACE-DATA/ASAID Project consortium.
 # A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
-# Eidgenössische Technische Hochschule Zürich (ETHZ). Written within the scope 
+# Eidgenössische Technische Hochschule Zürich (ETHZ). Written within the scope
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,13 +23,13 @@ from setuptools import find_packages, setup
 # 'Cartopy==0.16.0',
 
 install_requires = []
-'matplotlib,
+'matplotlib',
 'numpy',
 'pandas==0.23.0',
 'holoviews',
 'cartopy',
 'geoviews',
-'bokeh', 
+'bokeh',
 'airsea',
 'pathlib'
 ]
