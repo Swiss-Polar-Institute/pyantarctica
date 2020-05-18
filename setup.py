@@ -22,7 +22,7 @@ from setuptools import find_packages, setup
 # 'GPy==1.9.2'
 # 'Cartopy==0.16.0',
 
-install_requires = []
+install_requires = [
 'matplotlib',
 'numpy',
 'pandas==0.23.0',
@@ -31,8 +31,7 @@ install_requires = []
 'geoviews',
 'bokeh',
 'airsea',
-'pathlib'
-]
+'pathlib']
 
 tests_require = []
 
