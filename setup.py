@@ -19,16 +19,14 @@
 from setuptools import find_packages, setup
 
 # Manually install:
-# 'GPy==1.9.2'
 # 'Cartopy==0.16.0',
+# 'geoviews',
 
 install_requires = [
 'matplotlib',
 'numpy',
 'pandas==0.23.0',
 'holoviews',
-#'cartopy', # Needs to be installed manually
-'geoviews',
 'bokeh',
 'airsea',
 'pathlib']
