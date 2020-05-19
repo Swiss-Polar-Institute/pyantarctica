@@ -27,7 +27,7 @@ install_requires = [
 'numpy',
 'pandas==0.23.0',
 'holoviews',
-'cartopy',
+#'cartopy', # Needs to be installed manually
 'geoviews',
 'bokeh',
 'airsea',
