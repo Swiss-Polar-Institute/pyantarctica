@@ -144,13 +144,20 @@ def bt_get_values(bt_, return_value, return_times, aggr_trajs, aggr_time):
     # option to calculated '', 'cumsum', or 'cumprod' along time axis
     # returns array of data shape (len(return_times), len(bt_.timest_) )
     timest_=pd.DatetimeIndex(np.unique(bt_.timest_))
+    bt_ = bt_[[return_value, 'time', 'timest_']]
+    if return_value in ['lat', 'lon']: # special case for e.g. longitude
+        bt_=bt_.assign(sin=np.sin(bt_[return_value]/180*np.pi))
+        bt_=bt_.assign(cos=np.cos(bt_[return_value]/180*np.pi))
     bt_ = bt_.groupby(['timest_', 'time']).aggregate(aggr_trajs) # average over the trajectories
-    
+
     # build a wrapper for percentiles: (runs a few seconds!)
     #bt_ = bt_.groupby(['timest_', 'time']).aggregate(percentile(50))
-    
+
     if len(aggr_time)>0:
         bt_=bt_.groupby('timest_').aggregate(aggr_time) # 
+
+    if return_value in ['lat', 'lon']: # special case for e.g. longitude
+        bt_[return_value] = np.arctan2(bt_['sin'], bt_['cos']) * 180 / np.pi
 
     if aggr_time in ['', 'cumsum', 'cumprod']:
         x_=[]
@@ -161,7 +168,7 @@ def bt_get_values(bt_, return_value, return_times, aggr_trajs, aggr_time):
 
     else:
         x_ = pd.DataFrame( bt_[return_value].values, columns=[return_value], index=pd.DatetimeIndex(np.unique(bt.timest_)) )
-        x.index.rename('timest_', inplace=True)
+        x_.index.rename('timest_', inplace=True)
     return x_
     
 
