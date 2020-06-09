@@ -607,16 +607,28 @@ def filter_parameters(
                 COMMENTS=False,
             )
         elif VarNameIntermediate in ["longitude"]:
-            var = resample_timeseries(
-                var,
+            # special treatment of "longitude" to deal with the crossing of the dateline
+            var_x = resample_timeseries(
+                np.cos(var/180*np.pi),
                 time_bin=time_bin,
-                how="median",
+                how="mean",
                 new_label_pos="c",
                 new_label_parity="even",
                 old_label_pos=timest_loc,
                 old_resolution=Resolution,
                 COMMENTS=False,
             )
+            var_y = resample_timeseries(
+                np.sin(var/180*np.pi),
+                time_bin=time_bin,
+                how="mean",
+                new_label_pos="c",
+                new_label_parity="even",
+                old_label_pos=timest_loc,
+                old_resolution=Resolution,
+                COMMENTS=False,
+            )
+            var = np.arctan2(var_y,var_x)*180/np.pi
         else:
             var = resample_timeseries(
                 var,
