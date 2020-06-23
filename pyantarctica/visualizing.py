@@ -705,9 +705,9 @@ def visualize_stereo_map(
         )
 
     ax.set_extent([-180, 180, -90, -35], ccrs.PlateCarree())
-    ax.coastlines(linewidth=1.5)
-    ax.add_feature(cfeature.LAND, facecolor=fillconts)
-    ax.add_feature(cfeature.OCEAN, facecolor=fillsea)
+    ax.add_feature(cfeature.LAND, facecolor=fillconts, zorder=2)
+    ax.add_feature(cfeature.OCEAN, facecolor=fillsea, zorder=1)
+    ax.coastlines(linewidth=1.5, zorder=2)
     # ax.gridlines(color='black', linestyle='--', alpha=0.5)
     # m.shadedrelief()
     # prepare colors
@@ -736,7 +736,7 @@ def visualize_stereo_map(
             transform=geo,
             linewidth=1,
             color="black",
-            zorder=1,
+            zorder=1+1,
         )
 
         ax.scatter(
@@ -749,7 +749,7 @@ def visualize_stereo_map(
             linewidth=0,
             label=labplot,
             cmap=cmap,
-            zorder=2,
+            zorder=2+1,
         )  #  , norm=norm
 
         # theta = np.linspace(0, 2*np.pi, 100)
@@ -759,7 +759,7 @@ def visualize_stereo_map(
         # ax.set_boundary(circle, transform=ax.transAxes)
 
         ax.gridlines(
-            draw_labels=True, linewidth=0.5, color="gray", alpha=0.5, linestyle="-"
+            draw_labels=True, linewidth=0.5, color="gray", alpha=0.5, linestyle="-", zorder=2,
         )  # crs=ccrs.PlateCarree(),
 
         # Define gridline locations and draw the lines using cartopy's built-in gridliner:
@@ -796,6 +796,7 @@ def visualize_stereo_map(
             s=markersize,
             linewidth=0,
             label=labplot,
+            zorder=2+1,
         )
         # im = m.plot(lon,lat,color=colors,linewidth=markersize,label=labplot)
     else:
