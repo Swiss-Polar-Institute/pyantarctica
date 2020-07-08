@@ -24,6 +24,13 @@ import datetime
 import numpy as np
 import pandas as pd
 
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
+import matplotlib.path as mpath # for round plot
+from matplotlib.dates import MonthLocator, DayLocator, HourLocator, DateFormatter, drange
+
+import datetime 
+
 
 def BT_subsetting(Dir_L1, BT_file_name, Max_hours, COLUMN_SELECTION):
     df_BT = pd.read_csv(os.path.join(Dir_L1,BT_file_name),skiprows=[0,1,3,4],sep=r'\s+',na_values=['-999.99','-999.990'], engine='python') #SL added NaN detection 
@@ -201,3 +208,94 @@ def bt_plot_values(bt_, return_value, return_times, aggr_trajs, aggr_time, Nhour
         ax.axvline(x=pd.to_datetime(leg_date), color='gray', linestyle='--')
     
     return fig, ax, cb
+
+def corr_coef(x, y, method='pearson'):
+    """
+    Wrapper function around Pandas .corr method. To find correlation between two
+    vectors/columns not necessarily in the same df.
+    method accepts same arguments as .corr method -->
+    method : {‘pearson’, ‘kendall’, ‘spearman’}
+        pearson : standard correlation coefficient
+        kendall : Kendall Tau correlation coefficient
+        spearman : Spearman rank correlation
+    """
+    df = pd.DataFrame({'x':x, 'y':y})
+    r = df.corr(method=method).iloc[0,1]
+    return r
+
+def bt_Npredict_time(btNpred,SSSF,params,W):#W_depo):
+    #btNpred['W']=(1-btNpred['SIF'])*(1-btNpred['LSM'])*btNpred['W_BLHP']*W_depo['W_depo']
+    #F2N = 1/1000000*3*3600/btNpred['BLH']
+    F2N = 1/1000000*3*3600/btNpred['BLH']
+    if SSSF=='U10power':
+        chi=params[0]
+        F=np.power(btNpred['U10'].values,chi)
+    else:
+        #APS_range=np.array([1, 2.5])
+        APS_RESOLUTION = 1/32 # resolution of the APS used to get from bin center to bin edge
+
+        Dca_l = aps_agg_meta.Dp_aps_low[0] # um lowest bin 
+        Dca_h = aps_agg_meta.Dp_aps_high[0] # um to be defined, highest bin for integration of paramerisations
+        APS_range = sssf.aps_DlowDhigh_to_range(Dca_l,Dca_h,RESOLUTION=APS_RESOLUTION)
+        
+        
+        r80_RESOLUTION = 1/32 # resolution at which the sssf are integrated to get total number flux
+        r80_range = sssf.aps_D_to_r80(APS_range) # conversion from Dp dry to r80 ! Discuss!
+        r80 =  np.power(10,np.arange(np.log10(r80_range[0]) ,np.log10(r80_range[1]),r80_RESOLUTION))  # particle dry diameter in um
+
+        U10 = btNpred['U10'].values
+        SST = btNpred['SKT'].values-273.15 # convert Kelvin to Celsius
+        Re = btNpred['Re'].values
+        _, F = sssf.sssf(sssf_str=SSSF,r80=r80,U10=U10,SST=SST,Re=Re)
+        F[np.isnan(F)]=1E-10 # set NaN values nearly zero to avoid spreading
+
+    
+    #btNpred['N'] = F*F2N*btNpred['W'] # contribution N[/cm3] = F[/m2/s]*dt[s]/BLH[m]
+    btNpred['N'] = F*F2N*W # contribution N[/cm3] = F[/m2/s]*dt[s]/BLH[m]
+
+    btNpred=btNpred[['timest_', 'time', 'N']].groupby(['timest_', 'time']).aggregate(np.mean) # average over the trajectories
+    
+    btNpred['N']=btNpred.groupby('timest_')['N'].cumsum() # for each timest_ calculate cumsum over the 'time'-axis
+    return btNpred
+
+def my_corr_time(y,X,qc,method):
+    time2test = np.unique(X.index.get_level_values(1)) # get all "time" indicees
+    corr = np.zeros_like(time2test)*np.NaN
+    jtime=-1
+    for testtime in time2test:
+        jtime=jtime+1
+        x=X.iloc[X.index.get_level_values('time') == np.float(testtime)]
+        x.reset_index(inplace=True)
+        x.set_index(x.timest_, inplace=True)
+        x=x.drop(columns=['timest_','time'])
+        if method in ['pearson', 'spearman']:
+            corr[jtime] = corr_coef(np.squeeze(x[qc].values), y[qc].values, method=method)
+        else:
+            print('WRONG METHOD')
+    return corr
+
+def segments_corr_time(segments,X,method):
+    time2test = np.unique(X.index.get_level_values(1)) # get all "time" indicees
+    Nsegments = len(np.unique(segments['segment'].dropna()))
+    corr = np.zeros([Nsegments, len(time2test)])*np.NaN
+    jtime=-1
+    for testtime in time2test:
+        jtime=jtime+1
+        x=X.iloc[X.index.get_level_values('time') == np.float(testtime)]
+        x.reset_index(inplace=True)
+        x.set_index(x.timest_, inplace=True)
+        x=x.drop(columns=['timest_','time'])
+        for jseg in np.arange(0,Nsegments):#np.unique(segments['segment']):
+            qc=(~np.isnan(segments['y']) & (segments['segment'] == jseg) )
+            y = segments['y']
+            if method in ['pearson', 'spearman']:
+                corr[jseg, jtime] = corr_coef(np.squeeze(x[qc].values), y[qc].values, method=method)
+            else:
+                print('WRONG METHOD')
+    return corr
+
+def segments_tau_opt(segments,X,method):
+    corr = segments_corr_time(segments,X,method)
+    time2test = np.unique(X.index.get_level_values(1)) # get all "time" indicees
+    tau_opt = time2test[np.argmax(corr, axis=1)]
+    return tau_opt
