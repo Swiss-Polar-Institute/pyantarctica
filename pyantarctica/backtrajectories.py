@@ -298,4 +298,4 @@ def segments_tau_opt(segments,X,method):
     corr = segments_corr_time(segments,X,method)
     time2test = np.unique(X.index.get_level_values(1)) # get all "time" indicees
     tau_opt = time2test[np.argmax(corr, axis=1)]
-    return tau_opt
+    return tau_opt, corr_opt
