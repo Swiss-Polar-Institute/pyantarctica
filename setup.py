@@ -23,13 +23,14 @@ from setuptools import find_packages, setup
 # 'geoviews',
 
 install_requires = [
-'matplotlib',
-'numpy',
-'pandas==0.23.0',
-'holoviews',
-'bokeh',
+#'matplotlib',
+#'numpy',
+#'pandas==0.23.0',
+#'holoviews',
+#'bokeh',
 'airsea',
-'pathlib']
+#'pathlib'
+]
 
 tests_require = []
 
