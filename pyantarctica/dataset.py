@@ -160,8 +160,9 @@ def add_legs_index(df, **kwargs):
     ), "To each date interval must correspond only one code"
 
     if "leg" in df:
-        print("leg column already there")
-        return df
+        #SL:#print("leg column already there")
+        #SL:#return df
+        df.drop(columns=["leg"], inplace=True) #SL:# Changed here to ALWAYS OVERWRITE the "leg" field
 
     dd = pd.Series(data=np.zeros((len(df.index))) * np.nan, index=df.index, name="leg")
 
