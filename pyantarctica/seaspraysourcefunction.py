@@ -848,12 +848,12 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     metdata = dataset.read_standard_dataframe(MET_DATA, crop_legs=False)
     if (str(metdata.index.tzinfo)=='None')==False:
         metdata.set_index(metdata.index.tz_convert(None), inplace=True) # remove TZ info
-    metdata.index = metdata.index-pd.Timedelta(5,'min')
+    metdata.index = metdata.index-pd.Timedelta(5,'m')
 
     wind = dataset.read_standard_dataframe(WIND_DATA, crop_legs=False)
     if (str(wind.index.tzinfo)=='None')==False:
         wind.set_index(wind.index.tz_convert(None), inplace=True) # remove TZ info
-    wind.index = wind.index-pd.Timedelta(5,'min')
+    wind.index = wind.index-pd.Timedelta(5,'m')
 
     wind = pd.merge(wind,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     wind.drop(columns=['VIS'], inplace=True)
@@ -862,16 +862,16 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     # Here we ensure timestamp on left.
     # I assume the only possible cases are original 5-min timestamp on right, or center
     if d_to_land.index[0].second==0:
-        d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
+        d_to_land.index = d_to_land.index-pd.Timedelta(5,'m')
     elif d_to_land.index[0].second==30:
-        d_to_land.index = d_to_land.index-pd.Timedelta(2.5,'min')
+        d_to_land.index = d_to_land.index-pd.Timedelta(2.5,'m')
     if 'latitude' in d_to_land.columns: # if intermediate version is used the csv also contains lat/lon, need to drop these
         d_to_land.drop(columns=['latitude'], inplace=True)
     if 'longitude' in d_to_land.columns: # if intermediate version is used the csv also contains lat/lon, need to drop these
         d_to_land.drop(columns=['longitude'], inplace=True)
         
     t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
-    t_to_land.index = t_to_land.index-pd.Timedelta(5,'min')
+    t_to_land.index = t_to_land.index-pd.Timedelta(5,'m')
     t_to_land = pd.merge(t_to_land[['hours_till_land']],metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     t_to_land.drop(columns=['VIS'], inplace=True) # drop the unnecessary column we got from merging
     t_to_land = t_to_land.interpolate(axis=0, method='nearest', limit=20, limit_direction='both') # interpolate between the 1 hourly data points
@@ -916,7 +916,7 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
     
     if (str(era5.index.tzinfo)=='None')==False:
         era5.set_index(era5.index.tz_convert(None), inplace=True) # remove TZ info
-    era5.index = era5.index-pd.Timedelta(2.5,'min') # adjust to beginning of 5min interval rule
+    era5.index = era5.index-pd.Timedelta(2.5,'m') # adjust to beginning of 5min interval rule
     era5 = pd.merge(era5,metdata[['VIS']],left_index=True,right_index=True,how='right',suffixes=('', '')) # merge to get numbers right
     era5.drop(columns=['VIS'], inplace=True)
 
@@ -1151,9 +1151,9 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
         # Here we ensure timestamp on left.
         # I assume the only possible cases are original 5-min timestamp on right, or center
         if d_to_land.index[0].second==0:
-            d_to_land.index = d_to_land.index-pd.Timedelta(5,'min')
+            d_to_land.index = d_to_land.index-pd.Timedelta(5,'m')
         elif d_to_land.index[0].second==30:
-            d_to_land.index = d_to_land.index-pd.Timedelta(2.5,'min')
+            d_to_land.index = d_to_land.index-pd.Timedelta(2.5,'m')
         #data['d-to-land'] = d_to_land this does not work
         data = data.merge(d_to_land[['distance']],left_index = True, right_index=True, how='left')
         data.rename(columns={"distance": "d-to-land"}, inplace=True)
@@ -1164,7 +1164,7 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
     if 't-to-land' not in data.columns.tolist():
         t_to_land_FLAG = True
         t_to_land = dataset.read_standard_dataframe(T_TO_LAND, crop_legs=False)
-        t_to_land.index = t_to_land.index-pd.Timedelta(5,'min') # the original time stamp is on the right
+        t_to_land.index = t_to_land.index-pd.Timedelta(5,'m') # the original time stamp is on the right
         # here we first merge with data to cover the same range of 5min samples
         # then cause t_to_land is a 1hr time series we need to interpolate over the gaps.
         data = data.merge(t_to_land[['hours_till_land']],left_index = True, right_index=True, how='left')
@@ -1174,7 +1174,7 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
         #data['t-to-land'] = t_to_land
 
     mask = dataset.read_standard_dataframe(MASK, crop_legs=False)
-    mask.index = mask.index-pd.Timedelta(5,'min')
+    mask.index = mask.index-pd.Timedelta(5,'m')
     mask = mask['mask_5min']
     data = data.merge(mask,left_index = True, right_index=True)
 
