@@ -276,9 +276,9 @@ def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=8
 
     # setttling velocity in m/s,note that the Dp and rho_p play an important role!
     #vs = g*rho_p*Dp*Dp*Ccunn/18/dyn_visc
-    vs = sea_salt_settling_velocity(Dp_dry, rho_p=rho_dry, RH=RH, T=20., P=1013., hygroscopic_growth=hygroscopic_growth)
-    rho_p = rho_sea_spary(Dp_dry, RH=RH, rho_p=rho_dry, hygroscopic_growth=hygroscopic_growth) # rho_p [g cm^-3]
-    Dp = rdry2rRH(Dp_dry, RH=RH, hygroscopic_growth=hygroscopic_growth) # Dp [um]
+    vs = sssf.sea_salt_settling_velocity(Dp_dry, rho_p=rho_dry, RH=RH, T=20., P=1013., hygroscopic_growth=hygroscopic_growth)
+    rho_p = sssf.rho_sea_spary(Dp_dry, RH=RH, rho_p=rho_dry, hygroscopic_growth=hygroscopic_growth) # rho_p [g cm^-3]
+    Dp = sssf.rdry2rRH(Dp_dry, RH=RH, hygroscopic_growth=hygroscopic_growth) # Dp [um]
 
     # convert to SI units
     rho_p = rho_p * 100*100*100/1000 # g cm^-3 -> kg m^-3
@@ -318,6 +318,7 @@ def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=8
     Pr = 0.72 # Prandtl number
     Sc = kin_visc/Diffusivity # Schmidt number
     z0=0.016*ustar*ustar/g # roughness length ! Check
+    #z0=0.016*ustar*ustar/g + kin_visc/(9.1*ustar)# roughness length ! Check
     ra = 1/kappa/ustar*(np.log(h_ref/z0) - aceairsea.PSIh(zeta) ) # -Psi(z/L)+Pis(z0/L) ! Need to add
     rb = 2/kappa/ustar*np.power(Sc/Pr,2/3) #
     vd = vs + 1/(ra+rb+ra*rb) # addition currenlty makes almost no difference for Dp>.8
@@ -333,7 +334,40 @@ def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=8
 
     rti = 1/ustar/m/tau_plus
     vd = vs/(1-np.exp(-vs*(ra+1/(1/rdb+1/rii+1/(rii+rti)  )  )) )
+    
+    vs_98 = sssf.sea_salt_settling_velocity(Dp_dry, rho_p=rho_dry, RH=98.3, T=20., P=1013., hygroscopic_growth=hygroscopic_growth)
+    St_98 = vs_98/g*ustar*ustar/kin_visc # Stokes number at 98.3% RH for use in eq (5)
+    vs_80 = sssf.sea_salt_settling_velocity(Dp_dry, rho_p=rho_dry, RH=80., T=20., P=1013., hygroscopic_growth=hygroscopic_growth)
 
+    if model=="slinn_1980":
+        
+        # missing term alpha_m_dot_prime_prime for the contribution from diffusion phoresis see eq (5)
+        alpha_m_dot_prime_prime = .00
+        #C_D = ustar*ustar/U10/U10 -> C_D*U10=(ustar*ustar/U10)
+        k_D_prime = -alpha_m_dot_prime_prime + 1/kappa*(ustar*ustar/U10)*(np.power(Sc,-0.5)+np.power(10,-3/St_98))
+        k_C_prime = 1/(1-kappa)*(ustar*ustar/U10)
+        
+        # eq (4) in Slinn & Slinn 1980 but using vs(RH) in the not so "dry" turbulent flux layer
+        vd = 1/( 1/(k_C_prime+vs) + 1/(k_D_prime+vs_98) - vs/(k_C_prime+vs)/(k_D_prime+vs_98))
+
+    if model=="williams_1982":
+        #Diff_effective = ?# D' effective diffusivity
+        k_ss = 1/kappa*(ustar*ustar/U10)*(np.power(Sc,-0.5)+np.power(10,-3/St_98)) # Eq 12
+        alpha_WCF = 1.7*np.power(10.,-6.)*np.power(U10,3.75)
+        #k_ax = kappa*ustar/(np.log(h_ref/Diff_effective) - aceairsea.PSIh(zeta))
+        # use z0 from above instead
+        k_ax = kappa*ustar/(np.log(h_ref/z0) - aceairsea.PSIh(zeta) )
+        k_as = k_ax
+        k_ab = k_ax
+        k_m = k_as
+        k_bs = 0.1 # 10 cm/s
+        #k_bs = k_ss
+        
+        A = k_m * ((1-alpha_WCF)*k_as+alpha_WCF*k_ab+vs)+(1-alpha_WCF)*(k_as+vs)*alpha_WCF*(k_ab+k_bs+vs_98)
+        B = k_m * ((1-alpha_WCF)*(k_as+k_ss)+(alpha_WCF)*(k_ab+k_bs)+vs) + (1-alpha_WCF)*(k_as+k_ss+vs_98)*alpha_WCF*(k_ab+k_bs+vs_98)
+        
+        vd = A/B*( (1-alpha_WCF)*(k_ss+vs_98)+k_m*alpha_WCF*(k_bs+vs_98)/(k_m+alpha_WCF*(k_ab+k_bs+vs_98)) ) + alpha_WCF*(k_bs+vs_98)*alpha_WCF*(k_ab+vs)/(k_m+alpha_WCF*(k_ab+k_bs+vs_98))
+        
     if 0:
         # ensuring the right shape what ever the input
         if np.max(np.shape(vd))>1:
@@ -1112,8 +1146,19 @@ def merge_wind_wave_parameters(SST_from='merge_ship_satellite', TA_from='ship', 
         params[var_str+'_age'] = params[var_str+'_tp']*9.81/2/np.pi/params['u10']
         params[var_str+'_ReHs'] = params['ustar']*params[var_str+'_hs']/kin_visc_sea
 
-
-
+    # Read MRR rain rate
+    MRRRAIN_DATA = '../data/intermediate/18_precipitation/RR_200m.csv'; MICRORAIN_DATA=Path(MRRRAIN_DATA)
+    microrain = dataset.read_standard_dataframe(MRRRAIN_DATA)
+    microrain = dataset.resample_timeseries(microrain, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=1)
+    microrain = dataset.match2series(microrain,params)
+    params['Rainrate']=microrain['RR_200m']
+    
+    # Read MRR snowfall rate
+    MRRSNOW_DATA = '../data/intermediate/18_precipitation/mrrACE_SRmmh_resMINUTE_ZS5.csv'; MICRORAIN_DATA=Path(MICRORAIN_DATA)
+    microrain = dataset.read_standard_dataframe(MRRSNOW_DATA)
+    microrain = dataset.resample_timeseries(microrain, time_bin=5, how='mean', new_label_pos='l', new_label_parity='even', old_label_pos='c', old_resolution=1)
+    microrain = dataset.match2series(microrain,params)
+    params['Snowfall']=microrain['Snowfall [mm/h]']
 
     if RETURN_EXPANSIONS:
         # add some expansions of u10, RH, and deltaT
@@ -1175,7 +1220,7 @@ def filter_parameters(data, d_lim=10000, t_lim=24, not_to_mask=1,  D_TO_LAND='..
 
     mask = dataset.read_standard_dataframe(MASK, crop_legs=False)
     mask.index = mask.index-pd.Timedelta(5,'m')
-    mask = mask['mask_5min']
+    mask = mask[['mask_5min']]
     data = data.merge(mask,left_index = True, right_index=True)
 
     keep_criterion = pd.DataFrame()

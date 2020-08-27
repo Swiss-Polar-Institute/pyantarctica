@@ -134,8 +134,61 @@ def bt_count_bt(bt):
     bt_.drop(columns='BTindex',inplace=True)
     return bt_
 
+#signal loss calculations
+def w_inside_mbl(BT):
+    Tol = 1.05 # tolerate the pressure to be 10% lower than BLHP
+    w=((BT['p']*Tol>BT['BLHP']))*1 # weight to set N->0 if trajectory from outside BLH(p<BLHP) 
+    # toto: add toleration of single 3h exiting of BLH
+    return w
 
+def w_dry_deposition(BT, Dp):
+    # caculate deposition weith for 1 diameter Dp and return as Dataframe
+    # note in this implementation w_dry depends mostly on BLH!
+    # (more loss for smaler BLH)
+    # dependence on wind speed is neglectable
+    h_ref = 15 # reference height [m]
+    rho_p = 2.2 # g cm^-3
+    w=BT['BLH']/BT['BLH']
+    U10 = np.abs(BT.U10.values)
+    T = BT.T2M.values # C
+    P = BT.PS.values
+    BLH=BT.BLH.values
+    BLH = BLH.reshape(len(BLH),1)
+    vd, vs = deposition_velocity('default', Dp, rho_p, h_ref, U10, T, P)
+    vd = vd.reshape(len(vd),1)
+    w_dry = (1+2*h_ref/BLH*(np.exp(-vd*3*3600/2/h_ref) -1 ) )
+    w[:]=np.squeeze(w_dry)
+    return w
 
+def bt_wet_depo(bt,scale=1.0,model='Wood'):
+    #bt_ = bt.copy()
+    hcloud = bt['BLH']-bt['cloud_bas']; hcloud[hcloud<0]=0
+    # compared to CL1 from ship the estimated cloud_bas sometimes much too low
+    # this leads to hzi-->1 in cases where it should be <1!
+    hzi = hcloud/bt['BLH']
+    I = bt['RTOT']/3 # rain rate in mm/hr
+    I = (bt['RTOT']+bt['SF'])/3 # rain + snowfall rate in mm/hr
+    dt = 3*3600 # time step in seconds (3hr)
+    if model=='Wood':
+        lambda_INC = 2.25*I/3600*hzi # lambda in 1/sec # Zhen2018, Wood2004,2012
+    elif model=='Flexpart':
+        cl=.5*np.power(I,0.36) # from felxpart paper it gets similar to Wood
+        cl[cl==0]=1
+        cl_flex10=(bt['tcLWC']+bt['tcIWC'])
+        cl_flex10[(cl_flex10==0) ]=cl[(cl_flex10==0) ]
+        if model in ['Flexpart_6']:
+            lambda_INC = 0.9*I/cl/3600*hzi
+        elif model in ['Flexpart_10']:
+            lambda_INC = 0.9*I/cl_flex10/3600*hzi
+            lambda_INC[lambda_INC<0]=0 
+            lambda_INC[(bt['tcLWC']+bt['tcIWC'])==0]=0
+    else:
+        print('not implementet')
+    w = np.exp( -lambda_INC*dt*scale )
+    bt_=(bt[['timest_', 'time', 'BTindex']]).copy()
+    #bt_['w'] = w
+    #bt_['W']=bt_.groupby(['timest_', 'BTindex']).aggregate('cumprod')['w']
+    return w
 
 def bt_accumulate_weights(bt,w,W_str='W'):
     W_depo = bt[['timest_', 'BTindex','time']].copy()
@@ -174,7 +227,7 @@ def bt_get_values(bt_, return_value, return_times, aggr_trajs, aggr_time):
         x_ = pd.DataFrame( np.transpose(x_), index=timest_)
 
     else:
-        x_ = pd.DataFrame( bt_[return_value].values, columns=[return_value], index=pd.DatetimeIndex(np.unique(bt.timest_)) )
+        x_ = pd.DataFrame( bt_[return_value].values, columns=[return_value], index=pd.DatetimeIndex(np.unique(bt_.timest_)) )
         x_.index.rename('timest_', inplace=True)
     return x_
     
