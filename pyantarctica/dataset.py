@@ -1,7 +1,7 @@
 #
-# Copyright 2017-2018 - Swiss Data Science Center (SDSC) and ACE-DATA/ASAID Project consortium. 
+# Copyright 2017-2018 - Swiss Data Science Center (SDSC) and ACE-DATA/ASAID Project consortium.
 # A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
-# Eidgenössische Technische Hochschule Zürich (ETHZ). Written within the scope 
+# Eidgenössische Technische Hochschule Zürich (ETHZ). Written within the scope
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -139,7 +139,10 @@ def add_legs_index(df, **kwargs):
             ["2016-11-19 23:00", "2016-12-15 05:00"],  # leg 0
             ["2016-12-20 13:00", "2017-01-18 22:00"],  # leg 1
             ["2017-01-22 13:00", "2017-02-22 09:00"],  # leg 2
-            ["2017-02-26 02:00", "2017-03-19 07:00"],  # leg 3, ship at full speed @'2017-02-26 02:00', in the vicinity at '2017-03-18 14:00'
+            [
+                "2017-02-26 02:00",
+                "2017-03-19 07:00",
+            ],  # leg 3, ship at full speed @'2017-02-26 02:00', in the vicinity at '2017-03-18 14:00'
             ["2017-03-22 20:00", "2017-04-11 13:00"],  # leg 4
         ]
 
@@ -160,9 +163,11 @@ def add_legs_index(df, **kwargs):
     ), "To each date interval must correspond only one code"
 
     if "leg" in df:
-        #SL:#print("leg column already there")
-        #SL:#return df
-        df.drop(columns=["leg"], inplace=True) #SL:# Changed here to ALWAYS OVERWRITE the "leg" field
+        # SL:#print("leg column already there")
+        # SL:#return df
+        df.drop(
+            columns=["leg"], inplace=True
+        )  # SL:# Changed here to ALWAYS OVERWRITE the "leg" field
 
     dd = pd.Series(data=np.zeros((len(df.index))) * np.nan, index=df.index, name="leg")
 
@@ -231,8 +236,14 @@ def ts_aggregate_timebins(
     # print(time_ shift)
     return df.shift(time_shift, "s")
 
+
 ##############################################################################################################
-def read_standard_dataframe(data_folder, datetime_index_name="timest_", crop_legs=True, date_time_format="%Y-%m-%d %H:%M:%S"):
+def read_standard_dataframe(
+    data_folder,
+    datetime_index_name="timest_",
+    crop_legs=True,
+    date_time_format="%Y-%m-%d %H:%M:%S",
+):
     """
         Helper function to read a ``*_postprocessed.csv`` file, and automatically crop out leg 1 - leg 3, and set as datetime index a specific column (or defaults to the standard)
 
@@ -254,6 +265,7 @@ def read_standard_dataframe(data_folder, datetime_index_name="timest_", crop_leg
         data = data[crop_out_ind.astype(bool)]  #  1-3
         # data = data.drop('leg',axis=1)
     return data
+
 
 ##############################################################################################################
 def read_traj_file_to_numpy(filename, ntime):
@@ -331,6 +343,7 @@ def match2series(ts, ts2match):
 
 
 ##############################################################################################################
+
 
 def resample_timeseries(
     ts,
@@ -557,12 +570,18 @@ def filter_parameters(
         #
         # use get_raw_param here, instead of dublicating code. It is a bit overkill of releoding META_FILE each time. Could change to handing META over to get_raw_param instead of the file name
         var = get_raw_param(VarNameLUT=VarNameLUT, META_FILE=META_FILE)
-               
+
         if VarNameIntermediate in ["seaice"]:
             # for sea ice interpolate only values, where the interpolation results to 0 values
             # we don't interpolate accross the strech of missing data where the ship was parked at the Mertz glacier
-            var.at[( np.isnan(var[var.columns[0]]) &  (var[var.columns[0]].interpolate(direction='both')==0) ),  var.columns[0]] = 0
-        
+            var.at[
+                (
+                    np.isnan(var[var.columns[0]])
+                    & (var[var.columns[0]].interpolate(direction="both") == 0)
+                ),
+                var.columns[0],
+            ] = 0
+
         if VarNameIntermediate in ["CL1", "CL2", "CL3"]:
             var = var.replace({np.inf: 1.5 * np.nanmax(var.replace({np.inf: 0}))})
         # Add alert for other infinity values
@@ -610,7 +629,7 @@ def filter_parameters(
         elif VarNameIntermediate in ["longitude"]:
             # special treatment of "longitude" to deal with the crossing of the dateline
             var_x = resample_timeseries(
-                np.cos(var/180*np.pi),
+                np.cos(var / 180 * np.pi),
                 time_bin=time_bin,
                 how="mean",
                 new_label_pos="c",
@@ -620,7 +639,7 @@ def filter_parameters(
                 COMMENTS=False,
             )
             var_y = resample_timeseries(
-                np.sin(var/180*np.pi),
+                np.sin(var / 180 * np.pi),
                 time_bin=time_bin,
                 how="mean",
                 new_label_pos="c",
@@ -629,7 +648,7 @@ def filter_parameters(
                 old_resolution=Resolution,
                 COMMENTS=False,
             )
-            var = np.arctan2(var_y,var_x)*180/np.pi
+            var = np.arctan2(var_y, var_x) * 180 / np.pi
         else:
             var = resample_timeseries(
                 var,
@@ -655,13 +674,17 @@ def filter_parameters(
         # #### - - - - - - - - - - - - - -  - ###
 
         #### - add optional interpolation - ###
-        
+
         if VarNameIntermediate in ["seaice"]:
             # for sea ice interpolate only values, where the interpolation results to 0 values
             # we don't interpolate accross the strech of missing data where the ship was parked at the Mertz glacier
-            var.at[( np.isnan(var[var.columns[0]]) &  (var[var.columns[0]].interpolate(direction='both')==0) ),  var.columns[0]] = 0
-        
-
+            var.at[
+                (
+                    np.isnan(var[var.columns[0]])
+                    & (var[var.columns[0]].interpolate(direction="both") == 0)
+                ),
+                var.columns[0],
+            ] = 0
 
         if INTERPOLATE_limit > 0:
 
@@ -710,30 +733,32 @@ def filter_parameters(
 
     return params
 
+
 def get_LV_names_20200518():
     # LV names defined for the 20200821 run
     # hardwired here
     LV_names_20200518 = [
-        "LV names 20200821", # LV0 to be able to count from 1
-        "Climatic zones and large-scale horizontal gradients", #LV1
-        "Meridional cold and warm air advection", #LV2
-        "Wind driven conditions and sea spray", #LV3
-        "Precipitation vs. dry conditions", #LV4
-        "Distance to land", #LV5
-        "Aged secondary aerosol", #LV6
-        "Iron-fertilized blooms", #LV7
-        "Iron-limited biological productivity", #LV8
-        "Marginal sea ice zone", #LV9
-        "Seasonal signal", #LV10
-        "Surface nutrient concentrations associated with mixing events", #LV11
-        "Diel cycle", #LV12
-        "Atkinmode particles", #LV13
-        "Cyclone flag and low pressure", #LV14
-        "Bio-aerosols particles", #LV15
+        "LV names 20200821",  # LV0 to be able to count from 1
+        "Climatic zones and large-scale horizontal gradients",  # LV1
+        "Meridional cold and warm air advection",  # LV2
+        "Wind driven conditions and sea spray",  # LV3
+        "Precipitation vs. dry conditions",  # LV4
+        "Distance to land",  # LV5
+        "Aged secondary aerosol",  # LV6
+        "Iron-fertilized blooms",  # LV7
+        "Iron-limited biological productivity",  # LV8
+        "Marginal sea ice zone",  # LV9
+        "Seasonal signal",  # LV10
+        "Surface nutrient concentrations associated with mixing events",  # LV11
+        "Diel cycle",  # LV12
+        "Atkinmode particles",  # LV13
+        "Cyclone flag and low pressure",  # LV14
+        "Bio-aerosols particles",  # LV15
     ]
     return LV_names_20200518
-    
-def get_LV_list(RUN_DATE="20200821",DISPLAY_VERSION="Draft"):
+
+
+def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
     """
         function to create a LV name,sing,display-number list to use in the plotting of the sPCA results
         Knowledge on the runs is hardcoded here!
@@ -742,158 +767,170 @@ def get_LV_list(RUN_DATE="20200821",DISPLAY_VERSION="Draft"):
         :params VERSION: display version can be "Draft" or "Final", for VERSION=="Draft" the LVs are adjusted to match the LV run from 20200515
         :returns: LV_list=pd.DataFrame(index=[1..nLV],columns={'LV_name', 'LV_sign', 'LV_display_number'})
     """
-    
+
     # LV names defined for the 20200821
     LV_names_20200518 = get_LV_names_20200518()
-    
+
     # set the number of LVs based on the rundate
     if RUN_DATE in ["20200518"]:
-        nLV=15
+        nLV = 15
     elif RUN_DATE in ["20200821"]:
-        nLV=14
-    
-    # initiate LV_list and set defaults
-    LV_list = pd.DataFrame(index=np.arange(1,nLV+1), columns={'LV_name', 'LV_sign', 'nLV_display'})
-    LV_list['LV_sign'] = "plus" # no sign change when displaying the LV
-    LV_list[['LV_sign']] = LV_list[['LV_sign']].astype(str)
-    for jLV in np.arange(1,nLV+1):
-        LV_list['nLV_display'][jLV]=int(jLV)
-    LV_list[['nLV_display']] = LV_list[['nLV_display']].astype(int)
+        nLV = 14
 
-    
+    # initiate LV_list and set defaults
+    LV_list = pd.DataFrame(
+        index=np.arange(1, nLV + 1), columns={"LV_name", "LV_sign", "nLV_display"}
+    )
+    LV_list["LV_sign"] = "plus"  # no sign change when displaying the LV
+    LV_list[["LV_sign"]] = LV_list[["LV_sign"]].astype(str)
+    for jLV in np.arange(1, nLV + 1):
+        LV_list["nLV_display"][jLV] = int(jLV)
+    LV_list[["nLV_display"]] = LV_list[["nLV_display"]].astype(int)
+
     if RUN_DATE == "20200518":
-        for jLV in np.arange(1,nLV+1):
-            LV_list['LV_name'].loc[jLV]=LV_names_20200518[jLV]
-            LV_list['LV_sign'].loc[jLV]="plus"
-            
-            
+        for jLV in np.arange(1, nLV + 1):
+            LV_list["LV_name"].loc[jLV] = LV_names_20200518[jLV]
+            LV_list["LV_sign"].loc[jLV] = "plus"
+
     elif RUN_DATE == "20200821":
 
-        LV_list['LV_name'].loc[1]=LV_names_20200518[1]
-        if DISPLAY_VERSION=="Draft":
-            LV_list['LV_sign'].loc[1]="minus"
-        elif DISPLAY_VERSION=="Final":
-            LV_list['LV_sign'].loc[1]="plus"
-            
-        LV_list['LV_name'].loc[2]=LV_names_20200518[6]
-        if DISPLAY_VERSION=="Draft":
-            LV_list['LV_sign'].loc[2]="minus"
-            LV_list['nLV_display'].loc[2]=6
-        elif DISPLAY_VERSION=="Final":
-            LV_list['LV_sign'].loc[2]="plus" # to have Accumulation mode positive
-            
-        LV_list['LV_name'].loc[3]=LV_names_20200518[2]
-        if DISPLAY_VERSION=="Draft":
-            LV_list['LV_sign'].loc[3]="minus"
-            LV_list['nLV_display'].loc[3]=2
-        elif DISPLAY_VERSION=="Final":
-            LV_list['LV_sign'].loc[3]="plus" 
-        
-        LV_list['LV_name'].loc[4]=LV_names_20200518[4] #"Precipitation"
-        if DISPLAY_VERSION=="Draft":
-            LV_list['LV_sign'].loc[4]="plus" # 
-        elif DISPLAY_VERSION=="Final":
-            LV_list['LV_sign'].loc[4]="minus" # to have rain positive
-            
-        LV_list['LV_name'].loc[5]=LV_names_20200518[5]#"Distance to land"
-        if DISPLAY_VERSION=="Draft":
-            LV_list['LV_sign'].loc[5]="plus"
-        elif DISPLAY_VERSION=="Final":
-            LV_list['LV_sign'].loc[5]="minus"
+        LV_list["LV_name"].loc[1] = LV_names_20200518[1]
+        if DISPLAY_VERSION == "Draft":
+            LV_list["LV_sign"].loc[1] = "minus"
+        elif DISPLAY_VERSION == "Final":
+            LV_list["LV_sign"].loc[1] = "plus"
 
-        LV_list['LV_name'].loc[6]=LV_names_20200518[7]#"Iron-fertilized blooms"
-        if DISPLAY_VERSION=="Draft":
-            LV_list['LV_sign'].loc[6]="minus"
-            LV_list['nLV_display'].loc[6]=7
-        elif DISPLAY_VERSION=="Final":
-            LV_list['LV_sign'].loc[6]="minus"
-        
-        LV_list['LV_name'].loc[7]=LV_names_20200518[10]#"Seasonal signal"
+        LV_list["LV_name"].loc[2] = LV_names_20200518[6]
+        if DISPLAY_VERSION == "Draft":
+            LV_list["LV_sign"].loc[2] = "minus"
+            LV_list["nLV_display"].loc[2] = 6
+        elif DISPLAY_VERSION == "Final":
+            LV_list["LV_sign"].loc[2] = "plus"  # to have Accumulation mode positive
+
+        LV_list["LV_name"].loc[3] = LV_names_20200518[2]
+        if DISPLAY_VERSION == "Draft":
+            LV_list["LV_sign"].loc[3] = "minus"
+            LV_list["nLV_display"].loc[3] = 2
+        elif DISPLAY_VERSION == "Final":
+            LV_list["LV_sign"].loc[3] = "plus"
+
+        LV_list["LV_name"].loc[4] = LV_names_20200518[4]  # "Precipitation"
+        if DISPLAY_VERSION == "Draft":
+            LV_list["LV_sign"].loc[4] = "plus"  #
+        elif DISPLAY_VERSION == "Final":
+            LV_list["LV_sign"].loc[4] = "minus"  # to have rain positive
+
+        LV_list["LV_name"].loc[5] = LV_names_20200518[5]  # "Distance to land"
+        if DISPLAY_VERSION == "Draft":
+            LV_list["LV_sign"].loc[5] = "plus"
+        elif DISPLAY_VERSION == "Final":
+            LV_list["LV_sign"].loc[5] = "minus"
+
+        LV_list["LV_name"].loc[6] = LV_names_20200518[7]  # "Iron-fertilized blooms"
+        if DISPLAY_VERSION == "Draft":
+            LV_list["LV_sign"].loc[6] = "minus"
+            LV_list["nLV_display"].loc[6] = 7
+        elif DISPLAY_VERSION == "Final":
+            LV_list["LV_sign"].loc[6] = "minus"
+
+        LV_list["LV_name"].loc[7] = LV_names_20200518[10]  # "Seasonal signal"
         # leave LV to decrease with time
-        if DISPLAY_VERSION=="Draft":
-            LV_list['LV_sign'].loc[7]="plus"
-            LV_list['nLV_display'].loc[7]=10
-        
-        LV_list['LV_name'].loc[8]=LV_names_20200518[8]#"Iron-limited biological productivity" 
+        if DISPLAY_VERSION == "Draft":
+            LV_list["LV_sign"].loc[7] = "plus"
+            LV_list["nLV_display"].loc[7] = 10
+
+        LV_list["LV_name"].loc[8] = LV_names_20200518[
+            8
+        ]  # "Iron-limited biological productivity"
         # same same
-        LV_list['LV_sign'].loc[8]="plus"
+        LV_list["LV_sign"].loc[8] = "plus"
 
-        
-        LV_list['LV_name'].loc[9]=LV_names_20200518[9]#
-        LV_list['LV_sign'].loc[9]="plus"
+        LV_list["LV_name"].loc[9] = LV_names_20200518[9]  #
+        LV_list["LV_sign"].loc[9] = "plus"
 
-        
-        LV_list['LV_name'].loc[10]=LV_names_20200518[12]#"Diel cycle"
-        if DISPLAY_VERSION=="Draft":
-            LV_list['nLV_display'].loc[10]=12
-            LV_list['LV_sign'].loc[10]="plus"
-        elif DISPLAY_VERSION=="Final":
-            LV_list['LV_sign'].loc[10]="minus"
-            
-            
-        LV_list['LV_name'].loc[11]=LV_names_20200518[11]#"Surface nutrient concentrations associated with mixing events"
-        LV_list['LV_sign'].loc[11]="plus"
+        LV_list["LV_name"].loc[10] = LV_names_20200518[12]  # "Diel cycle"
+        if DISPLAY_VERSION == "Draft":
+            LV_list["nLV_display"].loc[10] = 12
+            LV_list["LV_sign"].loc[10] = "plus"
+        elif DISPLAY_VERSION == "Final":
+            LV_list["LV_sign"].loc[10] = "minus"
 
-        
-        LV_list['LV_name'].loc[12]=LV_names_20200518[3]#"Wind driven conditions and sea spray"
-        if DISPLAY_VERSION=="Draft":
-            LV_list['LV_sign'].loc[12]="plus"
-            LV_list['nLV_display'].loc[12]=3
-        elif DISPLAY_VERSION=="Final":
-            LV_list['LV_sign'].loc[12]="minus"
+        LV_list["LV_name"].loc[11] = LV_names_20200518[
+            11
+        ]  # "Surface nutrient concentrations associated with mixing events"
+        LV_list["LV_sign"].loc[11] = "plus"
 
-        LV_list['LV_name'].loc[13]=LV_names_20200518[14]
-        if DISPLAY_VERSION=="Draft":
-            LV_list['LV_sign'].loc[13]="minus"
-            LV_list['nLV_display'].loc[13]=14
-        elif DISPLAY_VERSION=="Final":
-            LV_list['LV_sign'].loc[13]="minus" # 
-            
-        LV_list['LV_name'].loc[14]=LV_names_20200518[13]
-        if DISPLAY_VERSION=="Draft":
-            LV_list['LV_sign'].loc[14]="minus"
-            LV_list['nLV_display'].loc[14]=13
-        elif DISPLAY_VERSION=="Final":
-            LV_list['LV_sign'].loc[14]="plus"
+        LV_list["LV_name"].loc[12] = LV_names_20200518[
+            3
+        ]  # "Wind driven conditions and sea spray"
+        if DISPLAY_VERSION == "Draft":
+            LV_list["LV_sign"].loc[12] = "plus"
+            LV_list["nLV_display"].loc[12] = 3
+        elif DISPLAY_VERSION == "Final":
+            LV_list["LV_sign"].loc[12] = "minus"
+
+        LV_list["LV_name"].loc[13] = LV_names_20200518[14]
+        if DISPLAY_VERSION == "Draft":
+            LV_list["LV_sign"].loc[13] = "minus"
+            LV_list["nLV_display"].loc[13] = 14
+        elif DISPLAY_VERSION == "Final":
+            LV_list["LV_sign"].loc[13] = "minus"  #
+
+        LV_list["LV_name"].loc[14] = LV_names_20200518[13]
+        if DISPLAY_VERSION == "Draft":
+            LV_list["LV_sign"].loc[14] = "minus"
+            LV_list["nLV_display"].loc[14] = 13
+        elif DISPLAY_VERSION == "Final":
+            LV_list["LV_sign"].loc[14] = "plus"
     return LV_list
 
 
 def get_category_colors(OV_Category):
     # definition of the observed variable categories
     Category_colors = np.unique(OV_Category)
-    Category_colors[np.unique(OV_Category)=='aerosols'] = "silver"
-    Category_colors[np.unique(OV_Category)=='biochem'] = "tab:red"
-    Category_colors[np.unique(OV_Category)=='dynamical'] = "cyan"
-    Category_colors[np.unique(OV_Category)=='heat'] = "yellow"
-    Category_colors[np.unique(OV_Category)=='hydrological'] = "deepskyblue" # 
-    Category_colors[np.unique(OV_Category)=='microbial'] = "green"
-    Category_colors[np.unique(OV_Category)=='optical'] = "magenta"
-    Category_colors[np.unique(OV_Category)=='particulate'] = "silver"
-    Category_colors[np.unique(OV_Category)=='physical'] = "darkblue" # 
-    Category_colors[np.unique(OV_Category)=='topography'] = "saddlebrown"
-    Category_colors[np.unique(OV_Category)=='tracegases'] = "orange"
+    Category_colors[np.unique(OV_Category) == "aerosols"] = "silver"
+    Category_colors[np.unique(OV_Category) == "biochem"] = "tab:red"
+    Category_colors[np.unique(OV_Category) == "dynamical"] = "cyan"
+    Category_colors[np.unique(OV_Category) == "heat"] = "yellow"
+    Category_colors[np.unique(OV_Category) == "hydrological"] = "deepskyblue"  #
+    Category_colors[np.unique(OV_Category) == "microbial"] = "green"
+    Category_colors[np.unique(OV_Category) == "optical"] = "magenta"
+    Category_colors[np.unique(OV_Category) == "particulate"] = "silver"
+    Category_colors[np.unique(OV_Category) == "physical"] = "darkblue"  #
+    Category_colors[np.unique(OV_Category) == "topography"] = "saddlebrown"
+    Category_colors[np.unique(OV_Category) == "tracegases"] = "orange"
     return Category_colors
-    
-def Mask_LV_Series(weights_lv, timeseries_lv, TopFrac=0.5, MinFracOfTopFrac=0.5):
+
+
+def Mask_LV_Series(weights_lv, timeseries_lv, data, TopFrac=0.5, MinFracOfTopFrac=0.5):
     # weights_lv, timeseries_lv as they come out of SPCA_align_bootstraps()
     # TopFrac=0.5 to use the to 50% larges OV weight medians as reference
     # MinFracOfTopFrac=0.5 to require that 50% of the TopFrac are present
-    
+
     ### LIST TOP 1-TOP_PC SORTED VARIABLES FOR EACH LV
-    med_w = np.median(weights_lv,axis=0) # median of the 20-bootstrap weights
-    num_ov = int(np.ceil( TopFrac * np.sum(med_w != 0))) # numer of OVs to count, here based on top most 25%
+    med_w = np.median(weights_lv, axis=0)  # median of the 20-bootstrap weights
+    num_ov = int(
+        np.ceil(TopFrac * np.sum(med_w != 0))
+    )  # numer of OVs to count, here based on top most 25%
     inds_var = np.argsort(-np.abs(med_w))[:num_ov]
     if 0:
         # remove cold_warm_mask cause it is never NaN
-        inds_var=np.delete(inds_var, np.where(inds_var == np.where(NAME_plot=='cold_warm_mask-p11')[0][0]))
-    n_min_ov = int( MinFracOfTopFrac * num_ov ) # require to have at least 50% of the selcted top most TopFrac*100%
-         
-    timeseries_lv = pd.DataFrame(timeseries_lv,index=data.index)
+        inds_var = np.delete(
+            inds_var,
+            np.where(inds_var == np.where(NAME_plot == "cold_warm_mask-p11")[0][0]),
+        )
+    n_min_ov = int(
+        MinFracOfTopFrac * num_ov
+    )  # require to have at least 50% of the selcted top most TopFrac*100%
+
+    blank = add_legs_index(data)["leg"].isna()
+
+    timeseries_lv = pd.DataFrame(timeseries_lv, index=data.index)
     t_s = timeseries_lv.copy()
-    t_s.loc[blank,:] = np.nan
+    t_s.loc[blank, :] = np.nan
     mu = t_s.mean(axis=1)
-    sigma = 2*t_s.std(axis=1)
-    
-    mu[( np.sum(~(data.iloc[:,inds_var[:]]==0.), axis=1)<n_min_ov )]=np.NaN
-   
+    sigma = 2 * t_s.std(axis=1)
+
+    mu[(np.sum(~(data.iloc[:, inds_var[:]] == 0.0), axis=1) < n_min_ov)] = np.NaN
+
     return mu, sigma
