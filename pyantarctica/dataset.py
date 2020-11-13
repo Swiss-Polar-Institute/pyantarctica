@@ -776,7 +776,8 @@ def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
         nLV = 15
     elif RUN_DATE in ["20200821"]:
         nLV = 14
-
+    elif RUN_DATE in ["20201104"]: # 720min run compare to 0821
+        nLV = 14
     # initiate LV_list and set defaults
     LV_list = pd.DataFrame(
         index=np.arange(1, nLV + 1), columns={"LV_name", "LV_sign", "nLV_display"}
@@ -888,6 +889,15 @@ def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
 def get_category_colors(OV_Category):
     # definition of the observed variable categories
     Category_colors = np.unique(OV_Category)
+    Category_colors[np.unique(OV_Category) == "Atm. dyn."] = "cyan"
+    Category_colors[np.unique(OV_Category) == "Atm. hydro."] = "darkblue"
+    Category_colors[np.unique(OV_Category) == "Atm. chem."] = "magenta"
+    Category_colors[np.unique(OV_Category) == "O. dyn."] = "cyan"
+    Category_colors[np.unique(OV_Category) == "O. hydro."] = "darkblue"
+    Category_colors[np.unique(OV_Category) == "O. biogeochem."] = "magenta"
+    Category_colors[np.unique(OV_Category) == "O. microb."] = "green"
+    Category_colors[np.unique(OV_Category) == "Topo."] = "saddlebrown"
+
     Category_colors[np.unique(OV_Category) == "aerosols"] = "silver"
     Category_colors[np.unique(OV_Category) == "biochem"] = "tab:red"
     Category_colors[np.unique(OV_Category) == "dynamical"] = "cyan"
