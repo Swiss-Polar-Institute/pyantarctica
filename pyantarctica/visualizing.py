@@ -748,7 +748,7 @@ def visualize_stereo_map(
             alpha=0.75,
             linewidth=0,
             label=labplot,
-            cmap=cmap,
+            cmap=cmap,vmin=min_va, vmax=max_va, # SL > added here to actually use the min max values for the color scale!
             zorder=2+1,
         )  #  , norm=norm
 
