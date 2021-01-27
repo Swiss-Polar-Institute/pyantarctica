@@ -735,24 +735,25 @@ def filter_parameters(
 
 
 def get_LV_names_20200518():
-    # LV names defined for the 20200821 run
-    # hardwired here
+    # LV names defined for the 20200518 run
+    # this list is used to assing LVs with the correct name e.g. in get_LV_list
+    # names updates on 27.01.2021 to compare with g-doc
     LV_names_20200518 = [
-        "LV names 20200821",  # LV0 to be able to count from 1
+        "LV names 20200518",  # LV0 to be able to count from 1
         "Climatic zones and large-scale horizontal gradients",  # LV1
         "Meridional cold and warm air advection",  # LV2
-        "Wind driven conditions and sea spray",  # LV3
+        "Wind-driven conditions and sea-spray aerosol",  # LV3
         "Precipitation vs. dry conditions",  # LV4
-        "Distance to land",  # LV5
-        "Aged secondary aerosol",  # LV6
-        "Iron-fertilized blooms",  # LV7
+        "Distance-to-land",  # LV5
+        "Drivers of CCN population",  # LV6 Aged secondary aerosol
+        "Iron-fertilized biological productivity",  # LV7
         "Iron-limited biological productivity",  # LV8
-        "Marginal sea ice zone",  # LV9
+        "Marginal sea ice zone and snowfall",  # LV9
         "Seasonal signal",  # LV10
-        "Surface nutrient concentrations associated with mixing events",  # LV11
+        "Surface nutrient concentrations associated with mixing events, climatic, and frontal zones",  # LV11
         "Diel cycle",  # LV12
-        "Atkinmode particles",  # LV13
-        "Cyclone flag and low pressure",  # LV14
+        "Climatic zones with local high-latitude hotspots",  # LV13
+        "Extratropical cyclone activity",  # LV14
         "Bio-aerosols particles",  # LV15
     ]
     return LV_names_20200518
@@ -879,10 +880,10 @@ def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
 
         LV_list["LV_name"].loc[14] = LV_names_20200518[13]
         if DISPLAY_VERSION == "Draft":
-            LV_list["LV_sign"].loc[14] = "minus"
+            LV_list["LV_sign"].loc[14] =  "minus" #"plus" #
             LV_list["nLV_display"].loc[14] = 13
         elif DISPLAY_VERSION == "Final":
-            LV_list["LV_sign"].loc[14] = "plus"
+            LV_list["LV_sign"].loc[14] =  "plus" #"minus" 
     return LV_list
 
 
@@ -898,17 +899,6 @@ def get_category_colors(OV_Category):
     Category_colors[np.unique(OV_Category) == "O. microb."] = "green"
     Category_colors[np.unique(OV_Category) == "Topo."] = "saddlebrown"
 
-    Category_colors[np.unique(OV_Category) == "aerosols"] = "silver"
-    Category_colors[np.unique(OV_Category) == "biochem"] = "tab:red"
-    Category_colors[np.unique(OV_Category) == "dynamical"] = "cyan"
-    Category_colors[np.unique(OV_Category) == "heat"] = "yellow"
-    Category_colors[np.unique(OV_Category) == "hydrological"] = "deepskyblue"  #
-    Category_colors[np.unique(OV_Category) == "microbial"] = "green"
-    Category_colors[np.unique(OV_Category) == "optical"] = "magenta"
-    Category_colors[np.unique(OV_Category) == "particulate"] = "silver"
-    Category_colors[np.unique(OV_Category) == "physical"] = "darkblue"  #
-    Category_colors[np.unique(OV_Category) == "topography"] = "saddlebrown"
-    Category_colors[np.unique(OV_Category) == "tracegases"] = "orange"
     return Category_colors
 
 

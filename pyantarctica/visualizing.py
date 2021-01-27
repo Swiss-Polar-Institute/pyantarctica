@@ -616,6 +616,8 @@ def visualize_stereo_map(
     set_in_ax=None,
     centercm=False,
     resample_time=None,
+    markeralpha=0.75,
+    markerframe=False,
 ):
     """
         Visualize data on a polar stereographic projection map using cartopy on matplotlib.
@@ -628,6 +630,8 @@ def visualize_stereo_map(
         :param min_va: min values to clip lower values (should be min of the series)
         :param max_va: max values to clip lower values (should be max of the series)
         :param plottype: (BETA) use different plotting tools (scatter or plot so far)
+        :param markeralpha: transparency of the marker defaults to 0.75
+        :param markerframe: adds a frame around the marker with width 1.2*markersize (only recomended with markeralpha=1), defaults to False
         :returns ax: figure handle.
         :returns ax: axes handles of the caropy map.
         :returns cbar: handle to the colorbar
@@ -738,6 +742,17 @@ def visualize_stereo_map(
             color="black",
             zorder=1+1,
         )
+        
+        if markerframe:
+            ax.scatter(
+                toplot.iloc[:, 1].values,
+                toplot.iloc[:, 0].values,
+                transform=geo_scatter, # geo, # SL > changed here this to faciliate the scatter plot for Cartopy==0.18.0
+                s=markersize*1.2,
+                color="black",
+                alpha=markeralpha,
+                zorder=1+1,
+            )  #  , norm=norm
 
         ax.scatter(
             toplot.iloc[:, 1].values,
@@ -745,7 +760,7 @@ def visualize_stereo_map(
             transform=geo_scatter, # geo, # SL > changed here this to faciliate the scatter plot for Cartopy==0.18.0
             c=toplot.iloc[:, 2].values,
             s=markersize,
-            alpha=0.75,
+            alpha=markeralpha, # added option to change the marker transparency
             linewidth=0,
             label=labplot,
             cmap=cmap,vmin=min_va, vmax=max_va, # SL > added here to actually use the min max values for the color scale!
