@@ -836,15 +836,11 @@ def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
             LV_list["LV_sign"].loc[6] = "minus"
 
         LV_list["LV_name"].loc[7] = LV_names_20200518[10]  # "Seasonal signal"
-        # leave LV to decrease with time
         if DISPLAY_VERSION == "Draft":
             LV_list["LV_sign"].loc[7] = "plus"
             LV_list["nLV_display"].loc[7] = 10
 
-        LV_list["LV_name"].loc[8] = LV_names_20200518[
-            8
-        ]  # "Iron-limited biological productivity"
-        # same same
+        LV_list["LV_name"].loc[8] = LV_names_20200518[8]  # "Iron-limited biological productivity"
         LV_list["LV_sign"].loc[8] = "plus"
 
         LV_list["LV_name"].loc[9] = LV_names_20200518[9]  #
@@ -857,14 +853,13 @@ def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
         elif DISPLAY_VERSION == "Final":
             LV_list["LV_sign"].loc[10] = "minus"
 
-        LV_list["LV_name"].loc[11] = LV_names_20200518[
-            11
-        ]  # "Surface nutrient concentrations associated with mixing events"
-        LV_list["LV_sign"].loc[11] = "plus"
+        LV_list["LV_name"].loc[11] = LV_names_20200518[11]  # "Surface nutrient conc."
+        if DISPLAY_VERSION == "Draft":
+            LV_list["LV_sign"].loc[11] = "plus"
+        elif DISPLAY_VERSION == "Final":
+            LV_list["LV_sign"].loc[11] = "minus"
 
-        LV_list["LV_name"].loc[12] = LV_names_20200518[
-            3
-        ]  # "Wind driven conditions and sea spray"
+        LV_list["LV_name"].loc[12] = LV_names_20200518[3]  # "Wind driven conditions and sea spray"
         if DISPLAY_VERSION == "Draft":
             LV_list["LV_sign"].loc[12] = "plus"
             LV_list["nLV_display"].loc[12] = 3
