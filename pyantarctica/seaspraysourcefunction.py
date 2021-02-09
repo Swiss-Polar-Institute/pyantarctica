@@ -350,7 +350,7 @@ def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=8
         # eq (4) in Slinn & Slinn 1980 but using vs(RH) in the not so "dry" turbulent flux layer
         vd = 1/( 1/(k_C_prime+vs) + 1/(k_D_prime+vs_98) - vs/(k_C_prime+vs)/(k_D_prime+vs_98))
 
-    if model=="williams_1982":
+    if model in ["williams_1982", "williams_1982-simplified"]:
         #Diff_effective = ?# D' effective diffusivity
         k_ss = 1/kappa*(ustar*ustar/U10)*(np.power(Sc,-0.5)+np.power(10,-3/St_98)) # Eq 12
         alpha_WCF = 1.7*np.power(10.,-6.)*np.power(U10,3.75)
@@ -367,6 +367,13 @@ def sea_salt_deposition_velocity(Dp_dry, rho_dry=2.017, h_ref=15., U10=10., RH=8
         B = k_m * ((1-alpha_WCF)*(k_as+k_ss)+(alpha_WCF)*(k_ab+k_bs)+vs) + (1-alpha_WCF)*(k_as+k_ss+vs_98)*alpha_WCF*(k_ab+k_bs+vs_98)
         
         vd = A/B*( (1-alpha_WCF)*(k_ss+vs_98)+k_m*alpha_WCF*(k_bs+vs_98)/(k_m+alpha_WCF*(k_ab+k_bs+vs_98)) ) + alpha_WCF*(k_bs+vs_98)*alpha_WCF*(k_ab+vs)/(k_m+alpha_WCF*(k_ab+k_bs+vs_98))
+
+    if model=="williams_1982-simplified":
+        # this achieves the same as the williams model equations just way simpler to read
+        # 
+        # vd = 1 / (r_a + R + r_a*R*vs) + vs
+        # with R = 1/(WCF*k_bs + (1-WCF)*k_ss)
+        vd = vs + 1/( 1/k_ax + 1/(alpha_WCF*k_bs+(1-alpha_WCF)*k_ss) + vs_98/k_ax/(alpha_WCF*k_bs+(1-alpha_WCF)*k_ss) )
         
     if 0:
         # ensuring the right shape what ever the input
