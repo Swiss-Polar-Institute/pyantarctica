@@ -26,6 +26,8 @@ from datetime import datetime, timedelta
 
 from pathlib import Path as Path
 
+from pyantarctica.dataset import add_legs_index as add_legs_index
+
 ##############################################################################################################
 
 def get_LV_names_20200518():
@@ -217,9 +219,78 @@ def Mask_LV_Series(weights_lv, timeseries_lv, data, TopFrac=0.5, MinFracOfTopFra
     timeseries_lv = pd.DataFrame(timeseries_lv, index=data.index)
     t_s = timeseries_lv.copy()
     t_s.loc[blank, :] = np.nan
+
     mu = t_s.mean(axis=1)
     sigma = 2 * t_s.std(axis=1)
 
     mu[(np.sum(~(data.iloc[:, inds_var[:]] == 0.0), axis=1) < n_min_ov)] = np.NaN
 
     return mu, sigma
+
+
+def adjust_island_labels_time_axis(port_islands, port_index):
+    x = port_islands.index[port_index]
+    isla_lat = port_islands.iloc[port_index].loc['Latitude_degN']
+    isla_lon = port_islands.iloc[port_index].loc['Longitude_degE']
+    isla_short_name = port_islands.iloc[port_index].loc['short_name']
+    isla_name = port_islands.iloc[port_index]['Island group or port name']
+    yscale=0.6
+    if (isla_short_name in ['CapeTown']) & (port_index == 0):
+        x=x+pd.to_timedelta('114H')+pd.to_timedelta('24H')
+    if isla_short_name in ['MarionPEI']:
+        isla_name = "Prince\nEdward\nIslands"
+        yscale=0.8
+        x=x-pd.to_timedelta('24H')
+    if isla_short_name in ['CrozetIs']:
+        x=x+pd.to_timedelta('24H')
+    if isla_short_name in ['Kerguelen']:
+        isla_name = "Kerguelen\nIslands"
+        yscale=0.7
+        x=x-pd.to_timedelta('24H')
+    if isla_short_name in ['HeardIs']:
+        isla_name = "Heard Islands"
+        yscale=0.8
+        x=x-0*pd.to_timedelta('24H')
+        
+    if (isla_short_name in ['Hobart']):
+        x=x+pd.to_timedelta('48H')
+        
+    if isla_short_name in ['MertzP']:
+        x=x-pd.to_timedelta('12H')
+        isla_name = "Mertz\nPolynya"
+    if isla_short_name in ['MertzG']:
+        x=x+pd.to_timedelta('24H')
+        isla_name = "Mertz\nGlacier"
+
+    if isla_short_name in ["PeterIIs"]:
+        isla_name = 'Peter I\nIslands';
+        yscale=0.75
+        x=x-pd.to_timedelta('24H')
+    if isla_short_name in ["DiegoRam"]:
+        isla_name = 'Diego\nRamírez\nIslands';
+        yscale=0.8
+        x=x-pd.to_timedelta('48H')
+    if isla_short_name in ["PuntaAre"]:
+        isla_name = 'Punta Arenas';
+        yscale=0.8
+        x=x+pd.to_timedelta('48H')
+        
+    if (isla_short_name in ['Bouvet']):
+        x=x+pd.to_timedelta('24H')
+
+    if isla_short_name in ['SouthSand']:
+        isla_name = "South\nSandwich\nIslands"
+        yscale=0.75
+    if (isla_short_name in ['CapeTown']) & (port_index == (len(port_islands)-1)):
+        x=x-pd.to_timedelta('24H')
+    
+    isla_color='saddlebrown'#'green'
+
+    if isla_short_name in ['MertzG']:
+        isla_color='cyan'
+    if isla_short_name in ['MertzP']:
+        isla_color='blue'
+    if isla_name in ['Cape Town', 'Punta Arenas', 'Hobart']:
+        isla_color='tab:red'
+    
+    return isla_name, isla_color, x, yscale
