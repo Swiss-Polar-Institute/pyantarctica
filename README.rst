@@ -58,7 +58,7 @@ From the Swiss Polar Institute Github Repository https://github.com/Swiss-Polar-
 Documentation
 *************
 
-Can be built with `sphinx`
+Can be built with `sphinx` `!TOTEST`
 
 Compatibility
 **************
