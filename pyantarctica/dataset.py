@@ -19,12 +19,12 @@ import numpy as np
 import pandas as pd
 import pickle
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
+# import matplotlib as mpl
+# import matplotlib.pyplot as plt
 
 from datetime import datetime, timedelta
 
-from pathlib import Path as Path
+from pathlib import Path
 
 ##############################################################################################################
 def parsetime(x):
@@ -324,7 +324,7 @@ from datetime import datetime, timedelta
 def match2series(ts, ts2match):
     """
         Function to crop/append to the series ts in order to have the same number of samples as ts2match
-        REQUIRES the two indicees to be same for ts2match and ts !!!
+        REQUIRES the two indices to be same for ts2match and ts !!!
         TODO add a warning if this is not the case!!!
         this is just a wrapper around pandas merge (import pandas as pd)
 
@@ -732,5 +732,4 @@ def filter_parameters(
             )
 
     return params
-
 

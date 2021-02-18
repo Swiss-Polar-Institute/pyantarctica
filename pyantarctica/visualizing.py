@@ -1,7 +1,7 @@
 #
-# Copyright 2017-2018 - Swiss Data Science Center (SDSC) and ACE-DATA/ASAID Project consortium. 
+# Copyright 2017-2018 - Swiss Data Science Center (SDSC) and ACE-DATA/ASAID Project consortium.
 # A partnership between École Polytechnique Fédérale de Lausanne (EPFL) and
-# Eidgenössische Technische Hochschule Zürich (ETHZ). Written within the scope 
+# Eidgenössische Technische Hochschule Zürich (ETHZ). Written within the scope
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -687,7 +687,9 @@ def visualize_stereo_map(
 
     # ortho = ccrs.Orthographic(central_longitude=0, central_latitude=-90)
     geo = ccrs.Geodetic()
-    geo_scatter = ccrs.PlateCarree() # SL > added this to faciliate the scatter plot for Cartopy==0.18.0 
+    geo_scatter = (
+        ccrs.PlateCarree()
+    )  # SL > added this to faciliate the scatter plot for Cartopy==0.18.0
     # ortho = ccrs.Orthographic(central_longitude=0, central_latitude=-90)
     # geo = ccrs.Geodetic()
     # prepare basemap
@@ -740,31 +742,33 @@ def visualize_stereo_map(
             transform=geo,
             linewidth=1,
             color="black",
-            zorder=1+1,
+            zorder=1 + 1,
         )
-        
+
         if markerframe:
             ax.scatter(
                 toplot.iloc[:, 1].values,
                 toplot.iloc[:, 0].values,
-                transform=geo_scatter, # geo, # SL > changed here this to faciliate the scatter plot for Cartopy==0.18.0
-                s=markersize*1.2,
+                transform=geo_scatter,  # geo, # SL > changed here this to faciliate the scatter plot for Cartopy==0.18.0
+                s=markersize * 1.2,
                 color="black",
                 alpha=markeralpha,
-                zorder=1+1,
+                zorder=1 + 1,
             )  #  , norm=norm
 
         ax.scatter(
             toplot.iloc[:, 1].values,
             toplot.iloc[:, 0].values,
-            transform=geo_scatter, # geo, # SL > changed here this to faciliate the scatter plot for Cartopy==0.18.0
+            transform=geo_scatter,  # geo, # SL > changed here this to faciliate the scatter plot for Cartopy==0.18.0
             c=toplot.iloc[:, 2].values,
             s=markersize,
-            alpha=markeralpha, # added option to change the marker transparency
+            alpha=markeralpha,  # added option to change the marker transparency
             linewidth=0,
             label=labplot,
-            cmap=cmap,vmin=min_va, vmax=max_va, # SL > added here to actually use the min max values for the color scale!
-            zorder=2+1,
+            cmap=cmap,
+            vmin=min_va,
+            vmax=max_va,  # SL > added here to actually use the min max values for the color scale!
+            zorder=2 + 1,
         )  #  , norm=norm
 
         # theta = np.linspace(0, 2*np.pi, 100)
@@ -774,7 +778,12 @@ def visualize_stereo_map(
         # ax.set_boundary(circle, transform=ax.transAxes)
 
         ax.gridlines(
-            draw_labels=True, linewidth=0.5, color="gray", alpha=0.5, linestyle="-", zorder=2,
+            draw_labels=True,
+            linewidth=0.5,
+            color="gray",
+            alpha=0.5,
+            linestyle="-",
+            zorder=2,
         )  # crs=ccrs.PlateCarree(),
 
         # Define gridline locations and draw the lines using cartopy's built-in gridliner:
@@ -811,7 +820,7 @@ def visualize_stereo_map(
             s=markersize,
             linewidth=0,
             label=labplot,
-            zorder=2+1,
+            zorder=2 + 1,
         )
         # im = m.plot(lon,lat,color=colors,linewidth=markersize,label=labplot)
     else:
@@ -1079,7 +1088,7 @@ def interactive_map(v1, options):
 
         :returns: interactive figure object
     """
-    
+
     import cartopy.crs as ccrs
     import holoviews as hv
     from holoviews import opts, dim

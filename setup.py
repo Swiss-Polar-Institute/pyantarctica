@@ -22,15 +22,7 @@ from setuptools import find_packages, setup
 # 'Cartopy==0.16.0',
 # 'geoviews',
 
-install_requires = [
-#'matplotlib',
-#'numpy',
-#'pandas==0.23.0',
-#'holoviews',
-#'bokeh',
-'airsea',
-#'pathlib'
-]
+install_requires = ["matplotlib", "numpy", "pandas", "airsea", "pathlib"]
 
 tests_require = []
 
@@ -41,23 +33,18 @@ setup(
     version="0.1.0",
     license="Apache License 2.0",
     url="",
-
     author="Michele Volpi, Swiss Data Science Center (SDSC, ETHZ and EPFL); Sebastian Landwehr (Extreme Environments Research Laboratory, EPFL)",
     author_email="michele.volpi@datascience.ch",
-
     description="Umbrella package for ACE-DATA ASAID (sub-)project(s).",
-    long_description=open('README.rst').read(),
-
+    long_description=open("README.rst").read(),
     packages=find_packages(),
     zip_safe=True,
-
     install_requires=install_requires,
     extras_require=extras_require,
-    tests_require=['pytest'],
-
+    tests_require=["pytest"],
     classifiers=[
-        'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-    ]
+        "License :: OSI Approved :: Apache Software License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+    ],
 )

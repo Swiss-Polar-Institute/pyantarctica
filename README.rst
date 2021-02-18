@@ -34,9 +34,11 @@ If you are using conda, first set up a conda environment:
     $ conda create --name ace-data python=3.6
     $ conda activate ace-data
 
+
+To use the visualization tools, `cartopy` needs to be manually installed depending on your OS. In most situations, `conda install -c conda-forge cartopy` should do. Visit https://scitools.org.uk/cartopy/docs/latest/installing.html#installing for more informations. 
+
 Install the pyanctarctica package
 *********************************
-
 
 From source:
 
@@ -61,7 +63,7 @@ Can be built with `sphinx`
 Compatibility
 **************
 
-Python 3.3 preferred, but not required. Only tested with python >= 3
+Python 3.6 preferred, but not required. Only tested with python >= 3
 
 License
 *******
