@@ -372,7 +372,7 @@ def resample_timeseries(
         :Example:
 
             ts_mean = dataset.resample_timeseries(ts, 15, how='mean')
-            # if you know that initial ts lable was on right of interval and resolution was 5min (e.g. aerosols)
+            # if you know that initial ts labels was on right of interval and resolution was 5min (e.g. aerosols)
             ts_mean = dataset.resample_timeseries(ts, 15, how='mean', old_label_pos='r', old_resolution=5)
 
     """
@@ -448,7 +448,12 @@ def resample_timeseries(
 
 
 def get_raw_param(
-    VarNameLUT="u10", META_FILE="../data/ASAID_DATA_OVERVIEW - Sheet1.csv"
+    VarNameLUT="u10",
+    FileNameLUT=None,
+    ProjFolder=None,
+    VarNameIntermediate=None,
+    META_FILE="../data/ASAID_DATA_OVERVIEW - Sheet1.csv",
+    FILEPATH=Path("../data/intermediate"),
 ):
 
     """
@@ -458,44 +463,58 @@ def get_raw_param(
         :param META_FILE: File containing pointers to files
         :returns: dataframe containing the time series
     """
+
+    FILEPATH = Path(FILEPATH)
     META_FILE = Path(META_FILE)
     META = pd.read_csv(META_FILE, sep=",")
 
-    Proj_folder = META["Proj"][META["VarNameLUT"] == VarNameLUT].values[0]
-    FilenameIntermediate = (
-        META["FilenameIntermediate"][META["VarNameLUT"] == VarNameLUT].values[0]
-        + "_parsed.csv"
-    )
-    VarNameIntermediate = META["VarNameIntermediate"][
-        META["VarNameLUT"] == VarNameLUT
-    ].values[0]
-    Resolution = META["Resolution"][META["VarNameLUT"] == VarNameLUT].values[0]
-    timest_loc = META["timest_loc"][META["VarNameLUT"] == VarNameLUT].values[0]
+    if ProjFolder:
+        Proj_folder = Path(ProjFolder)
+    else:
+        Proj_folder = Path(META["Proj"][META["VarNameLUT"] == VarNameLUT].values[0])
 
-    if FilenameIntermediate in [
+    if FileNameLUT:
+        FilenameIntermediate = Path(FileNameLUT)
+    else:
+        FilenameIntermediate = Path(
+            META["FilenameIntermediate"][META["VarNameLUT"] == VarNameLUT].values[0]
+            + "_parsed.csv"
+        )
+
+    if VarNameIntermediate:
+        VarNameIntermediate = VarNameIntermediate
+    else:
+        VarNameIntermediate = META["VarNameIntermediate"][
+            META["VarNameLUT"] == VarNameLUT
+        ].values[0]
+
+    # Resolution = META["Resolution"][META["VarNameLUT"] == VarNameLUT].values[0]
+    # timest_loc = META["timest_loc"][META["VarNameLUT"] == VarNameLUT].values[0]
+
+    # print(FILEPATH / Proj_folder / FilenameIntermediate)
+
+    if FilenameIntermediate.name in [
         "01_waves_recomputed_parsed.csv"
     ]:  # catch files not ending on parsed
         FilenameIntermediate = "01_waves_recomputed.csv"
-        var = read_standard_dataframe(
-            Path("..", "data", "intermediate", Proj_folder, FilenameIntermediate)
-        )[[VarNameIntermediate]]
-    elif FilenameIntermediate in [
+        var = read_standard_dataframe(FILEPATH / Proj_folder / FilenameIntermediate)[
+            [VarNameIntermediate]
+        ]
+    elif FilenameIntermediate.name in [
         "iDirac_Isoprene_MR_All_Legs_parsed.csv"
     ]:  # catch files not ending on parsed
         FilenameIntermediate = "iDirac_Isoprene_MR_All_Legs.csv"
-        var = read_standard_dataframe(
-            Path("..", "data", "intermediate", Proj_folder, FilenameIntermediate)
-        )[[VarNameIntermediate]]
-    elif FilenameIntermediate in ["02_hplc_pigments_parsed.csv"]:
-        var = read_standard_dataframe(
-            Path("..", "data", "intermediate", Proj_folder, FilenameIntermediate)
-        )
+        var = read_standard_dataframe(FILEPATH / Proj_folder / FilenameIntermediate)[
+            [VarNameIntermediate]
+        ]
+    elif FilenameIntermediate.name in ["02_hplc_pigments_parsed.csv"]:
+        var = read_standard_dataframe(FILEPATH / Proj_folder / FilenameIntermediate)
         var = var[var["Depth_m"] < 10]  # only use data from shallow depth <10meter
         var = var[[VarNameIntermediate]].sort_index()
     else:
-        var = read_standard_dataframe(
-            Path("..", "data", "intermediate", Proj_folder, FilenameIntermediate)
-        )[[VarNameIntermediate]]
+        var = read_standard_dataframe(FILEPATH / Proj_folder / FilenameIntermediate)[
+            [VarNameIntermediate]
+        ]
     var.rename(columns={VarNameIntermediate: VarNameLUT}, inplace=True)
 
     var.sort_index(inplace=True)
@@ -509,6 +528,7 @@ def filter_parameters(
     META_FILE="../data/ASAID_DATA_OVERVIEW - Sheet1.csv",
     INTERPOLATE_limit=0,
     FILTER_LOD_OUTLIERS=True,
+    FILEPATH=Path("../data/intermediate"),
 ):
     """
         Function to read paramters for one LV experiment based on META_FILE
@@ -532,6 +552,7 @@ def filter_parameters(
         LV_params = list(META["VarNameLUT"].dropna().values)
     else:
         # define parameter list from ASAID_DATA_OVERVIEW.csv
+        META = META.loc[META["LatentVar" + str(LV_param_set_Index)] == 1.0, :]
         LV_params = list(
             META["VarNameLUT"][
                 META["LatentVar" + str(LV_param_set_Index)] == 1.0
@@ -569,7 +590,14 @@ def filter_parameters(
         #    var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
         #
         # use get_raw_param here, instead of dublicating code. It is a bit overkill of releoding META_FILE each time. Could change to handing META over to get_raw_param instead of the file name
-        var = get_raw_param(VarNameLUT=VarNameLUT, META_FILE=META_FILE)
+        var = get_raw_param(
+            VarNameLUT=VarNameLUT,
+            FileNameLUT=FilenameIntermediate,
+            VarNameIntermediate=VarNameIntermediate,
+            ProjFolder=Proj_folder,
+            META_FILE=META_FILE,
+            FILEPATH=FILEPATH,
+        )
 
         if VarNameIntermediate in ["seaice"]:
             # for sea ice interpolate only values, where the interpolation results to 0 values
