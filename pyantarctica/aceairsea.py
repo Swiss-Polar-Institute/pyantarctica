@@ -227,6 +227,7 @@ def coare_u2ustar(
         :returns: u: ouput velocity scale either u* or u(z) depending on the param input_string
         
     """
+    import numpy as np
 
     z0 = 1e-4  # default roughness length (could calculate this using first guess charnock and ustar)
 
@@ -239,7 +240,6 @@ def coare_u2ustar(
     if type(zeta) != np.ndarray:
         zeta = np.asarray([zeta])
 
-    import numpy as np
 
     if input_string == "ustar2u":
         ustar = u
