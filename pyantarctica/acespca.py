@@ -71,7 +71,7 @@ def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
     # set the number of LVs based on the rundate
     if RUN_DATE in ["20200518"]:
         nLV = 15
-    elif RUN_DATE in ["20200821"]:
+    elif RUN_DATE in ["20200821", "20210308"]:
         nLV = 14
     elif RUN_DATE in ["20201104"]: # 720min run compare to 0821
         nLV = 14
@@ -90,7 +90,7 @@ def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
             LV_list["LV_name"].loc[jLV] = LV_names_20200518[jLV]
             LV_list["LV_sign"].loc[jLV] = "plus"
 
-    elif RUN_DATE == "20200821":
+    elif RUN_DATE in ["20200821", "20210308"]:
 
         LV_list["LV_name"].loc[1] = LV_names_20200518[1]
         if DISPLAY_VERSION == "Draft":
@@ -192,6 +192,25 @@ def get_category_colors(OV_Category):
 
     return Category_colors
 
+def get_category_long_name(category_short_name):
+    # definition of long names for the observed variable categories
+    if category_short_name == "Atm. dyn.":
+        get_category_long_name = "Atmospheric dynamics and thermodynamics"
+    if category_short_name == "Atm. hydro.":
+        get_category_long_name = "Atmospheric side of the hydrological cycle"
+    if category_short_name == "Atm. chem.":
+        get_category_long_name = "Atmospheric chemistry"
+    if category_short_name == "O. dyn.":
+        get_category_long_name = "Oceanic dynamics and thermodynamics"
+    if category_short_name == "O. hydro.":
+        get_category_long_name = "Oceanic side of the hydrological cycle"
+    if category_short_name == "O. biogeochem.":
+        get_category_long_name = "Ocean biogeochemistry"
+    if category_short_name == "O. microb.":
+        get_category_long_name = "Ocean microbial community"
+    if category_short_name == "Topo.":
+        get_category_long_name = "Topography"
+    return get_category_long_name
 
 def Mask_LV_Series(weights_lv, timeseries_lv, data, TopFrac=0.5, MinFracOfTopFrac=0.5):
     # weights_lv, timeseries_lv as they come out of SPCA_align_bootstraps()
