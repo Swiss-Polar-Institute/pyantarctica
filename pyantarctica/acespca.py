@@ -71,7 +71,7 @@ def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
     # set the number of LVs based on the rundate
     if RUN_DATE in ["20200518"]:
         nLV = 15
-    elif RUN_DATE in ["20200821"]:
+    elif RUN_DATE in ["20200821", "20210308", "20210309"]:
         nLV = 14
     elif RUN_DATE in ["20201104"]: # 720min run compare to 0821
         nLV = 14
@@ -90,7 +90,7 @@ def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
             LV_list["LV_name"].loc[jLV] = LV_names_20200518[jLV]
             LV_list["LV_sign"].loc[jLV] = "plus"
 
-    elif RUN_DATE == "20200821":
+    elif RUN_DATE in ["20200821", "20210308", "20210309"]:
 
         LV_list["LV_name"].loc[1] = LV_names_20200518[1]
         if DISPLAY_VERSION == "Draft":
@@ -192,6 +192,25 @@ def get_category_colors(OV_Category):
 
     return Category_colors
 
+def get_category_long_name(category_short_name):
+    # definition of long names for the observed variable categories
+    if category_short_name == "Atm. dyn.":
+        get_category_long_name = "Atmospheric dynamics and thermodynamics"
+    if category_short_name == "Atm. hydro.":
+        get_category_long_name = "Atmospheric side of the hydrological cycle"
+    if category_short_name == "Atm. chem.":
+        get_category_long_name = "Atmospheric chemistry"
+    if category_short_name == "O. dyn.":
+        get_category_long_name = "Oceanic dynamics and thermodynamics"
+    if category_short_name == "O. hydro.":
+        get_category_long_name = "Oceanic side of the hydrological cycle"
+    if category_short_name == "O. biogeochem.":
+        get_category_long_name = "Ocean biogeochemistry"
+    if category_short_name == "O. microb.":
+        get_category_long_name = "Ocean microbial community"
+    if category_short_name == "Topo.":
+        get_category_long_name = "Topography"
+    return get_category_long_name
 
 def Mask_LV_Series(weights_lv, timeseries_lv, data, TopFrac=0.5, MinFracOfTopFrac=0.5):
     # weights_lv, timeseries_lv as they come out of SPCA_align_bootstraps()
@@ -234,9 +253,10 @@ def adjust_island_labels_time_axis(port_islands, port_index):
     isla_lon = port_islands.iloc[port_index].loc['Longitude_degE']
     isla_short_name = port_islands.iloc[port_index].loc['short_name']
     isla_name = port_islands.iloc[port_index]['Island group or port name']
-    yscale=0.6
+    yscale=0.6 # this is only used in Figure 2 in the plot which is overleayed with the ships speed and distance to land
     if (isla_short_name in ['CapeTown']) & (port_index == 0):
         x=x+pd.to_timedelta('114H')+pd.to_timedelta('24H')
+        yscale=0.2
     if isla_short_name in ['MarionPEI']:
         isla_name = "Prince\nEdward\nIslands"
         yscale=0.8
@@ -248,20 +268,21 @@ def adjust_island_labels_time_axis(port_islands, port_index):
         yscale=0.7
         x=x-pd.to_timedelta('24H')
     if isla_short_name in ['HeardIs']:
-        isla_name = "Heard Islands"
+        isla_name = "Heard\nIslands"
         yscale=0.8
-        x=x-0*pd.to_timedelta('24H')
+        x=x-1*pd.to_timedelta('24H')
         
     if (isla_short_name in ['Hobart']):
         x=x+pd.to_timedelta('48H')
         
     if isla_short_name in ['MertzP']:
-        x=x-pd.to_timedelta('12H')
+        x=x-pd.to_timedelta('12H')-pd.to_timedelta('12H')
         isla_name = "Mertz\nPolynya"
+        yscale=0.75
     if isla_short_name in ['MertzG']:
-        x=x+pd.to_timedelta('24H')
+        x=x+pd.to_timedelta('24H')-pd.to_timedelta('6H')
         isla_name = "Mertz\nGlacier"
-
+        yscale=0.75
     if isla_short_name in ["PeterIIs"]:
         isla_name = 'Peter I\nIslands';
         yscale=0.75
@@ -272,7 +293,7 @@ def adjust_island_labels_time_axis(port_islands, port_index):
         x=x-pd.to_timedelta('48H')
     if isla_short_name in ["PuntaAre"]:
         isla_name = 'Punta Arenas';
-        yscale=0.8
+        yscale=0.6
         x=x+pd.to_timedelta('48H')
         
     if (isla_short_name in ['Bouvet']):
@@ -283,14 +304,81 @@ def adjust_island_labels_time_axis(port_islands, port_index):
         yscale=0.75
     if (isla_short_name in ['CapeTown']) & (port_index == (len(port_islands)-1)):
         x=x-pd.to_timedelta('24H')
-    
+        yscale=0.7
     isla_color='saddlebrown'#'green'
 
     if isla_short_name in ['MertzG']:
-        isla_color='cyan'
+        isla_color='deepskyblue'
     if isla_short_name in ['MertzP']:
         isla_color='blue'
+    if isla_short_name in ['HeardIs', 'BallenyIs', 'ScottIs', "PeterIIs", 'Bouvet']:
+        isla_color='dodgerblue'
     if isla_name in ['Cape Town', 'Punta Arenas', 'Hobart']:
         isla_color='tab:red'
     
     return isla_name, isla_color, x, yscale
+
+def adjust_island_labels_geo_axis(port_islands, port_index):
+
+    isla_lat = port_islands.iloc[port_index].loc['Latitude_degN']
+    isla_lon = port_islands.iloc[port_index].loc['Longitude_degE']
+    isla_short_name = port_islands.iloc[port_index].loc['short_name']
+    isla_name = port_islands.iloc[port_index]['Island group or port name'] #[port_islands.columns[0]]
+    isla_color='saddlebrown'#'green'
+    isla_horz='left'
+    isla_vert='top'
+    isla_rotation=0
+
+    if isla_short_name in ['MertzG']:
+        isla_color='deepskyblue'
+    if isla_short_name in ['MertzP']:
+        isla_color='blue'
+    if isla_short_name in ['HeardIs', 'BallenyIs', 'ScottIs', "PeterIIs", 'Bouvet']:
+        isla_color='dodgerblue'
+    if isla_name in ['Cape Town', 'Punta Arenas', 'Hobart']:
+        isla_color='tab:red'
+
+    if isla_short_name in ['MertzG']:
+        isla_rotation = 45+15# -90
+        isla_horz='left'
+        #isla_vert='top' #
+        isla_vert='bottom'
+    if isla_short_name in ['MertzP']:
+        isla_horz='left'
+        isla_vert='center'
+    if isla_name in ['Cape Town', 'Punta Arenas', 'Kerguelen Islands']:
+        isla_vert='center'
+    if isla_short_name in ['CapeTown', 'PuntaAre', 'MarionPEI', 'HeardIs', 'ScottIs',
+                     'Heard Island', 'SGeorgia', 'Bouvet',
+                     'SipleIs']: #'PeterIIs', 
+        isla_horz='right'
+    if isla_short_name in ['MarionPEI']:
+        isla_rotation = 15
+        isla_rotation = 0
+    if isla_short_name in ['Bouvet', 'SGeorgia', 'Kerguelen', 'HeardIs', 'PeterIIs', 'Hobart']:
+        isla_vert='bottom'
+    #if isla_name in ['St Andrews Bay']:
+    #    isla_vert='top'
+    if isla_name in ['Balleny Islands']: #, 'Young Island'
+        isla_rotation = 90
+        isla_name = "Balleny \n Islands "
+        isla_horz='center'
+    if isla_name in ['Diego Ramírez Islands', 'Siple Island', 'Scott Island', 'Punta Arenas']: #, 'Hobart' 'Peter I Island'
+        isla_rotation = 45
+        isla_horz='right'
+        isla_vert='top'
+
+    if isla_short_name in ['SouthSand']:
+        isla_name = "South Sandwich \n  Islands"
+    if isla_short_name in ['PeterIIs']:
+        isla_name = "    Peter I Island "
+    if isla_short_name in ['MarionPEI']:
+        isla_name = "Prince \n    Edward \n   Islands "
+    if isla_short_name in ['Kerguelen']:
+        isla_name = "Kerguelen \n  Islands "
+    if isla_short_name in ['CapeTown', 'PuntaAre', 'SGeorgia']:
+        isla_name = "  "+isla_name+"   "
+    else:
+        isla_name = "  "+isla_name+" "
+        
+    return isla_name, isla_color, isla_lon, isla_lat, isla_horz, isla_vert, isla_rotation
