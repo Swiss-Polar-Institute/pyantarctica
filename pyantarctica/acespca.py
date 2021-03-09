@@ -71,7 +71,7 @@ def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
     # set the number of LVs based on the rundate
     if RUN_DATE in ["20200518"]:
         nLV = 15
-    elif RUN_DATE in ["20200821", "20210308"]:
+    elif RUN_DATE in ["20200821", "20210308", "20210309"]:
         nLV = 14
     elif RUN_DATE in ["20201104"]: # 720min run compare to 0821
         nLV = 14
@@ -90,7 +90,7 @@ def get_LV_list(RUN_DATE="20200821", DISPLAY_VERSION="Draft"):
             LV_list["LV_name"].loc[jLV] = LV_names_20200518[jLV]
             LV_list["LV_sign"].loc[jLV] = "plus"
 
-    elif RUN_DATE in ["20200821", "20210308"]:
+    elif RUN_DATE in ["20200821", "20210308", "20210309"]:
 
         LV_list["LV_name"].loc[1] = LV_names_20200518[1]
         if DISPLAY_VERSION == "Draft":
