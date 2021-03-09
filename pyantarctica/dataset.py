@@ -17,7 +17,9 @@
 
 import numpy as np
 import pandas as pd
-import pickle
+from pandas.tseries.frequencies import to_offset
+
+# import pickle
 
 # import matplotlib as mpl
 # import matplotlib.pyplot as plt
@@ -441,9 +443,23 @@ def resample_timeseries(
     ts_resampled = ts.copy()
     ts_resampled.index = ts_resampled.index + ts_offset
     # resample with desired offset (the loffset changes the lable after resample has acted on the time series)
+    # TODO UPDATE NEW PANDAS: WAS
     ts_resampled = ts_resampled.resample(
         str(time_bin) + "T", loffset=rs_loffset
     ).aggregate(how)
+    # SHOULD BE NOW
+    # ts_resampled = ts_resampled.resample(str(time_bin) + "T").aggregate(how)
+    # ts_resampled.index = ts_resampled.index + to_offset(rs_loffset)
+
+    # FROM PANDAS:
+    # >>> df.resample(freq="3s", loffset="8H")
+
+    # becomes:
+
+    # >>> from pandas.tseries.frequencies import to_offset
+    # >>> df = df.resample(freq="3s").mean()
+    # >>> df.index = df.index.to_timestamp() + to_offset("8H")
+
     return ts_resampled
 
 
@@ -601,7 +617,7 @@ def filter_parameters(
 
         if VarNameIntermediate in ["seaice"]:
             # for sea ice interpolate only values, where the interpolation results to 0 values
-            # we don't interpolate accross the strech of missing data where the ship was parked at the Mertz glacier
+            # we don't interpolate accross the stretch of missing data where the ship was parked at the Mertz glacier
             var.at[
                 (
                     np.isnan(var[var.columns[0]])
