@@ -48,7 +48,7 @@ def get_LV_names_20200518():
         "Seasonal signal",  # LV10
         "Surface nutrient concentrations associated with mixing events, climatic, and frontal zones",  # LV11
         "Diel cycle",  # LV12
-        "Climatic zones with local high-latitude hotspots",  # LV13
+        "Climatic zones with local high latitude hotspots",  # LV13
         "Extratropical cyclone activity",  # LV14
         "Bio-aerosols particles",  # LV15
     ]
