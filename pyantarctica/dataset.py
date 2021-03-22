@@ -605,7 +605,7 @@ def filter_parameters(
         # else:
         #    var = read_standard_dataframe(Path('..','data','intermediate',Proj_folder,FilenameIntermediate))[[VarNameIntermediate]]
         #
-        # use get_raw_param here, instead of dublicating code. It is a bit overkill of releoding META_FILE each time. Could change to handing META over to get_raw_param instead of the file name
+        # use get_raw_param here, instead of duplicating code. It is a bit overkill of reloading META_FILE each time. Could change to handing META over to get_raw_param instead of the file name
         var = get_raw_param(
             VarNameLUT=VarNameLUT,
             FileNameLUT=FilenameIntermediate,
