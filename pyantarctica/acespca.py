@@ -38,10 +38,10 @@ def get_LV_names_20200518():
         "LV names 20200518",  # LV0 to be able to count from 1
         "Climatic zones and large-scale horizontal gradients",  # LV1
         "Meridional cold and warm air advection",  # LV2
-        "Wind-driven conditions and sea-spray aerosol",  # LV3
+        "Wind driven conditions and sea spray aerosol",  # LV3
         "Precipitation vs. dry conditions",  # LV4
-        "Distance-to-land",  # LV5
-        "Drivers of CCN population",  # LV6 Aged secondary aerosol
+        "Distance to land",  # LV5
+        "Drivers of cloud condensation nuclei population",  # LV6 Aged secondary aerosol
         "Iron-fertilized biological productivity",  # LV7
         "Iron-limited biological productivity",  # LV8
         "Marginal sea ice zone and snowfall",  # LV9
