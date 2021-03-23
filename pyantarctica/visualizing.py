@@ -618,6 +618,7 @@ def visualize_stereo_map(
     resample_time=None,
     markeralpha=0.75,
     markerframe=False,
+    linewidth=2,
 ):
     """
         Visualize data on a polar stereographic projection map using cartopy on matplotlib.
@@ -740,7 +741,7 @@ def visualize_stereo_map(
             gps.iloc[:, 1],
             gps.iloc[:, 0],
             transform=geo,
-            linewidth=1,
+            linewidth=linewidth,
             color="black",
             zorder=1 + 1,
         )
